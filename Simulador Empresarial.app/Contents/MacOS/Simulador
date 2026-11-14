@@ -1,0 +1,20 @@
+#!/bin/bash
+# Simulador Empresarial: abre em janela de aplicativo (Chrome/Edge em modo app, perfil próprio).
+HERE="$(cd "$(dirname "$0")" && pwd)"
+# app nativo compilado (Compilar app nativo.command): usa ele; senão, Chrome em modo app
+[ -x "$HERE/SimuladorNativo" ] && exec "$HERE/SimuladorNativo"
+RES="$HERE/../Resources"
+PROJ="$(cd "$HERE/../../.." && pwd)"
+HTML="$PROJ/simulador/index.html"
+[ -f "$HTML" ] || HTML="$RES/index.html"
+SUP="$HOME/Library/Application Support/Simulador Enividia"
+PROFILE="$SUP/navegador"
+mkdir -p "$SUP"
+# encerra sobras: tentativa de janela nativa travada e cópia anterior sem janela
+pkill -f "Resources/main.js" 2>/dev/null
+pkill -f "user-data-dir=$PROFILE" 2>/dev/null && sleep 1
+URL="file://$(printf '%s' "$HTML" | sed -e 's/%/%25/g' -e 's/ /%20/g')"
+for B in "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"; do
+  [ -x "$B" ] && exec "$B" --app="$URL" --user-data-dir="$PROFILE" --no-first-run --no-default-browser-check
+done
+open "$HTML"

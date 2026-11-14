@@ -1,0 +1,8 @@
+ui=open('/home/claude/sim/ui.html').read()
+eng=open('/home/claude/sim/engine.js').read()
+lib=open('/home/claude/sim/node_modules/xlsx/dist/xlsx.core.min.js').read().replace('</script','<\\/script')
+init=open('/home/claude/sim/initial_p5.json').read().replace('</','<\\/')
+bots=open('/home/claude/sim/bots.js').read()
+out=ui.replace('/*BOTS*/',bots,1).replace('/*XLSX*/',lib,1).replace('/*ENGINE*/',eng,1).replace('/*INITIAL*/',init,1)
+open('/home/claude/sim/index.html','w').write(out)
+print(len(out))
