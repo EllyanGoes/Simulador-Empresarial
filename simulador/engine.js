@@ -180,7 +180,7 @@
     const N = p.nCompanies, nR = N + 1, own = p.ownRegion - 1;
     const rep = { period: t, warnings: warn };
 
-    for (const j of PR) d.price[j].forEach((v, r) => { if (v < RULES.minPrice[j]) warn.push(`${NAME[j]}: preço na R${r + 1} abaixo do mínimo de $${RULES.minPrice[j]}.`); });
+    for (const j of PR) d.price[j] = d.price[j].map((v, r) => { if (v < RULES.minPrice[j]) { warn.push(`${NAME[j]}: preço na R${r + 1} abaixo do mínimo de $${RULES.minPrice[j]}; ajustado.`); return RULES.minPrice[j]; } return v; });
     const salMin = p.salaryMin || RULES.salaryMin;
     if (+d.salary < salMin) warn.push(`Salário-hora abaixo do mínimo obrigatório ($${salMin}); ajustado.`);
     d.salary = clamp(+d.salary || salMin, salMin, RULES.salaryMax);
@@ -328,6 +328,8 @@
       pc[j].total = pc[j].materiais + pc[j].mod + pc[j].energia + pc[j].cif;
       pc[j].unit = prod[j] ? pc[j].total / prod[j] : 0;
     }
+    { const z = PR.filter((j) => !prod[j]), nz = PR.filter((j) => prod[j]);
+      if (z.length === 1 && nz.length === 1) { const a = z[0], o = nz[0]; pc[o].cif += pc[a].cif; pc[o].total += pc[a].cif; pc[o].unit = pc[o].total / prod[o]; pc[a].cif = 0; pc[a].total = pc[a].materiais + pc[a].mod + pc[a].energia; } }
     const cifTot = sum(Object.values(cif));
     const noProd = prod.P + prod.W === 0;
     for (const j of PR) if (prod[j]) { s.stock[j].q += prod[j]; s.stock[j].v += pc[j].total; mov[j].fabricado = { q: prod[j], v: pc[j].total }; }
@@ -481,8 +483,8 @@
     const avgA = s.assetsSum / s.assetsCount;
     rep.balance = bs;
     rep.production = { prod, limits, normalH, vacH, otH, trainH, strikeH, availH, opUsed, opIndex: s.opIndex, mi, sat, satAvg, strike, hourCost };
-    rep.costs = { pc, cif, cifTot, direct, energy, unabsorbed };
-    rep.kpi = { lucroLiquido: net, resultadoAcumulado: s.accResult, ativoMedio: avgA, plMedio: avgPL, rpl: avgPL ? s.accResult / avgPL : 0, raa: s.accResult / avgA, margem: gross ? net / gross : 0 };
+    rep.costs = { pc, cif, cifTot, direct, energy, unabsorbed, machDep, vehDep };
+    rep.kpi = { lucroLiquido: net, resultadoAcumulado: s.accResult, ativoMedio: avgA, plMedio: avgPL, rpl: avgPL ? s.accResult / avgPL : 0, raa: s.accResult / avgA, margem: netRev ? net / netRev : 0 };
     // Manual 13.1: limite ~ patrimônio líquido; risco pelo endividamento e pela rentabilidade (faixas aproximadas dos relatórios reais)
     { const debt = sum(s.loans.map((L) => loanBalance(L, t + 1))), lev = bs.pl > 0 ? debt / bs.pl : 9;
       s.creditLimit = Math.max(0, bs.pl);

@@ -229,7 +229,7 @@
 
   function summary(rep, dec) {
     const k = rep.kpi;
-    return { period: rep.period, raa: k.raa, acc: k.resultadoAcumulado, net: rep.dre.lucroLiquido, rev: rep.dre.receitaBruta, cash: rep.cashflow.final, esp: rep.cashflow.especial,
+    return { period: rep.period, raa: k.raa, acc: k.resultadoAcumulado, net: rep.dre.lucroLiquido, rev: rep.dre.receitaBruta, revL: rep.dre.receitaLiquida, cash: rep.cashflow.final, esp: rep.cashflow.especial,
       price: { P: dec.price.P.slice(), W: dec.price.W.slice() }, sales: { P: rep.sales.P.qty, W: rep.sales.W.qty }, demand: { P: rep.sales.P.demand, W: rep.sales.W.demand },
       share: { P: rep.sales.P.regions.map((x) => x.share), W: rep.sales.W.regions.map((x) => x.share) },
       ads: { P: dec.ads.P.slice(), W: dec.ads.W.slice() }, term: { P: E.termDays(dec.term.P), W: E.termDays(dec.term.W) }, di: { P: dec.di.P, W: dec.di.W },

@@ -517,7 +517,7 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
     const N = p.nCompanies, nR = N + 1, own = p.ownRegion - 1;
     const rep = { period: t, warnings: warn };
 
-    for (const j of PR) d.price[j].forEach((v, r) => { if (v < RULES.minPrice[j]) warn.push(`${NAME[j]}: preço na R${r + 1} abaixo do mínimo de $${RULES.minPrice[j]}.`); });
+    for (const j of PR) d.price[j] = d.price[j].map((v, r) => { if (v < RULES.minPrice[j]) { warn.push(`${NAME[j]}: preço na R${r + 1} abaixo do mínimo de $${RULES.minPrice[j]}; ajustado.`); return RULES.minPrice[j]; } return v; });
     const salMin = p.salaryMin || RULES.salaryMin;
     if (+d.salary < salMin) warn.push(`Salário-hora abaixo do mínimo obrigatório ($${salMin}); ajustado.`);
     d.salary = clamp(+d.salary || salMin, salMin, RULES.salaryMax);
@@ -665,6 +665,8 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
       pc[j].total = pc[j].materiais + pc[j].mod + pc[j].energia + pc[j].cif;
       pc[j].unit = prod[j] ? pc[j].total / prod[j] : 0;
     }
+    { const z = PR.filter((j) => !prod[j]), nz = PR.filter((j) => prod[j]);
+      if (z.length === 1 && nz.length === 1) { const a = z[0], o = nz[0]; pc[o].cif += pc[a].cif; pc[o].total += pc[a].cif; pc[o].unit = pc[o].total / prod[o]; pc[a].cif = 0; pc[a].total = pc[a].materiais + pc[a].mod + pc[a].energia; } }
     const cifTot = sum(Object.values(cif));
     const noProd = prod.P + prod.W === 0;
     for (const j of PR) if (prod[j]) { s.stock[j].q += prod[j]; s.stock[j].v += pc[j].total; mov[j].fabricado = { q: prod[j], v: pc[j].total }; }
@@ -818,8 +820,8 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
     const avgA = s.assetsSum / s.assetsCount;
     rep.balance = bs;
     rep.production = { prod, limits, normalH, vacH, otH, trainH, strikeH, availH, opUsed, opIndex: s.opIndex, mi, sat, satAvg, strike, hourCost };
-    rep.costs = { pc, cif, cifTot, direct, energy, unabsorbed };
-    rep.kpi = { lucroLiquido: net, resultadoAcumulado: s.accResult, ativoMedio: avgA, plMedio: avgPL, rpl: avgPL ? s.accResult / avgPL : 0, raa: s.accResult / avgA, margem: gross ? net / gross : 0 };
+    rep.costs = { pc, cif, cifTot, direct, energy, unabsorbed, machDep, vehDep };
+    rep.kpi = { lucroLiquido: net, resultadoAcumulado: s.accResult, ativoMedio: avgA, plMedio: avgPL, rpl: avgPL ? s.accResult / avgPL : 0, raa: s.accResult / avgA, margem: netRev ? net / netRev : 0 };
     // Manual 13.1: limite ~ patrimônio líquido; risco pelo endividamento e pela rentabilidade (faixas aproximadas dos relatórios reais)
     { const debt = sum(s.loans.map((L) => loanBalance(L, t + 1))), lev = bs.pl > 0 ? debt / bs.pl : 9;
       s.creditLimit = Math.max(0, bs.pl);
@@ -1333,7 +1335,7 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
 
   function summary(rep, dec) {
     const k = rep.kpi;
-    return { period: rep.period, raa: k.raa, acc: k.resultadoAcumulado, net: rep.dre.lucroLiquido, rev: rep.dre.receitaBruta, cash: rep.cashflow.final, esp: rep.cashflow.especial,
+    return { period: rep.period, raa: k.raa, acc: k.resultadoAcumulado, net: rep.dre.lucroLiquido, rev: rep.dre.receitaBruta, revL: rep.dre.receitaLiquida, cash: rep.cashflow.final, esp: rep.cashflow.especial,
       price: { P: dec.price.P.slice(), W: dec.price.W.slice() }, sales: { P: rep.sales.P.qty, W: rep.sales.W.qty }, demand: { P: rep.sales.P.demand, W: rep.sales.W.demand },
       share: { P: rep.sales.P.regions.map((x) => x.share), W: rep.sales.W.regions.map((x) => x.share) },
       ads: { P: dec.ads.P.slice(), W: dec.ads.W.slice() }, term: { P: E.termDays(dec.term.P), W: E.termDays(dec.term.W) }, di: { P: dec.di.P, W: dec.di.W },
@@ -1480,7 +1482,7 @@ function pDespesas(c) {
   fill(tot);
   // rateio por produto como no original: receita, unidades vendidas (frete), inserções (propaganda) e valor de I&D de cada produto
   const rev = { P: r.sales.P.revenue, W: r.sales.W.revenue }, rt = rev.P + rev.W || 1, qt = r.sales.P.qty + r.sales.W.qty || 1, adsN = (j) => sum(c.d.ads[j] || []), at = adsN('P') + adsN('W') || 1, dit = (+c.d.di.P || 0) + (+c.d.di.W || 0) || 1;
-  const byP = (j) => { const k = rev[j] / rt; return fill({ remCom: tot.remCom * k, frete: tot.frete * r.sales[j].qty / qt, prop: tot.prop * adsN(j) / at, di: tot.di * (+c.d.di[j] || 0) / dit, dep: tot.dep * k, estP: tot.estP * k, remAdm: tot.remAdm * k, energia: tot.energia * k, gerais: tot.gerais * k,
+  const byP = (j) => { const k = rev.P + rev.W ? rev[j] / rt : 0.5; return fill({ remCom: tot.remCom * k, frete: tot.frete * r.sales[j].qty / qt, prop: tot.prop * adsN(j) / at, di: tot.di * (+c.d.di[j] || 0) / dit, dep: tot.dep * k, estP: tot.estP * k, remAdm: tot.remAdm * k, energia: tot.energia * k, gerais: tot.gerais * k,
     outras: tot.outras * k, greve: tot.greve * k, multa: tot.multa * k, fin: tot.fin * k, rec: tot.rec * k, finD: Object.fromEntries(Object.entries(fin).map(([a, v]) => [a, v * k])) }); };
   const T2 = (title, h, rows) => `<div class="scroll"><table><thead><tr><th colspan="${h.length}" class="tcap">${title}</th></tr><tr>${h.map((x) => `<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
   const pay = (title, base) => { const enc = base * (RS.encargos || 0.368), b2 = base + enc; return T2(title, ['Descrição', 'Valor Total'], [R(['Remuneração', base]), R(['Encargos Sociais', enc]), R(['13º Salário a pagar', b2 * (RS.prov13 || 0.0833)]), R(['Férias a pagar', b2 * (RS.provFerias || 0.1111)]), R(['Total', b2 * (1 + (RS.prov13 || 0.0833) + (RS.provFerias || 0.1111))], 'b')]); };
@@ -1544,9 +1546,9 @@ function pCustosGerais(c) {
   PR.forEach((j) => oth.push(R([`[${NAME[j]}] Produção do Período (un)`, f0(p.prod[j])], 'spc2'), R([`[${NAME[j]}] Custo Unitário de Produção ($)`, cs.pc[j].unit]), R([`[${NAME[j]}] Custo Unitário de Venda ($)`, r.sales[j].uc])));
   // remuneração da MOD como no original: horas, extras, DSR, encargos, 13º e férias
   const sal = +d.salary, nh = p.normalH, ot1 = p.otH || 0, lv = +d.overtime || 0, otPrem = lv >= 2 ? RS.overtime[2].prem : RS.overtime[1].prem;
-  const vH = nh * sal, vO1 = lv === 1 ? ot1 * sal * RS.overtime[1].prem : 0, vO2 = lv >= 2 ? ot1 * sal * otPrem : 0, dsrQ = (nh + ot1) * RS.dsr, vD = (vH + vO1 + vO2) * RS.dsr, enc = (vH + vO1 + vO2 + vD) * RS.encargos;
+  const q1 = lv >= 2 ? ot1 / 2 : lv === 1 ? ot1 : 0, q2 = lv >= 2 ? ot1 / 2 : 0, vH = (nh - (p.strikeH || 0)) * sal, vO1 = q1 * sal * 1.75, vO2 = q2 * sal * 2, dsrQ = (nh - (p.strikeH || 0) + ot1) * RS.dsr, vD = (vH + vO1 + vO2) * RS.dsr, enc = (vH + vO1 + vO2 + vD) * RS.encargos;
   const base = vH + vO1 + vO2 + vD + enc, d13 = base * RS.prov13, fer = base * RS.provFerias, tot = base + d13 + fer;
-  const mod = [R(['Horas (turno normal)', f2(nh), f2(sal), f2(vH)]), R(['1ª hora extra', f2(lv === 1 ? ot1 : 0), f2(sal * RS.overtime[1].prem), f2(vO1)]), R(['2ª hora extra', f2(lv >= 2 ? ot1 : 0), f2(sal * RS.overtime[2].prem), f2(vO2)]),
+  const mod = [R(['Horas (turno normal)', f2(nh - (p.strikeH || 0)), f2(sal), f2(vH)]), R(['1ª hora extra', f2(q1), f2(sal * 1.75), f2(vO1)]), R(['2ª hora extra', f2(q2), f2(sal * 2), f2(vO2)]),
     R(['DSR', f2(dsrQ), f2(sal), f2(vD)]), R(['Encargos Sociais', '', '', f2(enc)]), R(['Salário + DSR + Encargos Sociais', '', '', f2(base)], 'b'), R(['13º Salário a pagar', '', '', f2(d13)]), R(['Férias a pagar', '', '', f2(fer)]), R(['Custo Total', '', '', f2(tot)], 'b'), R(['Custo Hora', '', '', f2(nh ? tot / nh : 0)])];
   const pay = (title, v) => { const b0 = v / (RS.salaryFactor || 1), en = b0 * RS.encargos, b2 = b0 + en; return cap(title, ['Descrição', 'Vl.Total'], [R(['Remuneração', b0]), R(['Encargos Sociais', en]), R(['13º Salário a pagar', b2 * RS.prov13]), R(['Férias a pagar', b2 * RS.provFerias]), R(['Custo Total', v], 'b')]); };
   const td = sum(D.diretos.map((x) => x[1])), ti = sum(D.indiretos.map((x) => x[1]));
@@ -1560,11 +1562,12 @@ function pCustosGerais(c) {
 function pCustosProduto(c) {
   const r = c.r, p = r.production, cs = r.costs, cif = cs.cif, pc = cs.pc, s = r.stock, RS = E.RULES, mi = p.mi;
   const opH = { P: p.prod.P * 2 / p.opIndex, W: p.prod.W / p.opIndex }, opT = opH.P + opH.W || 1, mh = { P: mi.P.used, W: mi.W.used }, mT = mh.P + mh.W || 1, embU = { P: p.prod.P * 2, W: p.prod.W }, embT = embU.P + embU.W || 1;
-  const vehDep = Math.max(0, cif.depreciacao - RS.dep.prodBuildings - sum((c.before.machines || []).map((g) => g.qty * g.cost * (1 - RS.machResidual) / RS.machLife))), machDep = cif.depreciacao - RS.dep.prodBuildings - vehDep;
+  const vehDep0 = Math.max(0, cif.depreciacao - RS.dep.prodBuildings - sum((c.before.machines || []).map((g) => g.qty * g.cost * (1 - RS.machResidual) / RS.machLife))), vehDep = cs.vehDep != null ? cs.vehDep : vehDep0, machDep = cs.machDep != null ? cs.machDep : cif.depreciacao - RS.dep.prodBuildings - vehDep;
   const sti = r.storage.item, kit = { P: 'kitP', W: 'kitW' };
-  const tbl = (j) => { const fo = opH[j] / opT, fm = mh[j] / mT, fe = embU[j] / embT, k = kit[j];
+  const oth = (j) => (j === 'P' ? 'W' : 'P'), solo = (j) => p.prod[j] > 0 && !p.prod[oth(j)];
+  const tbl = (j) => { const z = !p.prod[j] && p.prod[oth(j)] > 0, fo = z ? 0 : opH[j] / opT, fm = z ? 0 : mh[j] / mT, fe = embU[j] / embT, k = kit[j];
     const dir = [[`Kit ${NAME[j]}`, f0(s[k].consumo.q), s[k].consumo.v], ['Embalagem e acessórios', f0(embU[j]), s.emb.consumo.v * fe], ['Mão de obra direta', f2(opH[j]), pc[j].mod], ['Energia elétrica', f2(mh[j] * mi[j === 'P' ? 'P' : 'W'].cv * 0.736), pc[j].energia]];
-    const ind = [['Custo com Estocagem', sti[k] + sti.emb * fe], ['Manutenções Gerais da Fábrica', cif.manutencao * fm], ['Pessoal de Apoio Produção', cif.apoio * fo], ['Gerentes de Operação', cif.gerentes * fo], ['Seguro Fábrica', cif.seguro / 2],
+    const ind = [['Custo com Estocagem', z ? 0 : sti[k] + sti.emb * fe + (solo(j) ? sti[kit[oth(j)]] : 0)], ['Manutenções Gerais da Fábrica', cif.manutencao * fm], ['Pessoal de Apoio Produção', cif.apoio * fo], ['Gerentes de Operação', cif.gerentes * fo], ['Seguro Fábrica', z ? 0 : solo(j) ? cif.seguro : cif.seguro / 2],
       ['Depreciação Unidade de Armazenagem', RS.dep.prodBuildings * fo], ['Depreciação Máquina', machDep * fm], ['Depreciação Veículo', vehDep * fo], ['Ociosidade de Operador', cif.ociosidade * fo]];
     if (cif.beneficios) ind.push(['Benefícios (Assistência Médica e Alimentação)', cif.beneficios * fo]); if (cif.treinamento) ind.push(['Treinamento de Novas Contratações', cif.treinamento * fo]);
     ind.push(['Indenização Demissões (Operador)', cif.indenizacoes * fo]);
@@ -1627,7 +1630,7 @@ function pContas(c) {
 function despSplit(c) {
   const r = c.r, d = r.dre, cm = d.detalhe.comerciais, rev = { P: r.sales.P.revenue, W: r.sales.W.revenue }, rt = rev.P + rev.W || 1, qt = r.sales.P.qty + r.sales.W.qty || 1;
   const adsN = (j) => sum(c.d.ads[j] || []), at = adsN('P') + adsN('W') || 1, dit = (+c.d.di.P || 0) + (+c.d.di.W || 0) || 1, out = {};
-  for (const j of PR) { const k = rev[j] / rt;
+  for (const j of PR) { const k = rev.P + rev.W ? rev[j] / rt : 0.5;
     const com = (cm.pessoalComercial + cm.comissoes + cm.depreciacaoPredio + (cm.estocagemProdutos || 0)) * k + cm.frete * r.sales[j].qty / qt + cm.propaganda * adsN(j) / at + cm.inovacaoDesign * (+c.d.di[j] || 0) / dit;
     out[j] = { com, adm: d.despAdministrativas * k, outras: -d.vendaImobilizado * k, perdas: d.perdas * k, fin: d.despesasFinanceiras * k, rec: d.receitasFinanceiras * k }; }
   return out;
@@ -1793,9 +1796,9 @@ function botCharts(pg, c) {
   }
   if (pg === 'rentab' && c.rentOut) { const L = compRows(c), names = L.map((x) => x.name.replace(' (você)', '')), cur = c.mode === 'cur', me = F[0], cz = cats.concat(cur ? ['*p.#' + c.period] : []), pj = cz.map((x) => x[0] === '*');
     const mine = (fn, now) => per.map((p) => { const y = at(me, p); return y ? fn(y) : null; }).concat(cur ? [now] : []), mkt = (fn) => per.map((p) => { const v = F.map((f) => { const y = at(f, p); return y ? fn(y) : null; }).filter((x) => x != null && isFinite(x)); return v.length ? avgA(v) : null; }).concat(cur ? [null] : []);
-    const mg = (y) => y.rev ? y.net / y.rev * 100 : null, gi = (y) => y.ativo ? y.rev / y.ativo * 100 : null;
+    const mg = (y) => (y.revL || y.rev) ? y.net / (y.revL || y.rev) * 100 : null, gi = (y) => y.ativo ? (y.revL || y.rev) / y.ativo * 100 : null;
     out.push(card('Histórico da Margem da Empresa X Média do Mercado', combo({ cats: cz, proj: pj, h: 150, lines: [{ name: `Margem Líquida - ${ME()} (%)`, color: PAL[0], vals: mine(mg, c.r.kpi.margem * 100) }, { name: 'Média do Mercado', color: PAL[1], vals: mkt(mg) }] })));
-    out.push(card('Histórico do Giro da Empresa X Média do Mercado', combo({ cats: cz, proj: pj, h: 150, lines: [{ name: `Giro do Ativo - ${ME()} (%)`, color: PAL[0], vals: mine(gi, c.r.dre.receitaBruta / c.r.balance.ativoTotal * 100) }, { name: 'Média do Mercado', color: PAL[1], vals: mkt(gi) }] })));
+    out.push(card('Histórico do Giro da Empresa X Média do Mercado', combo({ cats: cz, proj: pj, h: 150, lines: [{ name: `Giro do Ativo - ${ME()} (%)`, color: PAL[0], vals: mine(gi, c.r.dre.receitaLiquida / c.r.balance.ativoTotal * 100) }, { name: 'Média do Mercado', color: PAL[1], vals: mkt(gi) }] })));
     out.push(card('Rentabilidade do Ativo de Todas as Empresas', combo({ cats: names, rot: 0, bars: [{ name: 'Período', color: PAL[0], vals: L.map((x) => x.net == null ? null : x.net / x.bs.ativoTotal * 100) }, { name: 'Acumulado', color: PAL[1], vals: L.map((x) => x.raa == null ? null : x.raa * 100) }] })));
     out.push(card('Rentabilidade do PL de Todas as Empresas', combo({ cats: names, rot: 0, bars: [{ name: 'Período', color: PAL[0], vals: L.map((x) => x.net == null || !x.bs.pl ? null : x.net / x.bs.pl * 100) }, { name: 'Acumulado', color: PAL[1], vals: L.map((x) => x.plMedio && x.acc != null ? x.acc / x.plMedio * 100 : null) }] }))); }
   if (pg === 'estrutura' || pg === 'liquidez') { const L = compRows(c), names = L.map((x) => x.name.replace(' (você)', ''));
@@ -1883,10 +1886,10 @@ function pMercadoBots(c, key) {
   if (key === 'balancos') h = sec('Balanços Patrimoniais de todas as empresas') + bsTables(['Descrição', ...L.map((x) => x.name)], L, f0, true);
   else if (key === 'rentab') { const F = firmsHist(), per = app.history.map((x) => x.report.period), hd = ['Descrição', ...per.map((p) => 'p.#' + p), ...(cur ? ['*p.#' + c.period] : [])];
     const at = (f, p) => f.hist.find((y) => y.period === p), me = F[0], mean = (fn) => per.map((p) => { const v = F.map((f) => { const y = at(f, p); return y ? fn(y) : null; }).filter((x) => x != null && isFinite(x)); return v.length ? avgA(v) : null; });
-    const mg = (y) => y.rev ? y.net / y.rev : null, gi = (y) => y.ativo ? y.rev / y.ativo : null, mine = (fn) => per.map((p) => { const y = at(me, p); return y ? fn(y) : null; });
+    const mg = (y) => (y.revL || y.rev) ? y.net / (y.revL || y.rev) : null, gi = (y) => y.ativo ? (y.revL || y.rev) / y.ativo : null, mine = (fn) => per.map((p) => { const y = at(me, p); return y ? fn(y) : null; });
     const CH = botCharts('rentab', Object.assign({}, c, { rentOut: 1 })).replace(/^<div class="charts">|<\/div>$/g, ''), cards = CH.split(/(?=<div class="chart)/).filter(Boolean), pair = (t, k) => `<div class="split s50 cg"><div>${t}</div><div class="sidech"><div class="charts">${cards[k] || ''}</div></div></div>`;
     const tM = T(hd, [R([qh(`Margem Líquida - ${ME()} (%)`, MTIP.ml), ...mine(mg).map(pc), ...(cur ? [pc(c.r.kpi.margem)] : [])]), R(['Média do Mercado', ...mean(mg).map(pc), ...(cur ? ['–'] : [])])]);
-    const tG = T(hd, [R([qh(`Giro do Ativo - ${ME()} (%)`, MTIP.giro), ...mine(gi).map(pc), ...(cur ? [pc(c.r.dre.receitaBruta / c.r.balance.ativoTotal)] : [])]), R(['Média do Mercado', ...mean(gi).map(pc), ...(cur ? ['–'] : [])])]);
+    const tG = T(hd, [R([qh(`Giro do Ativo - ${ME()} (%)`, MTIP.giro), ...mine(gi).map(pc), ...(cur ? [pc(c.r.dre.receitaLiquida / c.r.balance.ativoTotal)] : [])]), R(['Média do Mercado', ...mean(gi).map(pc), ...(cur ? ['–'] : [])])]);
     const tA = T(['Empresa', qh('Período', MTIP.raP), qh('Acumulado', MTIP.raA)], L.map((x) => R([x.name, pc(x.net == null ? null : x.net / x.bs.ativoTotal), pc(x.raa)], x.me ? 'b' : '')));
     const tP = T(['Empresa', qh('Período', MTIP.plP), qh('Acumulado', MTIP.plA)], L.map((x) => R([x.name, pc(x.net == null || !x.bs.pl ? null : x.net / x.bs.pl), pc(x.plMedio && x.acc != null ? x.acc / x.plMedio : null)], x.me ? 'b' : '')));
     h = sec('MARGEM LÍQUIDA') + pair(tM, 0) + sec('GIRO DO ATIVO') + pair(tG, 1) + sec('RENTABILIDADE DO ATIVO') + pair(tA, 2) + sec('RENTABILIDADE DO PATRIMÔNIO LÍQUIDO') + pair(tP, 3); }
@@ -2439,7 +2442,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ================================================ JOGO: jogadores, saves, configurações, cronômetro, cenários
-const APPVER = '15/11 02:35';
+const APPVER = '15/11 03:00';
 const SKEY = 'simEnividia.store.v1';
 // N empresas no mercado: o tamanho do mercado acompanha o número de empresas (4 = jogo original)
 function setCompanies(p, n) { n = Math.max(2, Math.min(6, +n || 4)); p.nCompanies = n; delete p.marketScale; delete p.nRegions; return p; }
