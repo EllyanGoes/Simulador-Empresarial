@@ -584,7 +584,7 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
     const sat = satisfaction(d, s.lastRH, p);
     const satAvg = (sat + (N - 1) * d.scenario.satRivals) / N;
     const gap = (satAvg - sat) / satAvg;
-    let strike = 0; for (const [th, cut] of p.strike) if (gap >= th) { strike = cut; break; }
+    let strike = 0; for (const [th, cut] of (RULES.strict ? [[0.6, 0.80], [0.4, 0.40], [0.2, 0.20]] : p.strike)) if (gap >= th) { strike = cut; break; }
     const normalH = s.workers * RULES.hours;
     const vacH = vac ? normalH / 3 : 0;
     const otH = (normalH - vacH) * ot.cap;
@@ -824,7 +824,7 @@ if(xr(e,"index.xml"))throw new Error("Unsupported NUMBERS 09 file");throw new Er
     rep.kpi = { lucroLiquido: net, resultadoAcumulado: s.accResult, ativoMedio: avgA, plMedio: avgPL, rpl: avgPL ? s.accResult / avgPL : 0, raa: s.accResult / avgA, margem: netRev ? net / netRev : 0 };
     // Manual 13.1: limite ~ patrimônio líquido; risco pelo endividamento e pela rentabilidade (faixas aproximadas dos relatórios reais)
     { const debt = sum(s.loans.map((L) => loanBalance(L, t + 1))), lev = bs.pl > 0 ? debt / bs.pl : 9;
-      s.creditLimit = Math.max(0, bs.pl);
+      s.creditLimit = Math.max(0, RULES.strict ? bs.pl - debt : bs.pl);
       s.riskClass = lev < 0.5 && net >= 0 ? 'A' : lev < 1 && net >= 0 ? 'B' : 'C'; rep.risk = { lev, cls: s.riskClass }; }
     s.period = t + 1;
     return { report: rep, state: s };
@@ -2442,7 +2442,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ================================================ JOGO: jogadores, saves, configurações, cronômetro, cenários
-const APPVER = '15/11 03:00';
+const APPVER = '15/11 03:20';
 const SKEY = 'simEnividia.store.v1';
 // N empresas no mercado: o tamanho do mercado acompanha o número de empresas (4 = jogo original)
 function setCompanies(p, n) { n = Math.max(2, Math.min(6, +n || 4)); p.nCompanies = n; delete p.marketScale; delete p.nRegions; return p; }
@@ -2507,6 +2507,7 @@ function showHome(step) {
       <label>Adversários<select id="ngOpp"><option value="bots">Concorrentes automáticos (bots)</option><option value="none">Sem bots · concorrentes como média fixa</option></select><span class="hint">Com bots a partida começa no período #0</span></label>
       <label>Dificuldade dos bots<select id="ngDiff"><option value="facil">Fácil · erram previsões e não reagem</option><option value="medio" selected>Médio · reagem a falta e sobra de estoque</option><option value="dificil">Difícil · leem a sazonalidade e testam preços</option></select></label>
       <label>Cenário e notícias<select id="ngScen"><option value="real">Roteiro do jogo real (períodos 1 a 5) e depois aleatório</option><option value="random">Eventos aleatórios desde o início</option></select><span class="hint">Juros, câmbio, conjuntura, reajustes, impostos, salário…</span></label>
+      <label class="full">Regras de greve e limite de crédito<select id="ngRules"><option value="real">Calibradas no jogo real (padrão)</option><option value="manual">Texto do Manual dos Diretores (mais punitivo)</option></select><span class="hint">Jogo real: greve para 5/10/20% das horas e limite de crédito = patrimônio líquido. Manual: greve para 20/40/80% das horas e limite = patrimônio líquido menos dívidas bancárias.</span></label>
       <label>Semente do sorteio<input id="ngSeed" type="number" min="1" value="${Math.floor(Math.random() * 9000) + 1000}"><span class="hint">Mesma semente = mesmas notícias</span></label>
       </div><div class="hfoot"><button class="btn" id="bBackSaves">Voltar</button><button class="btn pri" id="bStart">Começar partida</button></div>`;
     $('ngBase').value = 'zero'; $('ngBase').disabled = true;
@@ -2516,7 +2517,7 @@ function showHome(step) {
   const sv = Object.values(store.players[cur.player].saves).sort((a, b) => (b.updated || 0) - (a.updated || 0));
   H.innerHTML = head(`Jogador: ${esc(cur.player)}`) + `<h2>Seus jogos salvos</h2>
     ${sv.length ? `<div class="slist">${sv.map((x) => { const end = x.startPeriod + x.cfg.periods - 1, done = (x.app && x.app.history ? x.app.history.length : 0);
-      return `<div class="slot${x.ended ? ' ended' : ''}"><div><b>${esc(x.name)}</b>${x.ended ? '<span class="tag">encerrado</span>' : ''}<span class="tag">${x.cfg.scenario === 'random' ? 'aleatório' : 'roteiro real'}</span><span class="tag">${x.cfg.companies || 4} empresas</span>${x.bots ? `<span class="tag">contra bots · ${window.SimBots.LEVELS[x.cfg.difficulty].label}</span>` : ''}
+      return `<div class="slot${x.ended ? ' ended' : ''}"><div><b>${esc(x.name)}</b>${x.ended ? '<span class="tag">encerrado</span>' : ''}<span class="tag">${x.cfg.scenario === 'random' ? 'aleatório' : 'roteiro real'}</span>${x.cfg.rules === 'manual' ? '<span class="tag">regras do manual</span>' : ''}<span class="tag">${x.cfg.companies || 4} empresas</span>${x.bots ? `<span class="tag">contra bots · ${window.SimBots.LEVELS[x.cfg.difficulty].label}</span>` : ''}
         <div class="meta">Período ${x.ended ? end : (x.period || x.startPeriod)} · ${done} de ${x.cfg.periods} jogados · ${x.cfg.perMin && new Set(x.cfg.perMin).size > 1 ? 'tempo variável' : x.cfg.minutes ? x.cfg.minutes + ' min/período' : 'sem limite'} · RAA ${x.ended && x.finalRAA != null ? f2(x.finalRAA * 100) + '%' : x.raa != null ? f2(x.raa * 100) + '% (projetado)' : '–'}<br>Salvo em ${ago(x.updated)}</div></div>
         <div class="acts"><button class="btn pri" data-open="${x.id}">${x.ended ? 'Ver' : 'Continuar'}</button><button class="btn" data-ren="${x.id}">Renomear</button><button class="btn" data-del="${x.id}" style="color:#d0021b;border-color:#d0021b">Excluir</button></div></div>`; }).join('')}</div>`
     : '<p class="note">Nenhum jogo salvo ainda.</p>'}
@@ -2530,6 +2531,7 @@ function openSave(id) {
   { const N = app.params.nCompanies || 4; delete app.params.marketScale; delete app.params.nRegions; // saves antigos: uma região por empresa
     if (app.dec.price.P.length !== N + 1) E.resizeRegions(app.state, app.dec, N, (app.params.ownRegion || 2) - 1);
     if (sv.bots) sv.bots.list.forEach((b, i) => { const reg = [1, 3, 4, 5, 6][i]; if (b.dec.price.P.length !== N + 1 || b.region !== reg) { b.region = reg; E.resizeRegions(b.state, b.dec, N, reg - 1); } }); }
+  E.RULES.strict = sv.cfg.rules === 'manual';
   newsOverride = sv.cfg.scenario === 'random' || sv.news ? sv.news || {} : null;
   viewKey = 'cur'; page = 'visao'; location.hash = 'visao'; portalP = null;
   $('home').classList.add('off'); render(); updateGameHead(); startTick(); openPortal(true);
@@ -2541,7 +2543,7 @@ function startGame() {
   const co = $('ngCo').value.trim(); if (!co) { $('ngCo').focus(); $('ngCo').style.borderColor = '#d0021b'; showToast('Dê um nome à sua empresa.'); return; }
   if (['vértice', 'orbis', 'nimbus', 'quasar', 'zênite'].includes(co.toLowerCase())) { showToast('Esse nome já é de um concorrente. Escolha outro.'); return; }
   cfg.company = co; store.players[cur.player].lastCompany = co;
-  cfg.companies = +$('ngN').value || 4; cfg.opponents = $('ngOpp').value; cfg.difficulty = $('ngDiff').value;
+  cfg.rules = $('ngRules').value; cfg.companies = +$('ngN').value || 4; cfg.opponents = $('ngOpp').value; cfg.difficulty = $('ngDiff').value;
   const baseId = cfg.opponents === 'bots' ? 'zero' : $('ngBase').value, base = getBase(baseId);
   const id = uid(), name = $('ngName').value.trim() || 'Partida';
   const a = fresh(base); applyCompanies(a, cfg.companies);

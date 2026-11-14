@@ -247,7 +247,7 @@
     const sat = satisfaction(d, s.lastRH, p);
     const satAvg = (sat + (N - 1) * d.scenario.satRivals) / N;
     const gap = (satAvg - sat) / satAvg;
-    let strike = 0; for (const [th, cut] of p.strike) if (gap >= th) { strike = cut; break; }
+    let strike = 0; for (const [th, cut] of (RULES.strict ? [[0.6, 0.80], [0.4, 0.40], [0.2, 0.20]] : p.strike)) if (gap >= th) { strike = cut; break; }
     const normalH = s.workers * RULES.hours;
     const vacH = vac ? normalH / 3 : 0;
     const otH = (normalH - vacH) * ot.cap;
@@ -487,7 +487,7 @@
     rep.kpi = { lucroLiquido: net, resultadoAcumulado: s.accResult, ativoMedio: avgA, plMedio: avgPL, rpl: avgPL ? s.accResult / avgPL : 0, raa: s.accResult / avgA, margem: netRev ? net / netRev : 0 };
     // Manual 13.1: limite ~ patrimônio líquido; risco pelo endividamento e pela rentabilidade (faixas aproximadas dos relatórios reais)
     { const debt = sum(s.loans.map((L) => loanBalance(L, t + 1))), lev = bs.pl > 0 ? debt / bs.pl : 9;
-      s.creditLimit = Math.max(0, bs.pl);
+      s.creditLimit = Math.max(0, RULES.strict ? bs.pl - debt : bs.pl);
       s.riskClass = lev < 0.5 && net >= 0 ? 'A' : lev < 1 && net >= 0 ? 'B' : 'C'; rep.risk = { lev, cls: s.riskClass }; }
     s.period = t + 1;
     return { report: rep, state: s };
