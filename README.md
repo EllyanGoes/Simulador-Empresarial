@@ -2,6 +2,15 @@
 
 Réplica própria do jogo de empresas Tecnomind/SimulWeb (PGGN FDC) para treinar gestores: partidas contra concorrentes automáticos, saves, cronômetro por período, Portal de Notícias, relatórios da empresa e de mercado no mesmo formato do original e exportação no padrão "Todos".
 
+## Por que praticar com este simulador
+- **Errar sem custo.** Teste preços, produção, compras e financiamento antes de decidir no jogo oficial, sem afetar o resultado da sua equipe.
+- **Ver o efeito na hora.** Cada decisão recalcula DRE, balanço, caixa, custos e ranking ao clicar em Aplicar, para entender causa e efeito.
+- **Competir de verdade.** Concorrentes automáticos com estilos diferentes (volume, premium, inovador, agressivo, conservador) reagem ao mercado.
+- **Treinar sob pressão.** Cronômetro por período e notícias que mexem no mercado, como nas rodadas do curso.
+- **Mesma linguagem do jogo.** Relatórios, indicadores, fórmulas e explicações no mesmo formato do SimulWeb.
+- **Aprender gestão integrada.** Marketing, produção, RH, compras e finanças conectados: uma decisão numa área aparece no resultado das outras.
+- **Repetir e comparar.** Vários saves, partidas de 2 a 6 empresas e a Análise Comparativa (planejado × realizado) para avaliar suas escolhas.
+
 ## Estrutura
 - `simulador/` — a aplicação web (uma página só).
   - `ui.html` interface · `engine.js` motor de simulação · `bots.js` concorrentes automáticos.

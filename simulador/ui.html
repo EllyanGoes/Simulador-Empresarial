@@ -130,6 +130,7 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 @media(max-width:900px){.news{grid-template-columns:minmax(0,1fr)}}
 .home{position:fixed;inset:0;z-index:60;background:radial-gradient(1200px 600px at 20% 0%,#4f8ad0 0%,#2a5a9a 45%,#132a4a 100%);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
 .home.off{display:none}
+.bnf{margin:14px 0 4px;background:#f4f8fd;border:1px solid #d9e6f5;border-radius:10px;padding:10px 14px}.bnf summary{cursor:pointer;font-weight:700;font-size:15px;color:#1a4f9c}.bnf ul{margin:8px 0 2px;padding-left:20px;font-size:13.5px;line-height:1.45}.bnf li{margin:4px 0}
 .hcard{background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.35);width:100%;max-width:720px;padding:28px 30px}
 .hlogo{display:flex;align-items:center;gap:14px;margin-bottom:6px}.hlogo svg{width:54px;height:54px}
 .hver{margin-left:auto;align-self:flex-start;font-size:12px;color:var(--mute);background:#f1f3f6;border-radius:10px;padding:3px 9px;white-space:nowrap}
@@ -1414,7 +1415,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ================================================ JOGO: jogadores, saves, configurações, cronômetro, cenários
-const APPVER = '15/11 02:25';
+const APPVER = '15/11 02:35';
 const SKEY = 'simEnividia.store.v1';
 // N empresas no mercado: o tamanho do mercado acompanha o número de empresas (4 = jogo original)
 function setCompanies(p, n) { n = Math.max(2, Math.min(6, +n || 4)); p.nCompanies = n; delete p.marketScale; delete p.nRegions; return p; }
@@ -1446,11 +1447,20 @@ const ago = (ts) => { if (!ts) return ''; const d = new Date(ts); return d.toLoc
 // ---------------- telas de entrada
 const LOGO = '<svg viewBox="0 0 54 54"><rect width="54" height="54" rx="12" fill="#3a78c3"/><rect x="0" y="34" width="54" height="20" rx="0" fill="#161b24"/><rect x="0" y="42" width="54" height="12" rx="12" fill="#161b24"/><rect x="9" y="20" width="6" height="12" fill="#fff"/><rect x="18" y="16" width="6" height="16" fill="#fff"/><rect x="27" y="18" width="6" height="14" fill="#fff"/><rect x="36" y="10" width="6" height="22" fill="#fff"/><polyline points="12,18 21,13 30,15 39,7" fill="none" stroke="#ffc83c" stroke-width="2.5"/><text x="27" y="49" text-anchor="middle" font-size="9" font-weight="800" fill="#fff" font-family="Arial">RAA</text></svg>';
 const head = (sub) => `<div class="hlogo">${LOGO}<div><h1>Simulador Empresarial</h1><small>${sub}</small></div><span class="hver" title="Versão do aplicativo">Versão ${APPVER}${NATIVE ? ' · janela nativa' : ''}</span></div>`;
+const BENEFITS = `<details class="bnf" open><summary>Por que praticar com este simulador</summary><ul>
+  <li><b>Errar sem custo.</b> Teste preços, produção, compras e financiamento antes de decidir no jogo oficial, sem afetar o resultado da sua equipe.</li>
+  <li><b>Ver o efeito na hora.</b> Cada decisão recalcula DRE, balanço, caixa, custos e ranking ao clicar em Aplicar, para você entender causa e efeito.</li>
+  <li><b>Competir de verdade.</b> Concorrentes automáticos com estilos diferentes (volume, premium, inovador, agressivo, conservador) reagem ao mercado.</li>
+  <li><b>Treinar sob pressão.</b> Cronômetro por período e notícias que mexem no mercado, como nas rodadas do curso.</li>
+  <li><b>Mesma linguagem do jogo.</b> Relatórios, indicadores, fórmulas e explicações no mesmo formato do SimulWeb.</li>
+  <li><b>Aprender gestão integrada.</b> Marketing, produção, RH, compras e finanças conectados: uma decisão numa área aparece no resultado das outras.</li>
+  <li><b>Repetir e comparar.</b> Vários saves, partidas de 2 a 6 empresas e a Análise Comparativa (planejado × realizado) para avaliar suas escolhas.</li>
+</ul></details>`;
 function showHome(step) {
   $('home').classList.remove('off'); stopTick();
   const H = $('homeCard'), players = Object.keys(store.players);
   if (step === 'login' || !cur || !cur.player) {
-    H.innerHTML = head('Jogo de empresas · treino de decisões gerenciais') + `<h2>Quem vai jogar?</h2>
+    H.innerHTML = head('Jogo de empresas · treino de decisões gerenciais') + BENEFITS + `<h2>Quem vai jogar?</h2>
       ${players.length ? `<div class="plist">${players.map((n) => `<button class="pbtn" data-player="${esc(n)}"><span class="av">${esc(n.trim()[0] || '?').toUpperCase()}</span>${esc(n)}</button>`).join('')}</div>` : '<p class="note">Nenhum jogador ainda. Crie o primeiro abaixo.</p>'}
       <h2>Novo jogador</h2><div class="hrow"><input id="newPlayer" placeholder="Seu nome" maxlength="40" aria-label="Nome do novo jogador"><button class="btn pri" id="bNewPlayer">Entrar</button></div>
       <p class="note" style="margin-top:14px">Os jogadores e os saves ficam guardados neste computador.</p>`;
