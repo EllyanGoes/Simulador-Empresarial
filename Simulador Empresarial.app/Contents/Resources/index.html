@@ -2442,7 +2442,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ================================================ JOGO: jogadores, saves, configurações, cronômetro, cenários
-const APPVER = '15/11 03:50';
+const APPVER = '15/11 04:15';
 const SKEY = 'simEnividia.store.v1';
 // N empresas no mercado: o tamanho do mercado acompanha o número de empresas (4 = jogo original)
 function setCompanies(p, n) { n = Math.max(2, Math.min(6, +n || 4)); p.nCompanies = n; delete p.marketScale; delete p.nRegions; return p; }
@@ -2560,7 +2560,7 @@ document.addEventListener('click', (e) => {
   if (t.id === 'bNewPlayer') { const n = $('newPlayer').value.trim(); if (!n) return; store.players[n] = store.players[n] || { created: Date.now(), saves: {} }; cur = { player: n }; persistNow(); showHome('saves'); return; }
   if (t.id === 'bSwitch') { cur = null; showHome('login'); return; }
   if (t.id === 'bNewGame') { showHome('new'); return; }
-  if (t.id === 'bCases') { window.FinCases.open(cur.player); return; }
+  if (t.id === 'bCases') { const pl = store.players[cur.player]; window.FinCases.open(cur.player, { get: () => pl.fin || {}, set: (v) => { pl.fin = v; persistNow(); } }); return; }
   if (t.id === 'bBackSaves') { showHome('saves'); return; }
   if (t.id === 'bStart') { startGame(); return; }
   if (t.dataset.open) { openSave(t.dataset.open); return; }
@@ -3168,10 +3168,17 @@ if (store.last && store.last.player && store.players[store.last.player]) { cur =
 
   // ---------- estado e armazenamento ----------
   let st = null, player = '', tick = null;
-  const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return {}; } };
-  const hist = () => (load()[player] || []);
-  function record(e) { const all = load(); (all[player] = all[player] || []).unshift(e); all[player] = all[player].slice(0, 60); try { localStorage.setItem(KEY, JSON.stringify(all)); } catch (x) {} }
-
+  let io = null;
+  const lsGet = () => { try { return (JSON.parse(localStorage.getItem(KEY) || '{}'))[player] || {}; } catch (e) { return {}; } };
+  const lsSet = (v) => { let all = {}; try { all = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) {} all[player] = v; try { localStorage.setItem(KEY, JSON.stringify(all)); } catch (e) {} };
+  const data = () => { const d = (io ? io.get() : lsGet()) || {}; d.hist = d.hist || []; return d; };
+  const put = (d) => { if (io) io.set(d); else lsSet(d); };
+  const hist = () => data().hist;
+  function record(e) { const d = data(); d.hist.unshift(e); d.hist = d.hist.slice(0, 60); d.open = null; put(d); }
+  const loadOpen = () => data().open || null;
+  function saveOpen(clear) { const d = data();
+    d.open = clear || !st || st.done ? null : { seed: st.c.seed, hints: st.hints, val: st.val, hint: st.hint, miss: st.miss, okSet: st.okSet, lastBad: st.lastBad || {}, txt: st.txt || '', sec: Math.floor((Date.now() - st.t0) / 1000), at: Date.now() };
+    put(d); }
   const CSS = `#fc{position:fixed;inset:0;z-index:66;background:#eceeef;overflow:auto;display:none;font:15px/1.4 "Noto Sans","Segoe UI",system-ui,sans-serif;color:#1d1f22}#fc.on{display:block}
 #fc .fcbar{position:sticky;top:0;z-index:5;background:#2a5a9a;color:#fff;display:flex;gap:18px;align-items:center;padding:10px 22px;flex-wrap:wrap}#fc .fcbar b{font-size:17px}#fc .fcbar .sp{flex:1}#fc .fcbar .pill{background:rgba(255,255,255,.16);border-radius:14px;padding:3px 12px;font-size:14px}
 #fc .fcw{max-width:1250px;margin:0 auto;padding:18px 22px 60px}#fc h3{font:600 14px Raleway,system-ui;background:#cfcfcf;border-radius:8px;padding:8px 14px;margin:22px 0 10px}#fc p{margin:8px 0}
@@ -3184,23 +3191,37 @@ if (store.last && store.last.player && store.players[store.last.player]) { cur =
 #fc .fctip{position:absolute;z-index:9;background:#1c1c1c;color:#fff;border-radius:8px;padding:14px 18px;max-width:560px;box-shadow:0 4px 14px rgba(0,0,0,.35);font-size:15px;text-align:left}#fc .fctip:before{content:"";position:absolute;top:-9px;left:var(--ax,20px);margin-left:-10px;border:10px solid transparent;border-top:0;border-bottom-color:#1c1c1c}
 #fc .fcfm{display:inline-block;background:#f5f5f5;color:#222;font:italic 15px/1.3 'Times New Roman',Georgia,serif;padding:9px 14px;margin-top:10px}#fc .box{background:#fff;border:1px solid #d6d9dc;border-radius:8px;padding:14px 16px}
 #fc textarea{width:100%;min-height:110px;font:15px/1.4 system-ui;padding:10px;border:1px solid #b8bcc0;border-radius:4px;background:#fffef2}#fc .acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
-#fc .btn{font:600 14px system-ui;padding:9px 16px;border-radius:4px;border:1px solid #3a78c3;background:#fff;color:#3a78c3;cursor:pointer}#fc .btn.pri{background:#3a78c3;color:#fff}#fc .note{color:#666b70;font-size:13px}#fc .res{font-size:22px;font-weight:700}#fc .form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 16px}#fc .form label{display:grid;gap:4px;font-size:13px;font-weight:600}#fc .form input,#fc .form select{font-size:16px;padding:8px;border:1px solid #b8bcc0;border-radius:4px}`;
+#fc .btn{font:600 14px system-ui;padding:9px 16px;border-radius:4px;border:1px solid #3a78c3;background:#fff;color:#3a78c3;cursor:pointer}#fc .btn.pri{background:#3a78c3;color:#fff}#fc .note{color:#666b70;font-size:13px}#fc .res{font-size:22px;font-weight:700}#fc .form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 16px}#fc .form label{display:grid;gap:4px;font-size:13px;font-weight:600}#fc .form input,#fc .form select{font-size:16px;padding:8px;border:1px solid #b8bcc0;border-radius:4px}
+#fc .fclob{max-width:1100px}#fc .fchero{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr);gap:28px;align-items:center;background:linear-gradient(135deg,#2a5a9a,#3a78c3);color:#fff;border-radius:14px;padding:30px 32px;margin-top:8px}#fc .fchero h1{font:700 26px/1.25 Raleway,system-ui;margin:0 0 10px;text-wrap:balance}#fc .fchero p{margin:0;font-size:16px;opacity:.92}
+#fc .fcgo{background:#fff;color:#1d1f22;border-radius:10px;padding:18px;display:grid;gap:12px}#fc .fcgo label{display:grid;gap:4px;font-size:13px;font-weight:600}#fc .fcgo input,#fc .fcgo select{font-size:16px;padding:9px;border:1px solid #b8bcc0;border-radius:4px;width:100%;max-width:none;box-sizing:border-box;text-align:left}#fc .btn{text-align:center}#fc .btn.big{font-size:16px;padding:12px;width:100%;display:block;text-align:center;justify-content:center}#fc .btn.sm{padding:5px 12px;font-size:13px}#fc .fcgo .note{text-align:center}
+#fc .fcstats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:18px}#fc .fcstats div{background:#fff;border:1px solid #d6d9dc;border-radius:10px;padding:14px 16px}#fc .fcstats span{display:block;font-size:13px;color:#666b70}#fc .fcstats b{font-size:26px;font-variant-numeric:tabular-nums}
+#fc .fcsteps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}#fc .fcsteps div{background:#fff;border:1px solid #d6d9dc;border-radius:10px;padding:14px 16px 14px 58px;position:relative;min-height:74px}#fc .fcsteps i{position:absolute;left:16px;top:16px;width:30px;height:30px;border-radius:50%;background:#e7f0fb;color:#1a4f9c;font:700 15px/30px system-ui;text-align:center}#fc .fcsteps b{display:block;margin-bottom:2px}#fc .fcsteps span{font-size:14px;color:#4a4f54}
+#fc .fcrule{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:14px}#fc .fcrule div{background:#f6f8fa;border-left:4px solid #3a78c3;border-radius:4px;padding:10px 14px}#fc .fcrule b{display:block}#fc .fcrule span{font-size:14px;color:#4a4f54}
+#fc .fcopen{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;background:#fff8e1;border:1px solid #e0b84a;border-radius:10px;padding:14px 18px;margin-top:18px}#fc .fcopen b{display:block;font-size:16px}#fc .fcopen span{font-size:14px;color:#4a4f54}#fc .fcbar .btn{padding:7px 14px}
+#fc .fcempty{background:#fff;border:1px dashed #b8bcc0;border-radius:10px;padding:26px;text-align:center;color:#666b70}#fc .fcnote{display:inline-block;min-width:58px;text-align:center;font-weight:700;border-radius:12px;padding:2px 10px}#fc .fcnote.g{background:#e3f6e6;color:#1a6b2a}#fc .fcnote.y{background:#fdf3cf;color:#7a5a00}#fc .fcnote.r{background:#fde7e9;color:#a00015}
+@media(max-width:800px){#fc .fchero,#fc .fcsteps,#fc .fcrule{grid-template-columns:minmax(0,1fr)}#fc .fcstats{grid-template-columns:repeat(2,minmax(0,1fr))}}`;
   function root() { let el = document.getElementById('fc'); if (!el) { const s = document.createElement('style'); s.textContent = CSS; document.head.appendChild(s); el = document.createElement('div'); el.id = 'fc'; document.body.appendChild(el); el.addEventListener('click', onClick); el.addEventListener('input', onInput); el.addEventListener('change', onInput); } return el; }
   const clock = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
   function lobby() {
-    clearInterval(tick); st = null; const h = hist(), best = h.length ? Math.max(...h.map((x) => x.score)) : null;
-    root().innerHTML = `<div class="fcbar"><b>Casos de Finanças</b><span class="pill">Jogador: ${esc(player)}</span><span class="sp"></span><button class="btn" data-a="exit">Voltar ao Simulador</button></div><div class="fcw">
-      <div class="box"><p><b>Como funciona.</b> Cada caso traz o Balanço Patrimonial e a DRE de uma empresa fictícia. Você reclassifica o balanço pelo modelo dinâmico, calcula ST, NCG e CDG, identifica o tipo de estrutura financeira, monta o ciclo financeiro, resolve um problema de prazo de estocagem e calcula o EVA por quatro caminhos.</p>
-      <p><b>Pontuação.</b> O caso vale 75 pontos, divididos igualmente entre os campos. Abrir a dica (?) de um campo reduz o valor dele à metade, e cada conferência errada tira 25% do valor do campo.</p>
-      <div class="form" style="margin-top:14px"><label>Número do caso<input id="fcSeed" type="number" min="1" value="${Math.floor(Math.random() * 9000) + 1000}"><span class="note">Mesmo número = mesmo caso</span></label><label>Dicas<select id="fcHints"><option value="1">Permitidas (com desconto)</option><option value="0">Desligadas (modo prova)</option></select></label><label>&nbsp;<button class="btn pri" data-a="start">Começar caso</button></label></div></div>
-      <h3>Seu histórico${best != null ? ` · melhor nota ${f2(best)}` : ''}</h3>${h.length ? `<table><thead><tr><th>Data</th><th>Caso</th><th>Estrutura</th><th>Acertos</th><th>Tempo</th><th>Nota (de 75)</th><th></th></tr></thead><tbody>${h.map((x) => `<tr><td>${new Date(x.at).toLocaleString('pt-BR')}</td><td>${x.seed}</td><td>${esc(x.type)}</td><td>${x.ok}/${x.n}</td><td>${clock(x.sec)}</td><td><b>${f2(x.score)}</b></td><td><button class="btn" data-a="again" data-seed="${x.seed}">Refazer</button></td></tr>`).join('')}</tbody></table>` : '<p class="note">Nenhum caso resolvido ainda.</p>'}</div>`;
-    root().classList.add('on');
+    clearInterval(tick); if (st && !st.done) saveOpen(); st = null; const op = loadOpen(), h = hist(), n = h.length, best = n ? Math.max(...h.map((x) => x.score)) : null, avg = n ? h.reduce((a, x) => a + x.score, 0) / n : null, tm = n ? Math.round(h.reduce((a, x) => a + x.sec, 0) / n) : null;
+    const steps = [['Modelo dinâmico', 'Reclassifique o balanço em contas erráticas, cíclicas e de longo prazo.'], ['ST, NCG e CDG', 'Calcule os três indicadores e identifique a estrutura financeira de cada ano.'], ['Ciclo financeiro', 'Monte PME, PMR e PMP em dias e confirme a NCG pelo ciclo.'], ['Problema de gestão', 'Ache o prazo de estocagem que cabe no teto de investimento em NCG.'], ['EVA', 'Chegue ao mesmo valor por quatro caminhos: ROCE, NOPAT, custo das fontes e ROE.'], ['Parecer', 'Escreva sua análise de risco e de valor e compare com a de referência.']];
+    const badge = (s) => { const p = s / 75; return `<span class="fcnote ${p >= 0.9 ? 'g' : p >= 0.6 ? 'y' : 'r'}">${f2(s)}</span>`; };
+    root().innerHTML = `<div class="fcbar"><b>Casos de Finanças</b><span class="pill">Jogador: ${esc(player)}</span><span class="sp"></span><button class="btn" data-a="exit">Voltar ao Simulador</button></div><div class="fcw fclob">
+      <div class="fchero"><div><h1>Treine análise financeira com casos novos a cada rodada</h1><p>Cada caso traz o Balanço Patrimonial e a DRE de uma empresa fictícia. Você preenche 42 campos, confere na hora e recebe uma nota de 0 a 75.</p></div>
+        <div class="fcgo"><label>Número do caso<input id="fcSeed" type="number" min="1" value="${Math.floor(Math.random() * 9000) + 1000}"></label><label>Dicas<select id="fcHints"><option value="1">Permitidas (com desconto)</option><option value="0">Desligadas (modo prova)</option></select></label><button class="btn pri big" data-a="start">Começar caso</button><span class="note">O mesmo número gera sempre o mesmo caso.</span></div></div>
+      ${op ? `<div class="fcopen"><div><b>Caso ${op.seed} em andamento</b><span>${Object.keys(op.okSet || {}).length} de 42 campos certos · ${Object.values(op.val || {}).filter((v) => String(v).trim()).length} preenchidos · tempo ${clock(op.sec || 0)} · salvo em ${new Date(op.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span></div><span><button class="btn pri" data-a="resume">Continuar</button> <button class="btn" data-a="discard">Descartar</button></span></div>` : ''}
+      <div class="fcstats"><div><span>Casos resolvidos</span><b>${n}</b></div><div><span>Melhor nota</span><b>${best != null ? f2(best) : '–'}</b></div><div><span>Nota média</span><b>${avg != null ? f2(avg) : '–'}</b></div><div><span>Tempo médio</span><b>${tm != null ? clock(tm) : '–'}</b></div></div>
+      <h3>O que você resolve em cada caso</h3><div class="fcsteps">${steps.map((x, i) => `<div><i>${i + 1}</i><b>${x[0]}</b><span>${x[1]}</span></div>`).join('')}</div>
+      <div class="fcrule"><div><b>Campo certo</b><span>vale 75 ÷ 42 ≈ 1,79 ponto</span></div><div><b>Dica aberta (?)</b><span>o campo passa a valer metade</span></div><div><b>Conferência errada</b><span>cada uma tira 25% do campo</span></div></div>
+      <h3>Seu histórico</h3>${n ? `<table><thead><tr><th>Data</th><th>Caso</th><th>Estrutura</th><th>Acertos</th><th>Tempo</th><th>Nota (de 75)</th><th></th></tr></thead><tbody>${h.map((x) => `<tr><td>${new Date(x.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td><td>${x.seed}</td><td>${esc(x.type)}</td><td>${x.ok}/${x.n}</td><td>${clock(x.sec)}</td><td>${badge(x.score)}</td><td><button class="btn sm" data-a="again" data-seed="${x.seed}">Refazer</button></td></tr>`).join('')}</tbody></table>` : '<div class="fcempty">Nenhum caso resolvido ainda. Comece pelo caso acima; as notas aparecem aqui.</div>'}</div>`;
+    root().classList.add('on'); root().scrollTop = 0;
   }
 
-  function start(seed, hints) {
+  function start(seed, hints, sv) {
     const c = generate(seed), F = fields(c); st = { c, F, hints, t0: Date.now(), done: false, val: {}, hint: {}, miss: {}, okSet: {} };
-    draw(); clearInterval(tick); tick = setInterval(() => { const el = document.getElementById('fcClock'); if (el && st && !st.done) el.textContent = clock(Math.floor((Date.now() - st.t0) / 1000)); }, 1000);
+    if (sv) { Object.assign(st, { val: sv.val || {}, hint: sv.hint || {}, miss: sv.miss || {}, okSet: sv.okSet || {}, lastBad: sv.lastBad || {}, txt: sv.txt || '', t0: Date.now() - (sv.sec || 0) * 1000 }); }
+    draw(); root().scrollTop = 0; clearInterval(tick); tick = setInterval(() => { const el = document.getElementById('fcClock'); if (el && st && !st.done) { const s = Math.floor((Date.now() - st.t0) / 1000); el.textContent = clock(s); if (s % 15 === 0) saveOpen(); } }, 1000); saveOpen();
   }
   const worth = (f) => { if (!st.okSet[f.id]) return 0; const base = 75 / st.F.length; return base * (st.hint[f.id] ? 0.5 : 1) * Math.max(0, 1 - 0.25 * (st.miss[f.id] || 0)); };
   const score = () => st.F.reduce((s, f) => s + worth(f), 0);
@@ -3226,7 +3247,7 @@ if (store.last && store.last.player && store.players[store.last.player]) { cur =
         <p><b>Parecer de referência — risco.</b> Em ${c.y0} a estrutura era <b>${a.type.n}</b>: ${a.type.d} Em ${c.y1} ${same ? 'manteve-se' : up ? 'evoluiu para' : 'regrediu para'} <b>${b.type.n}</b>: ${b.type.d}</p>
         <p><b>Parecer de referência — valor.</b> O ROCE foi de ${f2(e.roce * 100)}% contra um WACC de ${f2(e.wacc * 100)}%, e o EVA de ${c.y1} foi <b>${f2(e.eva)}</b>. ${e.eva > 0 ? 'A empresa gerou valor: o retorno do capital empregado superou o custo médio das fontes que o financiam, e o acionista ganhou acima do retorno mínimo exigido.' : 'A empresa destruiu valor: mesmo com lucro líquido positivo, o retorno do capital empregado ficou abaixo do custo médio das fontes que o financiam.'} A decisão de investir deve pesar o EVA junto com o risco da estrutura financeira (${b.type.n.toLowerCase()}).</p>
         <p class="note">A numeração dos tipos (I a VI) varia entre autores; por isso o jogo usa o nome da estrutura e os sinais de CDG, NCG e ST.</p></div>`; }
-    root().innerHTML = `<div class="fcbar"><b>Casos de Finanças</b><span class="pill">Caso ${c.seed} · ${esc(c.name)}</span><span class="pill">Tempo <span id="fcClock">${clock(sec)}</span></span><span class="pill">Certos ${nOk}/${st.F.length}</span><span class="pill">Nota ${f2(score())}</span><span class="sp"></span><button class="btn" data-a="lobby">Sair do caso</button></div><div class="fcw">
+    root().innerHTML = `<div class="fcbar"><b>Casos de Finanças</b><span class="pill">Caso ${c.seed} · ${esc(c.name)}</span><span class="pill">Tempo <span id="fcClock">${clock(sec)}</span></span><span class="pill">Certos ${nOk}/${st.F.length}</span><span class="pill">Nota ${f2(score())}</span><span class="sp"></span>${st.done ? '' : '<span class="pill" id="fcSaved">Salvo automaticamente</span><button class="btn" data-a="save">Salvar</button>'}<button class="btn" data-a="lobby">${st.done ? 'Sair do caso' : 'Salvar e sair'}</button></div><div class="fcw">
       <p>Com o Balanço e a DRE abaixo, analise os exercícios de ${c.y1} e ${c.y0} pelos indicadores de NCG, ST, CDG e EVA. Valores em $ mil; indicadores com duas casas decimais.</p>
       <h3>Balanço Patrimonial e DRE · ${esc(c.name)}</h3><div class="g2"><div class="g2e">${at}${pa}</div>${dr}</div>
       <h3>1. Modelo dinâmico · reclassificação do balanço</h3>${tbl('rc', ['Grupo', ...yy])}
@@ -3239,23 +3260,26 @@ if (store.last && store.last.player && store.players[store.last.player]) { cur =
   }
   function check() { st.F.forEach((f) => { const v = (st.val[f.id] || '').trim(); if (!v || st.okSet[f.id]) return; if (right(f, v)) st.okSet[f.id] = 1; else if (st.lastBad[f.id] !== v) { st.miss[f.id] = (st.miss[f.id] || 0) + 1; st.lastBad[f.id] = v; } }); }
   function closeTip() { const t = root().querySelector('.fctip'); if (t) t.remove(); }
-  function onInput(e) { const t = e.target; if (!st) return; if (t.dataset && t.dataset.f) { st.val[t.dataset.f] = t.value; t.classList.remove('no'); } else if (t.id === 'fcTxt') st.txt = t.value; }
+  function onInput(e) { const t = e.target; if (!st) return; if (t.dataset && t.dataset.f) { st.val[t.dataset.f] = t.value; t.classList.remove('no'); } else if (t.id === 'fcTxt') st.txt = t.value; else return; clearTimeout(onInput.t); onInput.t = setTimeout(() => saveOpen(), 600); }
   function onClick(e) {
     const q = e.target.closest('[data-q]'), b = e.target.closest('[data-a]'); closeTip();
     if (q && st) { const f = st.F.find((x) => x.id === q.dataset.q) ; st.F.filter((x) => x.row === f.row && x.sec === f.sec).forEach((x) => { if (!st.okSet[x.id]) st.hint[x.id] = 1; }); q.classList.add('used');
       const tip = document.createElement('div'); tip.className = 'fctip'; tip.innerHTML = `<b>Indica:</b> ${f.tip[0]}<br>${f.tip[1]}`; const w = root().querySelector('.fcw'); w.style.position = 'relative'; w.appendChild(tip);
       const r = q.getBoundingClientRect(), wr = w.getBoundingClientRect(), z = parseFloat(document.documentElement.style.zoom) || 1; let left = (r.left - wr.left) / z - 20; const maxL = wr.width / z - tip.offsetWidth - 8; if (left > maxL) left = Math.max(0, maxL);
-      tip.style.left = left + 'px'; tip.style.top = ((r.bottom - wr.top) / z + 10) + 'px'; tip.style.setProperty('--ax', ((r.left - wr.left) / z - left + 9) + 'px'); e.stopPropagation(); return; }
+      tip.style.left = left + 'px'; tip.style.top = ((r.bottom - wr.top) / z + 10) + 'px'; tip.style.setProperty('--ax', ((r.left - wr.left) / z - left + 9) + 'px'); saveOpen(); e.stopPropagation(); return; }
     if (!b) return; const a = b.dataset.a;
-    if (a === 'exit') { clearInterval(tick); root().classList.remove('on'); }
+    if (a === 'exit') { if (st && !st.done) saveOpen(); clearInterval(tick); root().classList.remove('on'); }
+    else if (a === 'resume') { const o = loadOpen(); if (o) start(o.seed, o.hints, o); }
+    else if (a === 'discard') { saveOpen(true); lobby(); }
+    else if (a === 'save') { saveOpen(); const el = document.getElementById('fcSaved'); if (el) el.textContent = 'Salvo às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
     else if (a === 'start') start(Math.max(1, +document.getElementById('fcSeed').value || 1), document.getElementById('fcHints').value === '1');
     else if (a === 'again') start(+b.dataset.seed, true);
     else if (a === 'new') start(Math.floor(Math.random() * 9000) + 1000, st ? st.hints : true);
     else if (a === 'lobby') { lobby(); }
-    else if (a === 'check') { const y = root().scrollTop; check(); draw(); root().scrollTop = y; }
-    else if (a === 'finish') { check(); st.done = true; st.t1 = Date.now(); clearInterval(tick); record({ at: Date.now(), seed: st.c.seed, type: st.c.b.type.n, ok: Object.keys(st.okSet).length, n: st.F.length, sec: Math.floor((st.t1 - st.t0) / 1000), score: Math.round(score() * 100) / 100 }); draw(); const r = root().querySelector('.res'); if (r) r.scrollIntoView({ block: 'center' }); }
+    else if (a === 'check') { const y = root().scrollTop; check(); draw(); root().scrollTop = y; saveOpen(); }
+    else if (a === 'finish') { check(); st.done = true; st.t1 = Date.now(); clearInterval(tick); saveOpen(true); record({ at: Date.now(), seed: st.c.seed, type: st.c.b.type.n, ok: Object.keys(st.okSet).length, n: st.F.length, sec: Math.floor((st.t1 - st.t0) / 1000), score: Math.round(score() * 100) / 100 }); draw(); const r = root().querySelector('.res'); if (r) r.scrollIntoView({ block: 'center' }); }
   }
-  window.FinCases = { open(p) { player = p || 'Jogador'; lobby(); }, generate, fields, right, TYPES };
+  window.FinCases = { open(p, store) { player = p || 'Jogador'; io = store || null; st = null; lobby(); }, generate, fields, right, TYPES };
 })();
 
 </script>
