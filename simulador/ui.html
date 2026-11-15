@@ -140,7 +140,7 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 .pbtn{border:1px solid var(--rule);border-radius:10px;background:#f6f8fb;padding:14px 10px;cursor:pointer;text-align:center;font:600 15px system-ui;min-height:44px}
 .pbtn:hover{border-color:var(--blue);background:#eaf2fd}.pbtn .av{display:block;width:44px;height:44px;margin:0 auto 6px;border-radius:50%;background:var(--blue);color:#fff;font-size:20px;line-height:44px}
 .hrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.hrow input{max-width:none;flex:1;text-align:left;font-size:16px;padding:10px}
-.slist{display:grid;gap:8px;max-height:46vh;overflow:auto}
+.slist{display:grid;gap:8px;max-height:30vh;overflow:auto}.hsec{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:22px 0 10px;padding-bottom:8px;border-bottom:2px solid var(--rule)}.hsec h2{margin:0}
 .slot{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--rule);border-radius:10px;padding:12px 14px;background:#fafbfc}
 .slot b{font-size:16px}.slot .meta{font-size:12.5px;color:var(--mute)}.slot .acts{display:flex;gap:6px;flex-wrap:wrap}
 .slot.ended{opacity:.8}.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:9px;background:#e7f0fb;color:#1a4f9c;margin-left:6px}
@@ -1416,7 +1416,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ================================================ JOGO: jogadores, saves, configurações, cronômetro, cenários
-const APPVER = '15/11 04:35';
+const APPVER = '15/11 04:50';
 const SKEY = 'simEnividia.store.v1';
 // N empresas no mercado: o tamanho do mercado acompanha o número de empresas (4 = jogo original)
 function setCompanies(p, n) { n = Math.max(2, Math.min(6, +n || 4)); p.nCompanies = n; delete p.marketScale; delete p.nRegions; return p; }
@@ -1489,13 +1489,22 @@ function showHome(step) {
   }
   // lista de saves
   const sv = Object.values(store.players[cur.player].saves).sort((a, b) => (b.updated || 0) - (a.updated || 0));
-  H.innerHTML = head(`Jogador: ${esc(cur.player)}`) + `<h2>Seus jogos salvos</h2>
+  const fin = store.players[cur.player].fin || {}, fh = fin.hist || [], fo = fin.open, fclock = (x) => `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`;
+  H.innerHTML = head(`Jogador: ${esc(cur.player)}`) + `<div class="hsec"><h2>Simulação Empresarial</h2><button class="btn pri" id="bNewGame">Novo jogo</button></div>
     ${sv.length ? `<div class="slist">${sv.map((x) => { const end = x.startPeriod + x.cfg.periods - 1, done = (x.app && x.app.history ? x.app.history.length : 0);
       return `<div class="slot${x.ended ? ' ended' : ''}"><div><b>${esc(x.name)}</b>${x.ended ? '<span class="tag">encerrado</span>' : ''}<span class="tag">${x.cfg.scenario === 'random' ? 'aleatório' : 'roteiro real'}</span>${x.cfg.rules === 'manual' ? '<span class="tag">regras do manual</span>' : ''}<span class="tag">${x.cfg.companies || 4} empresas</span>${x.bots ? `<span class="tag">contra bots · ${window.SimBots.LEVELS[x.cfg.difficulty].label}</span>` : ''}
         <div class="meta">Período ${x.ended ? end : (x.period || x.startPeriod)} · ${done} de ${x.cfg.periods} jogados · ${x.cfg.perMin && new Set(x.cfg.perMin).size > 1 ? 'tempo variável' : x.cfg.minutes ? x.cfg.minutes + ' min/período' : 'sem limite'} · RAA ${x.ended && x.finalRAA != null ? f2(x.finalRAA * 100) + '%' : x.raa != null ? f2(x.raa * 100) + '% (projetado)' : '–'}<br>Salvo em ${ago(x.updated)}</div></div>
         <div class="acts"><button class="btn pri" data-open="${x.id}">${x.ended ? 'Ver' : 'Continuar'}</button><button class="btn" data-ren="${x.id}">Renomear</button><button class="btn" data-del="${x.id}" style="color:#d0021b;border-color:#d0021b">Excluir</button></div></div>`; }).join('')}</div>`
     : '<p class="note">Nenhum jogo salvo ainda.</p>'}
-    <div class="hfoot"><button class="btn" id="bSwitch">Trocar jogador</button><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="bCases">Casos de Finanças</button><button class="btn pri" id="bNewGame">Novo jogo</button></span></div>`;
+    <div class="hsec"><h2>Casos de Finanças</h2><button class="btn pri" id="bCases">${fo ? 'Abrir casos' : 'Novo caso'}</button></div>
+    ${fo || fh.length ? `<div class="slist">${fo ? `<div class="slot"><div><b>Caso ${fo.seed}</b><span class="tag" style="background:#fdf3cf;color:#7a5a00">em andamento</span>
+        <div class="meta">${Object.keys(fo.okSet || {}).length} de 42 campos certos · tempo ${fclock(fo.sec || 0)}<br>Salvo em ${new Date(fo.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</div></div>
+        <div class="acts"><button class="btn pri" id="bCaseResume">Continuar</button><button class="btn" id="bCaseDrop" style="color:#d0021b;border-color:#d0021b">Descartar</button></div></div>` : ''}
+      ${fh.slice(0, 5).map((x) => `<div class="slot ended"><div><b>Caso ${x.seed}</b><span class="tag">entregue</span><span class="tag">${esc(x.type)}</span>
+        <div class="meta">Nota ${f2(x.score)} de 75 · ${x.ok} de ${x.n} campos certos · tempo ${fclock(x.sec)}<br>Entregue em ${new Date(x.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</div></div>
+        <div class="acts"><button class="btn" data-caseagain="${x.seed}">Refazer</button></div></div>`).join('')}</div>${fh.length > 5 ? `<p class="note">Mais ${fh.length - 5} no histórico completo, em “${fo ? 'Abrir casos' : 'Novo caso'}”.</p>` : ''}`
+    : '<p class="note">Nenhum caso resolvido ainda.</p>'}
+    <div class="hfoot"><button class="btn" id="bSwitch">Trocar jogador</button></div>`;
 }
 function openSave(id) {
   const sv = store.players[cur.player].saves[id]; if (!sv) return;
@@ -1534,7 +1543,9 @@ document.addEventListener('click', (e) => {
   if (t.id === 'bNewPlayer') { const n = $('newPlayer').value.trim(); if (!n) return; store.players[n] = store.players[n] || { created: Date.now(), saves: {} }; cur = { player: n }; persistNow(); showHome('saves'); return; }
   if (t.id === 'bSwitch') { cur = null; showHome('login'); return; }
   if (t.id === 'bNewGame') { showHome('new'); return; }
-  if (t.id === 'bCases') { const pl = store.players[cur.player]; window.FinCases.open(cur.player, { get: () => pl.fin || {}, set: (v) => { pl.fin = v; persistNow(); } }); return; }
+  if (t.id === 'bCases' || t.id === 'bCaseResume' || t.id === 'bCaseDrop' || t.dataset.caseagain) { const pl = store.players[cur.player];
+    if (t.id === 'bCaseDrop') { if (pl.fin) pl.fin.open = null; persistNow(); showHome('saves'); return; }
+    window.FinCases.open(cur.player, { get: () => pl.fin || {}, set: (v) => { pl.fin = v; persistNow(); } }, { resume: t.id === 'bCaseResume', seed: +t.dataset.caseagain || 0, onExit: () => showHome('saves') }); return; }
   if (t.id === 'bBackSaves') { showHome('saves'); return; }
   if (t.id === 'bStart') { startGame(); return; }
   if (t.dataset.open) { openSave(t.dataset.open); return; }

@@ -228,7 +228,7 @@
       const r = q.getBoundingClientRect(), wr = w.getBoundingClientRect(), z = parseFloat(document.documentElement.style.zoom) || 1; let left = (r.left - wr.left) / z - 20; const maxL = wr.width / z - tip.offsetWidth - 8; if (left > maxL) left = Math.max(0, maxL);
       tip.style.left = left + 'px'; tip.style.top = ((r.bottom - wr.top) / z + 10) + 'px'; tip.style.setProperty('--ax', ((r.left - wr.left) / z - left + 9) + 'px'); saveOpen(); e.stopPropagation(); return; }
     if (!b) return; const a = b.dataset.a;
-    if (a === 'exit') { if (st && !st.done) saveOpen(); clearInterval(tick); root().classList.remove('on'); }
+    if (a === 'exit') { if (st && !st.done) saveOpen(); clearInterval(tick); root().classList.remove('on'); if (onExit) onExit(); }
     else if (a === 'resume') { const o = loadOpen(); if (o) start(o.seed, o.hints, o); }
     else if (a === 'pin') { st.pin = !st.pin; const el = document.getElementById('fcStm'); el.classList.toggle('pin', st.pin); b.textContent = st.pin ? 'Soltar balanço' : 'Fixar balanço'; }
     else if (a === 'discard') { saveOpen(true); lobby(); }
@@ -240,5 +240,6 @@
     else if (a === 'check') { const y = root().scrollTop; check(); draw(); root().scrollTop = y; saveOpen(); }
     else if (a === 'finish') { check(); st.done = true; st.t1 = Date.now(); clearInterval(tick); saveOpen(true); record({ at: Date.now(), seed: st.c.seed, type: st.c.b.type.n, ok: Object.keys(st.okSet).length, n: st.F.length, sec: Math.floor((st.t1 - st.t0) / 1000), score: Math.round(score() * 100) / 100 }); draw(); const r = root().querySelector('.res'); if (r) r.scrollIntoView({ block: 'center' }); }
   }
-  window.FinCases = { open(p, store) { player = p || 'Jogador'; io = store || null; st = null; lobby(); }, generate, fields, right, TYPES };
+  let onExit = null;
+  window.FinCases = { open(p, store, o) { player = p || 'Jogador'; io = store || null; st = null; o = o || {}; onExit = o.onExit || null; const op = o.resume && loadOpen(); if (op) start(op.seed, op.hints, op); else if (o.seed) start(o.seed, true); else lobby(); root().classList.add('on'); }, generate, fields, right, TYPES };
 })();
