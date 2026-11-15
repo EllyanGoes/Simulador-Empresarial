@@ -1416,7 +1416,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ================================================ JOGO: jogadores, saves, configurações, cronômetro, cenários
-const APPVER = '15/11 03:20';
+const APPVER = '15/11 03:50';
 const SKEY = 'simEnividia.store.v1';
 // N empresas no mercado: o tamanho do mercado acompanha o número de empresas (4 = jogo original)
 function setCompanies(p, n) { n = Math.max(2, Math.min(6, +n || 4)); p.nCompanies = n; delete p.marketScale; delete p.nRegions; return p; }
@@ -1495,7 +1495,7 @@ function showHome(step) {
         <div class="meta">Período ${x.ended ? end : (x.period || x.startPeriod)} · ${done} de ${x.cfg.periods} jogados · ${x.cfg.perMin && new Set(x.cfg.perMin).size > 1 ? 'tempo variável' : x.cfg.minutes ? x.cfg.minutes + ' min/período' : 'sem limite'} · RAA ${x.ended && x.finalRAA != null ? f2(x.finalRAA * 100) + '%' : x.raa != null ? f2(x.raa * 100) + '% (projetado)' : '–'}<br>Salvo em ${ago(x.updated)}</div></div>
         <div class="acts"><button class="btn pri" data-open="${x.id}">${x.ended ? 'Ver' : 'Continuar'}</button><button class="btn" data-ren="${x.id}">Renomear</button><button class="btn" data-del="${x.id}" style="color:#d0021b;border-color:#d0021b">Excluir</button></div></div>`; }).join('')}</div>`
     : '<p class="note">Nenhum jogo salvo ainda.</p>'}
-    <div class="hfoot"><button class="btn" id="bSwitch">Trocar jogador</button><button class="btn pri" id="bNewGame">Novo jogo</button></div>`;
+    <div class="hfoot"><button class="btn" id="bSwitch">Trocar jogador</button><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="bCases">Casos de Finanças</button><button class="btn pri" id="bNewGame">Novo jogo</button></span></div>`;
 }
 function openSave(id) {
   const sv = store.players[cur.player].saves[id]; if (!sv) return;
@@ -1534,6 +1534,7 @@ document.addEventListener('click', (e) => {
   if (t.id === 'bNewPlayer') { const n = $('newPlayer').value.trim(); if (!n) return; store.players[n] = store.players[n] || { created: Date.now(), saves: {} }; cur = { player: n }; persistNow(); showHome('saves'); return; }
   if (t.id === 'bSwitch') { cur = null; showHome('login'); return; }
   if (t.id === 'bNewGame') { showHome('new'); return; }
+  if (t.id === 'bCases') { window.FinCases.open(cur.player); return; }
   if (t.id === 'bBackSaves') { showHome('saves'); return; }
   if (t.id === 'bStart') { startGame(); return; }
   if (t.dataset.open) { openSave(t.dataset.open); return; }
@@ -2028,6 +2029,9 @@ $('ioFile').onchange = (e) => { const f = e.target.files[0]; if (f) f.text().the
 render();
 if (store.last && store.last.player && store.players[store.last.player]) { cur = { player: store.last.player }; showHome('saves'); } else showHome('login');
 }
+</script>
+<script>
+/*CASES*/
 </script>
 </body>
 </html>

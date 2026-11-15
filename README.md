@@ -26,3 +26,7 @@ Réplica própria do jogo de empresas Tecnomind/SimulWeb (PGGN FDC) para treinar
 1. `cd simulador && npm install && python3 build.py`
 2. Copie `simulador/index.html` para `Simulador Empresarial.app/Contents/Resources/index.html` (ou abra o `index.html` no navegador).
 3. No Mac, dê dois cliques em `Compilar app nativo.command` e abra o `Simulador Empresarial.app`.
+
+## Casos de Finanças
+
+Na tela de jogos salvos, o botão **Casos de Finanças** abre um modo de treino com empresas fictícias sorteadas: reclassificação do balanço pelo modelo dinâmico, ST, NCG, CDG, tipo de estrutura financeira, ciclo financeiro, um problema de prazo de estocagem e o EVA por quatro caminhos. Cada caso vale 75 pontos, tem correção na hora e fica no histórico do jogador. O código está em `simulador/cases.js`.
