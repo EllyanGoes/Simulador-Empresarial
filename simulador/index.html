@@ -135,7 +135,7 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 .hlogo{display:flex;align-items:center;gap:14px;margin-bottom:6px}.hlogo svg{width:54px;height:54px}
 .hver{margin-left:auto;align-self:flex-start;font-size:12px;color:var(--mute);background:#f1f3f6;border-radius:10px;padding:3px 9px;white-space:nowrap}
 .hlogo h1{margin:0;font-size:30px;font-weight:800;letter-spacing:-.5px}.hlogo small{display:block;color:var(--mute);font-size:14px;font-weight:500}
-.hcard h2{font-size:19px;margin:20px 0 10px}
+.hcard h2{font-size:19px;margin:20px 0 10px}.prc{margin-top:22px}.prc p{margin:10px 0;font-size:14px}.prc .prg{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px 22px}.prc h4{margin:6px 0 4px;font-size:14.5px}.prc ul{margin:0;padding-left:18px}.prc li{margin:4px 0}@media(max-width:600px){.prc .prg{grid-template-columns:minmax(0,1fr)}}
 .plist{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .pbtn{border:1px solid var(--rule);border-radius:10px;background:#f6f8fb;padding:14px 10px;cursor:pointer;text-align:center;font:600 15px system-ui;min-height:44px}
 .pbtn:hover{border-color:var(--blue);background:#eaf2fd}.pbtn .av{display:block;width:44px;height:44px;margin:0 auto 6px;border-radius:50%;background:var(--blue);color:#fff;font-size:20px;line-height:44px}
@@ -2442,7 +2442,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ================================================ JOGO: jogadores, saves, configurações, cronômetro, cenários
-const APPVER = '15/11 04:50';
+const APPVER = '15/11 05:00';
 const SKEY = 'simEnividia.store.v1';
 // N empresas no mercado: o tamanho do mercado acompanha o número de empresas (4 = jogo original)
 function setCompanies(p, n) { n = Math.max(2, Math.min(6, +n || 4)); p.nCompanies = n; delete p.marketScale; delete p.nRegions; return p; }
@@ -2474,6 +2474,19 @@ const ago = (ts) => { if (!ts) return ''; const d = new Date(ts); return d.toLoc
 // ---------------- telas de entrada
 const LOGO = '<svg viewBox="0 0 54 54"><rect width="54" height="54" rx="12" fill="#3a78c3"/><rect x="0" y="34" width="54" height="20" rx="0" fill="#161b24"/><rect x="0" y="42" width="54" height="12" rx="12" fill="#161b24"/><rect x="9" y="20" width="6" height="12" fill="#fff"/><rect x="18" y="16" width="6" height="16" fill="#fff"/><rect x="27" y="18" width="6" height="14" fill="#fff"/><rect x="36" y="10" width="6" height="22" fill="#fff"/><polyline points="12,18 21,13 30,15 39,7" fill="none" stroke="#ffc83c" stroke-width="2.5"/><text x="27" y="49" text-anchor="middle" font-size="9" font-weight="800" fill="#fff" font-family="Arial">RAA</text></svg>';
 const head = (sub) => `<div class="hlogo">${LOGO}<div><h1>Simulador Empresarial</h1><small>${sub}</small></div><span class="hver" title="Versão do aplicativo">Versão ${APPVER}${NATIVE ? ' · janela nativa' : ''}</span></div>`;
+const PRACTICE = `<details class="bnf prc"><summary>Como praticar para aprender bem</summary>
+  <p><b>Pouco e com frequência.</b> Sessões curtas e espaçadas na semana ensinam mais do que uma maratona. Uma semana boa tem três casos e uma partida.</p>
+  <div class="prg"><div><h4>Simulação Empresarial</h4><ul>
+    <li><b>Ritmo:</b> uma partida por semana, em duas ou três sessões de dois ou três períodos.</li>
+    <li><b>Preveja antes de fechar:</b> anote o que espera de vendas, caixa e resultado e compare com o relatório.</li>
+    <li><b>Um foco por partida:</b> preço e demanda, capacidade e mão de obra, ou caixa e endividamento.</li>
+    <li><b>Dificuldade:</b> suba o nível dos bots ao ganhar duas partidas seguidas.</li></ul></div>
+  <div><h4>Casos de Finanças</h4><ul>
+    <li><b>Ritmo:</b> um caso por dia, ou no mínimo três por semana, por duas a três semanas.</li>
+    <li><b>Progressão:</b> os 3 ou 4 primeiros com dicas e fórmulas; depois, modo prova.</li>
+    <li><b>Domínio:</b> três casos seguidos acima de 67 pontos, sem dicas e em menos de 25 minutos.</li>
+    <li><b>Erros:</b> refaça o mesmo caso dois ou três dias depois, não na hora.</li></ul></div></div>
+  <p><b>Combine os dois.</b> Depois de cada partida, analise o balanço final da sua empresa com o roteiro dos casos: ST, NCG, CDG e EVA. Com prova marcada, concentre os casos nas duas semanas anteriores e deixe a véspera para uma revisão leve.</p></details>`;
 const BENEFITS = `<details class="bnf" open><summary>Por que praticar com este simulador</summary><ul>
   <li><b>Errar sem custo.</b> Teste preços, produção, compras e financiamento antes de decidir no jogo oficial, sem afetar o resultado da sua equipe.</li>
   <li><b>Ver o efeito na hora.</b> Cada decisão recalcula DRE, balanço, caixa, custos e ranking ao clicar em Aplicar, para você entender causa e efeito.</li>
@@ -2530,6 +2543,7 @@ function showHome(step) {
         <div class="meta">Nota ${f2(x.score)} de 75 · ${x.ok} de ${x.n} campos certos · tempo ${fclock(x.sec)}<br>Entregue em ${new Date(x.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</div></div>
         <div class="acts"><button class="btn" data-caseagain="${x.seed}">Refazer</button></div></div>`).join('')}</div>${fh.length > 5 ? `<p class="note">Mais ${fh.length - 5} no histórico completo, em “${fo ? 'Abrir casos' : 'Novo caso'}”.</p>` : ''}`
     : '<p class="note">Nenhum caso resolvido ainda.</p>'}
+    ${PRACTICE}
     <div class="hfoot"><button class="btn" id="bSwitch">Trocar jogador</button></div>`;
 }
 function openSave(id) {
