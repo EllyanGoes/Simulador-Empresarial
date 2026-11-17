@@ -149,6 +149,53 @@
     return F;
   }
 
+  // ---------- caso de fluxo de caixa (Lucro Real) ----------
+  const FIRMS = [['NUTRI MAIS', 'uma fábrica de ração para animais', 't', 'Fábrica de Ração'], ['AMAZON BLOCOS', 'uma fábrica de blocos cerâmicos', 'milheiro', 'Fábrica de Blocos'], ['AÇAÍ DO NORTE', 'uma agroindústria de polpa de açaí', 't', 'Agroindústria de Açaí'], ['PLASTIPAR', 'uma fábrica de embalagens plásticas', 'mil un.', 'Fábrica de Embalagens'], ['MADEFORTE', 'uma serraria com secagem de madeira', 'm³', 'Serraria'], ['GELO PURO', 'uma fábrica de gelo e água mineral', 't', 'Fábrica de Gelo'], ['TECMOLDE', 'uma metalúrgica de peças sob encomenda', 'peça', 'Metalúrgica'], ['VIDA LEITE', 'um laticínio de queijos e iogurtes', 'mil litros', 'Laticínio']];
+  function generateFCR(seed) {
+    if (seed === 1) return finishFCR({ seed, firm: FIRMS[0], n: 20, inv: 1000000, cgp: 10, q: 6000, p: 150, ti: 8.65, cv: 50, gf: 100000, vr: 200000, ir: 34, tma: 15, given: 1 });
+    const R = rng(seed * 130363 + 11), u = (a, b) => a + (b - a) * R(), pick = (a) => a[Math.floor(R() * a.length)], wantPos = R() < 0.6;
+    for (let tries = 0; tries < 20000; tries++) {
+      const c = { seed, firm: pick(FIRMS), n: pick([5, 8, 10, 10, 15, 20]), inv: Math.round(u(4, 60)) * 50000, cgp: pick([5, 10, 10, 15, 20]), q: Math.round(u(20, 200)) * 50, ti: pick([3.65, 8.65, 9.25, 11.25]), ir: 34, tma: Math.round(u(10, 18)) };
+      c.p = Math.round(u(4, 80)) * 5; c.cv = Math.round(c.p * u(0.3, 0.6)); c.gf = Math.round(c.q * c.p * u(0.08, 0.2) / 5000) * 5000; c.vr = Math.round(c.inv * u(0.05, 0.25) / 10000) * 10000;
+      const x = finishFCR(c); if (x.lt <= 0 || x.lt / x.rb > 0.35 || x.tir == null || x.tir <= 0.005 || (x.vpl > 0) !== wantPos || Math.abs(x.vpl) < 0.03 * (x.inv + x.cg)) continue;
+      if (x.vpl > 0 && x.pbd == null) continue; return x;
+    }
+    return generateFCR(seed + 1000003);
+  }
+  function finishFCR(c) {
+    c.reg = 'real'; c.name = c.firm[3] + ' ' + c.firm[0]; c.cg = c.inv * c.cgp / 100; c.rb = c.q * c.p; c.imp = c.rb * c.ti / 100; c.rl = c.rb - c.imp; c.gv = c.q * c.cv; c.lo = c.rl - c.gv - c.gf;
+    c.dep = (c.inv - c.vr) / c.n; c.lt = c.lo - c.dep; c.irv = c.lt * c.ir / 100; c.ll = c.lt - c.irv;
+    c.fl = [-(c.inv + c.cg)]; for (let t = 1; t <= c.n; t++) c.fl.push(c.ll + c.dep + (t === c.n ? c.vr + c.cg : 0));
+    const i = c.tma / 100; c.vpl = npv(c.fl, i); c.tir = irr(c.fl); c.pbs = payback(c.fl); c.disc = c.fl.map((v, t) => v / Math.pow(1 + i, t)); c.pbd = payback(c.disc);
+    c.vpe = c.disc.slice(1).reduce((a, v) => a + v, 0); c.il = c.vpe / -c.fl[0]; return c; }
+  function fieldsFCR(c) {
+    const F = [], one = (sec, id, code, label, ans, kind, tip, x) => F.push(Object.assign({ id, sec, row: id, code, label, col: 1, ans, kind, tip }, x || {}));
+    one('pr', 'inv', 'INVESTIMENTO', 'Investimento (Ano 0)', -c.inv, 'm', ['Saída de caixa na instalação do projeto. Entra negativa no fluxo.', fx('Investimento', '− valor do investimento')], { abs: 1 });
+    one('pr', 'cg', 'CAPITAL DE GIRO', 'Capital de Giro (Ano 0)', -c.cg, 'm', ['Recursos presos em estoques e recebíveis. Sai no Ano 0 e volta no último ano.', fx('Capital de Giro', 'Investimento × % do capital de giro')], { abs: 1 });
+    one('dre', 'rb', 'RECEITA BRUTA', 'Receita Bruta', c.rb, 'm', ['Produção e vendas constantes.', fx('Receita Bruta', 'Capacidade de produção × Preço de venda')]);
+    one('dre', 'imp', 'IMPOSTOS SOBRE A RECEITA BRUTA', 'Impostos sobre a Receita Bruta', -c.imp, 'm', ['No Lucro Real os tributos sobre vendas saem da receita bruta; o IR e a CS vêm depois, sobre o lucro.', fx('Impostos', 'Receita Bruta × alíquota sobre a receita')], { abs: 1 });
+    one('dre', 'rl', 'RECEITA LÍQUIDA', 'Receita Líquida', c.rl, 'm', ['Receita depois dos impostos sobre vendas.', fx('Receita Líquida', 'Receita Bruta − Impostos sobre a Receita Bruta')]);
+    one('dre', 'gv', 'GASTOS VARIÁVEIS', 'Gastos Variáveis', -c.gv, 'm', ['Gasto que acompanha a produção.', fx('Gastos Variáveis', 'Capacidade de produção × Gasto variável por unidade')], { abs: 1 });
+    one('dre', 'gf', 'GASTOS FIXOS', 'Gastos Fixos', -c.gf, 'm', ['Gasto anual que não depende da produção.', fx('Gastos Fixos', 'valor anual informado')], { abs: 1 });
+    one('dre', 'lo', 'LUCRO OPERACIONAL', 'Lucro Operacional', c.lo, 'm', ['Resultado antes da depreciação.', fx('Lucro Operacional', 'Receita Líquida − Gastos Variáveis − Gastos Fixos')]);
+    one('dre', 'dep', 'DEPRECIAÇÃO', 'Depreciação', -c.dep, 'm', ['Despesa contábil que reduz o lucro tributável, mas não sai do caixa.', fx('Depreciação', '(Investimento inicial − Valor residual) ÷ Vida útil')], { abs: 1 });
+    one('dre', 'lt', 'LUCRO TRIBUTÁVEL', 'Lucro Tributável', c.lt, 'm', ['Base do IR e da Contribuição Social.', fx('Lucro Tributável', 'Lucro Operacional − Depreciação')]);
+    one('dre', 'irv', 'IMP. RENDA/CONTRIB. SOC.', 'Imp. Renda / Contrib. Social', -c.irv, 'm', ['No Lucro Real, o IR e a CS incidem sobre o lucro tributável.', fx('IR/CS', 'Lucro Tributável × alíquota de IR e CS')], { abs: 1 });
+    one('dre', 'll', 'LUCRO LÍQUIDO', 'Lucro Líquido', c.ll, 'm', ['Lucro depois do IR e da CS.', fx('Lucro Líquido', 'Lucro Tributável − IR/CS')]);
+    one('aj', 'adep', 'AJUSTE DEPRECIAÇÃO', 'Depreciação (soma de volta, todo ano)', c.dep, 'm', ['A depreciação não é saída de caixa: depois de reduzir o imposto, ela volta ao fluxo.', fx('Ajuste', '+ Depreciação do ano')]);
+    one('aj', 'vr', 'VALOR RESIDUAL', 'Valor Residual (Ano ' + c.n + ')', c.vr, 'm', ['Valor dos ativos no fim da vida útil. Entra positivo no último ano.', fx('Valor Residual', 'valor informado no enunciado')]);
+    one('aj', 'rcg', 'RECUPERAÇÃO CAPITAL DE GIRO', 'Recuperação do Capital de Giro (Ano ' + c.n + ')', c.cg, 'm', ['O capital de giro volta ao caixa no encerramento.', fx('Recuperação', 'Capital de Giro investido no Ano 0')]);
+    const tf = fx('FC', 'Ano 0: Investimento + Capital de Giro · Anos 1 a ' + (c.n - 1) + ': Lucro Líquido + Depreciação · Ano ' + c.n + ': Lucro Líquido + Depreciação + Valor Residual + Recuperação do Giro');
+    [[0, 'FC ANO 0', c.fl[0]], [1, 'FC ANOS 1 A ' + (c.n - 1), c.fl[1]], [c.n, 'FC ANO ' + c.n, c.fl[c.n]]].forEach(([t, code, ans], i) => F.push({ id: 'fc' + t, sec: 'fl', row: 'fc', code, label: 'Fluxo de Caixa do Projeto', col: i, ans, kind: 'm', tip: ['Soma do que entra e sai do caixa. A depreciação volta ao fluxo; o Ano 0 é negativo.', tf] }));
+    one('av', 'vpl', 'VPL', 'VPL à TMA', c.vpl, 'm', ['Valor criado pelo projeto, em dinheiro de hoje, acima da remuneração mínima exigida.', fx('VPL', 'Σ FC<sub>t</sub> ÷ (1 + TMA)<sup>t</sup>') + '<br><span class="fcfm">Excel: =VPL(TMA; FC1:FCn) + FC0</span>']);
+    one('av', 'tir', 'TIR', 'TIR (%)', c.tir * 100, 'p', ['Taxa que zera o VPL. Compare com a TMA.', fx('TIR', 'taxa i tal que Σ FC<sub>t</sub> ÷ (1 + i)<sup>t</sup> = 0') + '<br><span class="fcfm">Excel: =TIR(FC0:FCn)</span>']);
+    one('av', 'pbs', 'PAYBACK SIMPLES', 'Payback simples (anos)', c.pbs, 'a', ['Tempo para recuperar o investimento sem descontar os fluxos. Use fração de ano.', fx('Payback', 'anos completos + saldo que falta ÷ FC do ano seguinte')]);
+    if (c.pbd != null) one('av', 'pbd', 'PAYBACK DESCONTADO', 'Payback descontado (anos)', c.pbd, 'a', ['Igual ao simples, com cada fluxo trazido a valor presente pela TMA.', fx('Payback', 'anos completos + saldo descontado que falta ÷ FC descontado do ano seguinte')]);
+    one('av', 'il', 'IL', 'Índice de Lucratividade', c.il, 'x', ['Quanto volta, em valor presente, para cada $ 1 investido no Ano 0.', fx('IL', 'Σ FC<sub>t</sub> ÷ (1 + TMA)<sup>t</sup> (anos 1 a n) ÷ |FC<sub>0</sub>|')]);
+    one('av', 'dec', '', 'Decisão', c.vpl > 0 ? 'viavel' : 'inviavel', 'sel', ['Use o VPL: positivo, o projeto paga a TMA e ainda cria valor.', '<span class="fcfm">VPL &gt; 0 · TIR &gt; TMA · IL &gt; 1 → viável</span>'], { opts: DEC });
+    return F;
+  }
+
   function parseNum(s) { s = String(s).trim().replace(/[R$\s%]/g, ''); if (!s) return null; const neg = /^\(.*\)$/.test(s); s = s.replace(/[()]/g, '');
     if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
     const v = parseFloat(s); return isNaN(v) ? null : neg ? -v : v; }
@@ -207,13 +254,14 @@
   function lobby() {
     clearInterval(tick); if (st && !st.done) saveOpen(); st = null; const op = loadOpen(), h = hist(), n = h.length, best = n ? Math.max(...h.map((x) => x.score)) : null, avg = n ? h.reduce((a, x) => a + x.score, 0) / n : null, tm = n ? Math.round(h.reduce((a, x) => a + x.sec, 0) / n) : null;
     const STEPS = { fc: [['Ano 0', 'Lance o investimento na montagem e o capital de giro como saídas de caixa.'], ['Resultado anual', 'Monte receita, imposto do Simples, gastos variáveis e fixos até o lucro líquido.'], ['Ajustes do último ano', 'Some o valor residual e a recuperação do capital de giro.'], ['Fluxo do projeto', 'Feche o fluxo de caixa de cada ano, do Ano 0 ao fim do horizonte.'], ['VPL, TIR e paybacks', 'Avalie o projeto pela TMA: VPL, TIR, paybacks simples e descontado e IL.'], ['Decisão e parecer', 'Diga se o projeto é viável e compare seu parecer com o de referência.']] };
+    STEPS.fcr = [['Ano 0', 'Lance o investimento e o capital de giro (percentual do investimento) como saídas de caixa.'], ['Resultado anual', 'Da receita bruta ao lucro líquido, com impostos sobre vendas, depreciação e IR/CS.'], ['Depreciação', 'Calcule pela vida útil e pelo valor residual; ela reduz o imposto e volta ao fluxo.'], ['Fluxo do projeto', 'Feche o fluxo do Ano 0, dos anos intermediários e do último ano.'], ['VPL, TIR e paybacks', 'Avalie o projeto pela TMA: VPL, TIR, paybacks simples e descontado e IL.'], ['Decisão e parecer', 'Diga se o investimento é viável e compare com o parecer de referência.']];
     STEPS.eva = [['Modelo dinâmico', 'Reclassifique o balanço em contas erráticas, cíclicas e de longo prazo.'], ['ST, NCG e CDG', 'Calcule os três indicadores e identifique a estrutura financeira de cada ano.'], ['Ciclo financeiro', 'Monte PME, PMR e PMP em dias e confirme a NCG pelo ciclo.'], ['Problema de gestão', 'Ache o prazo de estocagem que cabe no teto de investimento em NCG.'], ['EVA', 'Chegue ao mesmo valor por quatro caminhos: ROCE, NOPAT, custo das fontes e ROE.'], ['Parecer', 'Escreva sua análise de risco e de valor e compare com a de referência.']];
     const stepsHTML = (k) => STEPS[k].map((x, i) => `<div><i>${i + 1}</i><b>${x[0]}</b><span>${x[1]}</span></div>`).join(''); lobby.steps = stepsHTML;
-    const KN = { eva: 'Modelo dinâmico e EVA', fc: 'Fluxo de caixa de projeto' };
+    const KN = { eva: 'Modelo dinâmico e EVA', fc: 'Fluxo de caixa · Simples', fcr: 'Fluxo de caixa · Lucro Real' };
     const badge = (s) => { const p = s / 75; return `<span class="fcnote ${p >= 0.9 ? 'g' : p >= 0.6 ? 'y' : 'r'}">${f2(s)}</span>`; };
     root().innerHTML = `<div class="fcbar"><b>Casos de Finanças</b><span class="pill">Jogador: ${esc(player)}</span><span class="sp"></span><button class="btn" data-a="exit">Voltar ao Simulador</button></div><div class="fcw fclob">
-      <div class="fchero"><div><h1>Treine análise financeira com casos novos a cada rodada</h1><p>Escolha o tipo de exercício: a análise do balanço de uma empresa fictícia (modelo dinâmico, ciclo financeiro e EVA) ou a avaliação de um novo negócio pelo fluxo de caixa (VPL, TIR e payback). Você confere na hora e recebe uma nota de 0 a 75.</p></div>
-        <div class="fcgo"><label>Tipo de caso<select id="fcType"><option value="eva"${lastKind === 'eva' ? ' selected' : ''}>Modelo dinâmico e EVA</option><option value="fc"${lastKind === 'fc' ? ' selected' : ''}>Fluxo de caixa de projeto</option></select></label><label>Número do caso<input id="fcSeed" type="number" min="1" value="${Math.floor(Math.random() * 9000) + 1000}"></label><label>Dicas<select id="fcHints"><option value="1">Permitidas (com desconto)</option><option value="0">Desligadas (modo prova)</option></select></label><button class="btn pri big" data-a="start">Começar caso</button><button class="btn big" data-a="imp">Importar Excel preenchido</button><span class="note">O mesmo número gera sempre o mesmo caso. No fluxo de caixa, o caso 1 é o exercício da loja de calçados da aula.</span></div></div>
+      <div class="fchero"><div><h1>Treine análise financeira com casos novos a cada rodada</h1><p>Escolha o tipo de exercício: a análise do balanço de uma empresa fictícia (modelo dinâmico, ciclo financeiro e EVA) ou a avaliação de um novo negócio pelo fluxo de caixa, no Simples Nacional ou no Lucro Real (VPL, TIR e payback). Você confere na hora e recebe uma nota de 0 a 75.</p></div>
+        <div class="fcgo"><label>Tipo de caso<select id="fcType"><option value="eva"${lastKind === 'eva' ? ' selected' : ''}>Modelo dinâmico e EVA</option><option value="fc"${lastKind === 'fc' ? ' selected' : ''}>Fluxo de caixa · Simples</option><option value="fcr"${lastKind === 'fcr' ? ' selected' : ''}>Fluxo de caixa · Lucro Real</option></select></label><label>Número do caso<input id="fcSeed" type="number" min="1" value="${Math.floor(Math.random() * 9000) + 1000}"></label><label>Dicas<select id="fcHints"><option value="1">Permitidas (com desconto)</option><option value="0">Desligadas (modo prova)</option></select></label><button class="btn pri big" data-a="start">Começar caso</button><button class="btn big" data-a="imp">Importar Excel preenchido</button><span class="note">O mesmo número gera sempre o mesmo caso. Nos fluxos de caixa, o caso 1 é o exercício da aula (loja de calçados no Simples; fábrica de ração no Lucro Real).</span></div></div>
       ${op ? `<div class="fcopen"><div><b>Caso ${op.seed} em andamento · ${KN[op.kind || 'eva']}</b><span>${Object.keys(op.okSet || {}).length} de ${op.n || 42} campos certos · ${Object.values(op.val || {}).filter((v) => String(v).trim()).length} preenchidos · tempo ${clock(op.sec || 0)} · salvo em ${new Date(op.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span></div><span><button class="btn pri" data-a="resume">Continuar</button> <button class="btn" data-a="discard">Descartar</button></span></div>` : ''}
       <div class="fcstats"><div><span>Casos resolvidos</span><b>${n}</b></div><div><span>Melhor nota</span><b>${best != null ? f2(best) : '–'}</b></div><div><span>Nota média</span><b>${avg != null ? f2(avg) : '–'}</b></div><div><span>Tempo médio</span><b>${tm != null ? clock(tm) : '–'}</b></div></div>
       <h3>O que você resolve em cada caso</h3><div class="fcsteps" id="fcSteps">${stepsHTML(lastKind)}</div>
@@ -223,7 +271,7 @@
   }
 
   function start(seed, hints, sv, kind) {
-    kind = kind === 'fc' ? 'fc' : 'eva'; lastKind = kind; const c = kind === 'fc' ? generateFC(seed) : generate(seed), F = kind === 'fc' ? fieldsFC(c) : fields(c); st = { c, F, hints, t0: Date.now(), done: false, val: {}, hint: {}, miss: {}, okSet: {} };
+    kind = kind === 'fc' || kind === 'fcr' ? kind : 'eva'; lastKind = kind; const c = kind === 'fc' ? generateFC(seed) : kind === 'fcr' ? generateFCR(seed) : generate(seed), F = kind === 'fc' ? fieldsFC(c) : kind === 'fcr' ? fieldsFCR(c) : fields(c); st = { c, F, hints, t0: Date.now(), done: false, val: {}, hint: {}, miss: {}, okSet: {} };
     st.refs = {}; st.fref = {}; F.forEach((f) => { if (f.kind !== 'sel') st.fref[nk(codeOf(f))] = f.id; }); st.kind = kind;
     if (sv) { Object.assign(st, { val: sv.val || {}, hint: sv.hint || {}, miss: sv.miss || {}, okSet: sv.okSet || {}, lastBad: sv.lastBad || {}, txt: sv.txt || '', t0: Date.now() - (sv.sec || 0) * 1000 }); }
     draw(); root().scrollTop = 0; clearInterval(tick); tick = setInterval(() => { const el = document.getElementById('fcClock'); if (el && st && !st.done) { const s = Math.floor((Date.now() - st.t0) / 1000); el.textContent = clock(s); if (s % 15 === 0) saveOpen(); } }, 1000); saveOpen();
@@ -239,7 +287,7 @@
     return `<table><thead><tr>${heads.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`; }
 
   function draw() {
-    if (st.kind === 'fc') return drawFC();
+    if (st.kind === 'fc') return drawFC(); if (st.kind === 'fcr') return drawFCR();
     const { c } = st, { a, b, dre } = c; st.lastBad = st.lastBad || {};
     const ref = (k, v) => { st.refs[nk(k)] = v; return ` data-ref="${esc(k)}"`; }, kk = (l) => l.replace(/^\(−\)\s*/, '').replace(/\s*[=−-]\s.*$/, '').replace(/ c\/ /, ' ').trim();
     const R = (l, x, y, cl, k) => `<tr class="${cl || 'i'}"><td>${l}</td><td${ref((k || kk(l)) + ' ' + c.y1, x)}>${f0(x)}</td><td${ref((k || kk(l)) + ' ' + c.y0, y)}>${f0(y)}</td></tr>`;
@@ -291,6 +339,32 @@
       <h3>6. Parecer</h3><p>O negócio vale a pena para ${esc(c.biz[1])}? Em quanto tempo o investimento volta e qual é o risco de o retorno não se confirmar?</p><textarea id="fcTxt" placeholder="Escreva seu parecer. Ele não vale pontos; ao entregar, você compara com o parecer de referência."${st.done ? ' disabled' : ''}>${esc(st.txt || '')}</textarea>
       ${end}<div class="acts">${st.done ? '<button class="btn pri" data-a="new">Novo caso</button><button class="btn" data-a="lobby">Histórico</button>' : '<button class="btn" data-a="check">Conferir preenchidos</button><button class="btn pri" data-a="finish">Entregar caso</button>'}</div></div>`;
   }
+  function drawFCR() {
+    const { c } = st, un = c.firm[2]; st.lastBad = st.lastBad || {};
+    const ref = (k, v) => { st.refs[nk(k)] = v; return ` data-ref="${esc(k)}"`; }, money = (v) => 'R$ ' + f2(v);
+    const L = (lab, k, v, txt) => `<tr><td>${lab}</td><td${ref(k, v)}>${txt || money(v)}</td></tr>`;
+    const dados = `<table><thead><tr><th>Dados do projeto</th><th>Valor</th></tr></thead><tbody>${L('Valor do investimento', 'Investimento', c.inv)}${L('Capacidade de produção', 'Capacidade', c.q, f0(c.q) + ' ' + un + ' / ano')}${L('Capital de giro (% do valor do investimento)', 'Capital de Giro %', c.cgp, f2(c.cgp) + '% do investimento')}${L('Preço de venda do produto', 'Preço', c.p, money(c.p) + ' / ' + un)}${L('Impostos sobre a receita bruta', 'Impostos %', c.ti, f2(c.ti) + '%')}${L('Gasto variável', 'Gasto variável', c.cv, money(c.cv) + ' / ' + un)}${L('Gasto fixo', 'Gasto fixo', c.gf, money(c.gf) + ' / ano')}</tbody></table>`;
+    const prem = `<table><thead><tr><th>Premissas</th><th>Valor</th></tr></thead><tbody>${L('Vida útil do projeto', 'Vida útil', c.n, c.n + ' anos')}${L('Valor residual', 'Valor residual', c.vr)}${L('Alíquota de Imposto de Renda e Contribuição Social', 'Alíquota IR', c.ir, f2(c.ir) + '%')}${L('Remuneração mínima exigida (TMA)', 'TMA', c.tma, f2(c.tma) + '% a.a.')}</tbody></table>`;
+    const sec = Math.floor(((st.done ? st.t1 : Date.now()) - st.t0) / 1000), nOk = Object.keys(st.okSet).length;
+    let end = '';
+    if (st.done) { const ok = c.vpl > 0, ec = c.dep * c.ir / 100;
+      end = `<h3>Resultado</h3><div class="box"><p class="res">Nota: ${f2(score())} de 75 · ${nOk} de ${st.F.length} campos certos · tempo ${clock(sec)}</p>
+        <p><b>Parecer de referência.</b> O projeto exige R$ ${f2(-c.fl[0])} no Ano 0 e gera R$ ${f2(c.fl[1])} por ano, com R$ ${f2(c.vr + c.cg)} a mais no Ano ${c.n} pelo valor residual e pela volta do capital de giro. A depreciação de R$ ${f2(c.dep)} por ano não sai do caixa, mas reduz o IR e a CS em R$ ${f2(ec)} por ano. À TMA de ${f2(c.tma)}%, o VPL é de <b>R$ ${f2(c.vpl)}</b> e a TIR, de <b>${f2(c.tir * 100)}%</b>. ${ok ? `O projeto é <b>viável</b>: cada R$ 1 investido volta como R$ ${f2(c.il)} em valor presente.` : `O projeto é <b>inviável</b> à TMA exigida: cada R$ 1 investido volta como apenas R$ ${f2(c.il)} em valor presente.`}</p>
+        <p><b>Recuperação do investimento.</b> O payback simples é de ${f2(c.pbs)} anos${c.pbd != null ? ` e o descontado, de ${f2(c.pbd)} anos` : `, mas, descontando os fluxos pela TMA, o investimento não se paga dentro dos ${c.n} anos`}, numa vida útil de ${c.n} anos.</p>
+        <p class="note">Diferença para o Simples: aqui o imposto sobre vendas e o IR/CS são separados, e a depreciação entra duas vezes — subtraída para calcular o imposto e somada de volta no fluxo.</p></div>`; }
+    const heads = ['Discriminação', 'Ano 0', 'Anos 1 a ' + (c.n - 1), 'Ano ' + c.n];
+    root().innerHTML = `<div class="fcbar"><b>Casos de Finanças</b><span class="pill">Caso ${c.seed} · ${esc(c.name)}</span><span class="pill">Tempo <span id="fcClock">${clock(sec)}</span></span><span class="pill">Certos ${nOk}/${st.F.length}</span><span class="pill">Nota ${f2(score())}</span><span class="sp"></span><button class="btn" data-a="pin">${st.pin ? 'Soltar dados' : 'Fixar dados'}</button>${st.done ? '' : '<button class="btn" data-a="xlsx">Baixar Excel</button><button class="btn" data-a="imp">Importar Excel</button><button class="btn" data-a="save" id="fcSaved" title="O caso também é salvo automaticamente">Salvar</button>'}<button class="btn" data-a="lobby">${st.done ? 'Sair do caso' : 'Salvar e sair'}</button></div><div class="fcw">${st.msg ? `<div class="fcmsg">${esc(st.msg)}</div>` : ''}
+      <h3>Exercício sobre fluxo de caixa · tributação pelo Lucro Real</h3><div class="box"><p>A empresa <b>${esc(c.firm[0])}</b> está planejando a instalação de ${esc(c.firm[1])}. Monte o fluxo de caixa desse investimento considerando <b>produção e vendas constantes durante os ${c.n} anos</b> de vida útil. A depreciação é linear: (investimento − valor residual) ÷ vida útil.</p>${c.given ? '<p class="note">A TMA não faz parte do enunciado da aula; foi acrescentada para a avaliação econômica (bloco 5).</p>' : ''}</div>
+      <div class="fxhelp"><b>Fórmulas como no Excel.</b> Comece o campo com <code>=</code> e clique nos dados ou em outros campos, por exemplo <code>=[Investimento]*[Capital de Giro %]/100</code> ou <code>=([Investimento]-[Valor residual])/[Vida útil]</code>. Saídas de caixa podem ir com ou sem sinal de menos, exceto no fluxo do projeto, onde o Ano 0 é negativo. Enter confirma, Esc cancela. Prefere o Excel? Use “Baixar Excel”, preencha e volte com “Importar Excel”.</div>
+      <div id="fcStm" class="g2e${st.pin ? ' pin' : ''}">${dados}${prem}</div>
+      <h3>1. Ano 0 · investimentos</h3>${tbl('pr', ['Discriminação', 'Ano 0'])}
+      <h3>2. Resultado de cada ano · Anos 1 a ${c.n}</h3>${tbl('dre', ['Discriminação', 'Cada ano'])}
+      <h3>3. Ajustes</h3>${tbl('aj', ['Discriminação', 'Valor'])}
+      <h3>4. Fluxo de caixa do projeto</h3><div class="fcgrid">${tbl('fl', heads)}</div>
+      <h3>5. Avaliação econômica · TMA de ${f2(c.tma)}% a.a.</h3>${tbl('av', ['Indicador', 'Valor'])}
+      <h3>6. Parecer</h3><p>A ${esc(c.firm[0])} deve fazer o investimento? Qual é o peso da depreciação e do imposto de renda no resultado?</p><textarea id="fcTxt" placeholder="Escreva seu parecer. Ele não vale pontos; ao entregar, você compara com o parecer de referência."${st.done ? ' disabled' : ''}>${esc(st.txt || '')}</textarea>
+      ${end}<div class="acts">${st.done ? '<button class="btn pri" data-a="new">Novo caso</button><button class="btn" data-a="lobby">Histórico</button>' : '<button class="btn" data-a="check">Conferir preenchidos</button><button class="btn pri" data-a="finish">Entregar caso</button>'}</div></div>`;
+  }
   function check() { st.F.forEach((f) => { const v = (st.val[f.id] || '').trim(); if (!v || st.okSet[f.id]) return; if (right(f, v)) st.okSet[f.id] = 1; else if (st.lastBad[f.id] !== v) { st.miss[f.id] = (st.miss[f.id] || 0) + 1; st.lastBad[f.id] = v; } }); }
   function closeTip() { const t = root().querySelector('.fctip'); if (t) t.remove(); }
   const fxOn = () => { const a = document.activeElement; return a && a.dataset && a.dataset.f && a.tagName === 'INPUT' && !a.readOnly && a.value.trim()[0] === '=' ? a : null; };
@@ -311,7 +385,7 @@
     if (!b) return; const a = b.dataset.a;
     if (a === 'exit') { if (st && !st.done) saveOpen(); clearInterval(tick); root().classList.remove('on'); if (onExit) onExit(); }
     else if (a === 'resume') { const o = loadOpen(); if (o) start(o.seed, o.hints, o, o.kind); }
-    else if (a === 'pin') { st.pin = !st.pin; const el = document.getElementById('fcStm'); el.classList.toggle('pin', st.pin); b.textContent = st.kind === 'fc' ? (st.pin ? 'Soltar dados' : 'Fixar dados') : (st.pin ? 'Soltar balanço' : 'Fixar balanço'); }
+    else if (a === 'pin') { st.pin = !st.pin; const el = document.getElementById('fcStm'); el.classList.toggle('pin', st.pin); b.textContent = st.kind !== 'eva' ? (st.pin ? 'Soltar dados' : 'Fixar dados') : (st.pin ? 'Soltar balanço' : 'Fixar balanço'); }
     else if (a === 'xlsx') { exportXlsx(); }
     else if (a === 'imp') { pickXlsx(); }
     else if (a === 'discard') { saveOpen(true); lobby(); }
@@ -321,7 +395,7 @@
     else if (a === 'new') start(Math.floor(Math.random() * 9000) + 1000, st ? st.hints : true, null, st ? st.kind : lastKind);
     else if (a === 'lobby') { lobby(); }
     else if (a === 'check') { const y = root().scrollTop; st.msg = null; check(); draw(); root().scrollTop = y; saveOpen(); }
-    else if (a === 'finish') { check(); st.done = true; st.t1 = Date.now(); clearInterval(tick); saveOpen(true); record({ at: Date.now(), seed: st.c.seed, kind: st.kind, type: st.kind === 'fc' ? 'VPL ' + (st.c.vpl > 0 ? 'positivo' : 'negativo') : st.c.b.type.n, ok: Object.keys(st.okSet).length, n: st.F.length, sec: Math.floor((st.t1 - st.t0) / 1000), score: Math.round(score() * 100) / 100 }); draw(); const r = root().querySelector('.res'); if (r) r.scrollIntoView({ block: 'center' }); }
+    else if (a === 'finish') { check(); st.done = true; st.t1 = Date.now(); clearInterval(tick); saveOpen(true); record({ at: Date.now(), seed: st.c.seed, kind: st.kind, type: st.kind !== 'eva' ? 'VPL ' + (st.c.vpl > 0 ? 'positivo' : 'negativo') : st.c.b.type.n, ok: Object.keys(st.okSet).length, n: st.F.length, sec: Math.floor((st.t1 - st.t0) / 1000), score: Math.round(score() * 100) / 100 }); draw(); const r = root().querySelector('.res'); if (r) r.scrollIntoView({ block: 'center' }); }
   }
   // ---------- planilha Excel: baixar e importar ----------
   const XF = { cab: 'FFB7B7B7', th: 'FFBFBFBF', fcIn: 'FFD8D8D8', evIn: 'FFFFF2CC' };
@@ -416,6 +490,37 @@
     S('A50', st.txt || null, { wrap: 1, fill: XF.fcIn }); M(`A50:${last}55`); map.push(['txt', 'Fluxo de Caixa', 'A50', 'txt']);
     return map;
   }
+  function sheetFCR(wb) {
+    const { c } = st, n = c.n, ws = wb.addWorksheet('Fluxo de Caixa', { views: [{ showGridLines: false }], pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } }), map = [];
+    const cols = [['D', 'Ano 0'], ['E', 'Ano 1'], ['F', 'Ano 2'], ['G', n - 1 > 3 ? 'Ano 3-' + (n - 1) : 'Ano 3'], ['H', 'Ano ' + n]], last = 'H';
+    ws.columns = [40, 13, 15, 17, 17, 17, 17, 17].map((w) => ({ width: w }));
+    const S = (addr, v, o) => { const x = ws.getCell(addr); x.value = v; o = o || {}; if (o.b) x.font = { name: 'Calibri', size: 11, bold: true }; if (o.nf) x.numFmt = o.nf; if (o.fill) x.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: o.fill } }; if (o.wrap) x.alignment = { wrapText: true, vertical: 'top' }; if (o.c) x.alignment = { horizontal: 'center', vertical: 'middle' }; return x; };
+    const IN = (addr, id, nf, fill) => { const f = st.F.find((x) => x.id === id); const x = S(addr, f ? curNum(f) : null, { nf, fill: fill || XF.fcIn, b: fill === XF.th }); if (f && f.kind === 'sel') x.dataValidation = { type: 'list', allowBlank: true, formulae: ['"' + f.opts.map((o) => o[1]).join(',') + '"'] }; if (f) map.push([id, 'Fluxo de Caixa', addr, f.kind]); return x; };
+    const M = (r) => ws.mergeCells(r);
+    [['Pós-graduação em Gestão de Negócios'], ['Análise Econômica de Investimentos'], ['Caso ' + c.seed + ' · Exemplo de Fluxo de Caixa e Lucro Real · Participante: ' + player]].forEach((r, i) => { S('A' + (i + 1), r[0], { b: 1, fill: XF.cab, c: 1 }); M(`A${i + 1}:${last}${i + 1}`); });
+    S('A5', `Projeto ${c.name} - Avaliação Econômica - Lucro Real`, { b: 1, fill: XF.cab, c: 1 }); M(`A5:${last}5`);
+    S('A6', 'Discriminação', { b: 1, fill: XF.th, c: 1 }); M('A6:A7'); S('B6', 'Quantidade', { b: 1, fill: XF.th, c: 1 }); M('B6:B7'); S('C6', 'Informações', { b: 1, fill: XF.th, c: 1 }); M('C6:C7');
+    S('D6', 'Ano', { fill: XF.th, c: 1 }); M(`D6:${last}6`); cols.forEach(([k, l]) => S(k + '7', l, { b: 1, fill: XF.th, c: 1 }));
+    const rows = [[8, 'Investimento'], [9, 'Capital de Giro'], [10, 'Receita Bruta', 'rb'], [11, 'Impostos sobre a Receita Bruta', 'imp'], [12, 'Receita Líquida', 'rl'], [13, 'Gastos Variáveis', 'gv'], [14, 'Gastos Fixos', 'gf'], [15, 'Lucro Operacional', 'lo'], [16, 'Depreciação (Vida Útil: ' + n + ' anos)', 'dep'], [17, 'Lucro Tributável', 'lt'], [18, 'Imp. Renda / Contrib. Social', 'irv'], [19, 'Lucro Líquido', 'll']];
+    rows.forEach(([r, lab, id]) => { S('A' + r, lab); if (!id) return; IN('E' + r, id, NF.rs); ['F', 'G', 'H'].forEach((k) => S(k + r, null, { nf: NF.rs, fill: XF.fcIn })); });
+    IN('D8', 'inv', NF.rs); IN('D9', 'cg', NF.rs); S('C9', c.cgp / 100, { nf: '0%' });
+    S('B10', c.q, { nf: NF.q }); S('C10', c.p, { nf: NF.rs }); S('C11', c.ti / 100, { nf: '0.00%' }); S('C13', c.cv, { nf: NF.rs }); S('C14', c.gf, { nf: NF.rs }); S('C16', n); S('C18', c.ir / 100, { nf: '0.0%' });
+    S('A20', 'Ajustes'); S('A21', 'Depreciação'); IN('E21', 'adep', NF.rs); ['F', 'G', 'H'].forEach((k) => S(k + '21', null, { nf: NF.rs, fill: XF.fcIn }));
+    S('A22', 'Valor Residual'); IN('H22', 'vr', NF.rs); S('A23', 'Recuperação do Capital de Giro'); IN('H23', 'rcg', NF.rs);
+    S('A24', 'Fluxo de Caixa do Projeto', { b: 1, fill: XF.th }); ['B24', 'C24'].forEach((k) => S(k, null, { fill: XF.th })); IN('D24', 'fc0', NF.rs, XF.th); IN('E24', 'fc1', NF.rs, XF.th); S('F24', null, { nf: NF.rs, fill: XF.th }); S('G24', null, { nf: NF.rs, fill: XF.th }); IN('H24', 'fc' + n, NF.rs, XF.th);
+    S('A26', 'Avaliação Econômica', { b: 1, fill: XF.cab, c: 1 }); M(`A26:${last}26`);
+    S('A27', 'TMA (remuneração mínima exigida)'); S('C27', c.tma / 100, { nf: '0.00%', b: 1 });
+    S('A28', 'Para VPL e TIR no Excel, monte os ' + (n + 1) + ' fluxos (Ano 0 a ' + n + ') numa linha auxiliar abaixo, se quiser.', {});
+    [['VPL à TMA', 'vpl', NF.rs], ['TIR', 'tir', NF.p], ['Payback simples (anos)', 'pbs', NF.a], ['Payback descontado (anos)', 'pbd', NF.a], ['Índice de Lucratividade', 'il', NF.a], ['Decisão (Viável / Inviável)', 'dec']].forEach(([lab, id, nf], i) => { const r = 29 + i; S('A' + r, lab);
+      if (id === 'pbd' && c.pbd == null) { S('D' + r, 'O investimento não se paga dentro da vida útil quando descontado pela TMA (campo sem nota).'); return; } IN('D' + r, id, nf); });
+    S('A36', 'Dados do projeto', { b: 1, fill: XF.cab, c: 1 }); M(`A36:${last}36`);
+    S('A37', `A empresa ${c.firm[0]} está planejando a instalação de ${c.firm[1]}. Monte o fluxo de caixa desse investimento considerando produção e vendas constantes durante os ${n} anos. Depreciação = (Investimento inicial − Valor residual) ÷ Vida útil.`, { wrap: 1 }); M(`A37:${last}37`); ws.getRow(37).height = 46;
+    [['Valor do investimento', c.inv, NF.rs], ['Capacidade de produção (' + c.firm[2] + ' por ano)', c.q, NF.q], ['Capital de giro (% do valor do investimento)', c.cgp / 100, '0%'], ['Preço de venda do produto (por ' + c.firm[2] + ')', c.p, NF.rs], ['Impostos sobre a receita bruta', c.ti / 100, '0.00%'], ['Gasto variável (por ' + c.firm[2] + ')', c.cv, NF.rs], ['Gasto fixo (por ano)', c.gf, NF.rs], ['Vida útil do projeto (anos)', n, '0'], ['Valor residual', c.vr, NF.rs], ['Alíquota de IR e Contribuição Social', c.ir / 100, '0.0%'], ['Remuneração mínima exigida (TMA)', c.tma / 100, '0.00%']].forEach(([lab, v, nf], i) => { S('A' + (38 + i), lab); S('C' + (38 + i), v, { nf, b: 1 }); });
+    S('A50', 'Células cinza: preencha (pode usar fórmulas). Ao terminar, salve e importe no app em Casos de Finanças → Importar Excel.');
+    S('A52', 'Parecer: a empresa deve fazer o investimento? Qual é o peso da depreciação e do imposto de renda no resultado?', { b: 1, fill: XF.cab }); M(`A52:${last}52`);
+    S('A53', st.txt || null, { wrap: 1, fill: XF.fcIn }); M(`A53:${last}58`); map.push(['txt', 'Fluxo de Caixa', 'A53', 'txt']);
+    return map;
+  }
   function b64(buf) { const u = new Uint8Array(buf); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); }
   function saveBytes(name, buf) {
     const nat = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.sim);
@@ -425,9 +530,9 @@
   async function exportXlsx() {
     if (!window.ExcelJS) { alert('A biblioteca de Excel não carregou.'); return; }
     const wb = new ExcelJS.Workbook(); wb.creator = 'Simulador Empresarial'; wb.created = new Date();
-    const map = st.kind === 'fc' ? sheetFC(wb) : sheetEVA(wb), ctl = wb.addWorksheet('_controle'); ctl.state = 'veryHidden';
+    const map = st.kind === 'fc' ? sheetFC(wb) : st.kind === 'fcr' ? sheetFCR(wb) : sheetEVA(wb), ctl = wb.addWorksheet('_controle'); ctl.state = 'veryHidden';
     ctl.addRow(['simfin', 1]); ctl.addRow(['kind', st.kind]); ctl.addRow(['seed', st.c.seed]); ctl.addRow(['player', player]); map.forEach((r) => ctl.addRow(['f'].concat(r)));
-    const buf = await wb.xlsx.writeBuffer(), nm = `Caso_${st.c.seed}_${st.kind === 'fc' ? 'Fluxo_de_Caixa' : 'Modelo_Dinamico_EVA'}_${String(player).replace(/[^\wÀ-ú-]+/g, '_')}.xlsx`;
+    const buf = await wb.xlsx.writeBuffer(), nm = `Caso_${st.c.seed}_${st.kind === 'fc' ? 'Fluxo_de_Caixa_Simples' : st.kind === 'fcr' ? 'Fluxo_de_Caixa_Lucro_Real' : 'Modelo_Dinamico_EVA'}_${String(player).replace(/[^\wÀ-ú-]+/g, '_')}.xlsx`;
     saveOpen(); saveBytes(nm, buf);
   }
   function cellVal(v) { if (v == null) return null; if (typeof v === 'object') { if (v instanceof Date) return null; if ('result' in v) return v.result == null || typeof v.result === 'object' ? null : v.result; if ('formula' in v || 'sharedFormula' in v) return undefined; if (v.richText) return v.richText.map((x) => x.text).join(''); if (v.text) return v.text; return null; } return v; }
@@ -450,12 +555,12 @@
       if (f.kind === 'sel') { const opts = f.opts || TYPES.map((t) => [t.k, t.n]), w = fold(raw), o = opts.find((x) => w === fold(x[1])) || opts.find((x) => w.includes(fold(x[1]))); s = o ? o[0] : null; }
       else { let v = typeof raw === 'number' ? raw : parseNum(raw); if (v == null) continue; if (f.kind === 'p' && typeof raw === 'number') v *= 100; s = String(Math.round(v * 1e6) / 1e6).replace('.', ','); }
       if (s == null) continue; st.val[f.id] = s; got++; }
-    const t = kind === 'fc' ? txt.txt : [txt.txt1, txt.txt2].filter(Boolean).join('\n\n'); if (t) st.txt = t;
+    const t = kind !== 'eva' ? txt.txt : [txt.txt1, txt.txt2].filter(Boolean).join('\n\n'); if (t) st.txt = t;
     st.msg = `Importei ${got} ${got === 1 ? 'valor' : 'valores'} do Excel${empty ? `; ${empty} ${empty === 1 ? 'célula estava vazia' : 'células estavam vazias'}` : ''}${noCalc ? `; ${noCalc} ${noCalc === 1 ? 'fórmula veio' : 'fórmulas vieram'} sem resultado calculado (abra e salve a planilha no Excel antes de importar)` : ''}. Clique em “Conferir preenchidos” para corrigir.`;
     draw(); root().scrollTop = 0; saveOpen();
   }
   function pickXlsx() { let i = document.getElementById('fcFile'); if (!i) { i = document.createElement('input'); i.type = 'file'; i.id = 'fcFile'; i.accept = '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'; i.style.display = 'none'; i.addEventListener('change', () => { const f = i.files && i.files[0]; i.value = ''; if (f) importXlsx(f); }); document.body.appendChild(i); } i.click(); }
 
   let onExit = null, lastKind = 'eva';
-  window.FinCases = { open(p, store, o) { player = p || 'Jogador'; io = store || null; st = null; o = o || {}; onExit = o.onExit || null; const op = o.resume && loadOpen(); if (op) start(op.seed, op.hints, op, op.kind); else if (o.seed) start(o.seed, true, null, o.kind); else lobby(); root().classList.add('on'); }, generate, fields, generateFC, fieldsFC, right, TYPES };
+  window.FinCases = { open(p, store, o) { player = p || 'Jogador'; io = store || null; st = null; o = o || {}; onExit = o.onExit || null; const op = o.resume && loadOpen(); if (op) start(op.seed, op.hints, op, op.kind); else if (o.seed) start(o.seed, true, null, o.kind); else lobby(); root().classList.add('on'); }, generate, fields, generateFC, fieldsFC, generateFCR, fieldsFCR, right, TYPES };
 })();
