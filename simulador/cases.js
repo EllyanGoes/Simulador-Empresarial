@@ -225,8 +225,9 @@
     const q = e.target.closest('[data-q]'), b = e.target.closest('[data-a]'); closeTip();
     if (q && st) { const f = st.F.find((x) => x.id === q.dataset.q) ; st.F.filter((x) => x.row === f.row && x.sec === f.sec).forEach((x) => { if (!st.okSet[x.id]) st.hint[x.id] = 1; }); q.classList.add('used');
       const tip = document.createElement('div'); tip.className = 'fctip'; tip.innerHTML = `<b>Indica:</b> ${f.tip[0]}<br>${f.tip[1]}`; const w = root().querySelector('.fcw'); w.style.position = 'relative'; w.appendChild(tip);
-      const r = q.getBoundingClientRect(), wr = w.getBoundingClientRect(), z = parseFloat(document.documentElement.style.zoom) || 1; let left = (r.left - wr.left) / z - 20; const maxL = wr.width / z - tip.offsetWidth - 8; if (left > maxL) left = Math.max(0, maxL);
-      tip.style.left = left + 'px'; tip.style.top = ((r.bottom - wr.top) / z + 10) + 'px'; tip.style.setProperty('--ax', ((r.left - wr.left) / z - left + 9) + 'px'); saveOpen(); e.stopPropagation(); return; }
+      const wr = w.getBoundingClientRect(), z = w.offsetWidth ? wr.width / w.offsetWidth : 1, r = q.getBoundingClientRect(), qx = (r.left - wr.left) / z, qw = r.width / z, qb = (r.bottom - wr.top) / z;
+      let left = qx + qw / 2 - 24; const maxL = w.offsetWidth - tip.offsetWidth - 4; if (left > maxL) left = Math.max(0, maxL); if (left < 0) left = 0;
+      tip.style.left = left + 'px'; tip.style.top = (qb + 10) + 'px'; tip.style.setProperty('--ax', (qx + qw / 2 - left) + 'px'); saveOpen(); e.stopPropagation(); return; }
     if (!b) return; const a = b.dataset.a;
     if (a === 'exit') { if (st && !st.done) saveOpen(); clearInterval(tick); root().classList.remove('on'); if (onExit) onExit(); }
     else if (a === 'resume') { const o = loadOpen(); if (o) start(o.seed, o.hints, o); }
