@@ -100,19 +100,68 @@
     one('ev', 'eva4', 'EVA 4 · (ROE − Ke) × Capital Próprio', ev.eva, 'm', ['Valor criado medido pelo lado do acionista.', fx('EVA', '(ROE − Ke) × PL')]);
     void dre; return F;
   }
+  // ---------- caso de fluxo de caixa (Simples Nacional) ----------
+  const DEC = [['viavel', 'Viável'], ['inviavel', 'Inviável']];
+  const npv = (fl, i) => fl.reduce((a, v, t) => a + v / Math.pow(1 + i, t), 0);
+  function irr(fl) { let lo = -0.95, hi = 10; if (npv(fl, lo) * npv(fl, hi) > 0) return null; for (let k = 0; k < 200; k++) { const m = (lo + hi) / 2; if (npv(fl, lo) * npv(fl, m) <= 0) hi = m; else lo = m; } return (lo + hi) / 2; }
+  function payback(fl) { let acc = fl[0]; for (let t = 1; t < fl.length; t++) { if (acc + fl[t] >= 0) return t - 1 + (-acc) / fl[t]; acc += fl[t]; } return null; }
+  const BIZ = [['Loja de Calçados Femininos', 'Luiza e Ana', 'uma cidade do interior de Minas'], ['Cafeteria Especial', 'Bruno e Carla', 'o centro de Belém'], ['Pet Shop de Bairro', 'Marcos e Júlia', 'Macapá'], ['Ótica Popular', 'Renata e Paulo', 'Santarém'], ['Padaria Artesanal', 'Tiago e Sofia', 'Ananindeua'], ['Loja de Bicicletas', 'Diego e Lara', 'Florianópolis'], ['Papelaria e Presentes', 'Helena e Caio', 'Campinas'], ['Loja de Cosméticos', 'Beatriz e Rafael', 'Recife']];
+  function generateFC(seed) {
+    if (seed === 1) return finishFC({ seed, biz: BIZ[0], n: 5, inv: 80000, cg: 70000, q: 6000, p: 100, cv: 50, al: 4000, fu: 3000, ou: 3000, pl: 5000, aliq: 8, tma: 15, vr: 10000 });
+    const R = rng(seed * 104729 + 7), u = (a, b) => a + (b - a) * R(), pick = (a) => a[Math.floor(R() * a.length)], wantPos = R() < 0.62;
+    for (let tries = 0; tries < 20000; tries++) {
+      const c = { seed, biz: pick(BIZ), n: pick([4, 5, 5, 5, 6]), inv: Math.round(u(40, 260)) * 1000, q: Math.round(u(15, 140)) * 100, p: Math.round(u(6, 70)) * 5, aliq: pick([4, 6, 7.3, 8, 9.5, 10, 11.2]), tma: Math.round(u(10, 20)) };
+      c.cv = Math.round(c.p * u(0.35, 0.62)); c.cg = Math.round(c.inv * u(0.25, 1.0) / 5000) * 5000; c.vr = Math.round(c.inv * u(0.05, 0.25) / 1000) * 1000;
+      const rb = c.q * c.p, m = (k) => Math.max(500, Math.round(rb / 12 * k / 500) * 500);
+      c.al = m(u(0.04, 0.09)); c.fu = m(u(0.04, 0.12)); c.ou = m(u(0.02, 0.06)); c.pl = m(u(0.04, 0.1));
+      const x = finishFC(c), lo = x.lo / x.rb;
+      if (lo < 0.03 || lo > 0.25 || x.tir == null || x.tir <= 0.005 || (x.vpl > 0) !== wantPos || Math.abs(x.vpl) < 0.03 * (x.inv + x.cg)) continue;
+      if (x.vpl > 0 && x.pbd == null) continue; return x;
+    }
+    return generateFC(seed + 1000003);
+  }
+  function finishFC(c) {
+    c.name = c.biz[0]; c.rb = c.q * c.p; c.imp = c.rb * c.aliq / 100; c.rl = c.rb - c.imp; c.gv = c.q * c.cv; c.gfm = c.al + c.fu + c.ou + c.pl; c.gf = c.gfm * 12; c.lo = c.rl - c.gv - c.gf; c.ll = c.lo;
+    c.fl = [-(c.inv + c.cg)]; for (let t = 1; t <= c.n; t++) c.fl.push(c.ll + (t === c.n ? c.vr + c.cg : 0));
+    const i = c.tma / 100; c.vpl = npv(c.fl, i); c.tir = irr(c.fl); c.pbs = payback(c.fl); c.disc = c.fl.map((v, t) => v / Math.pow(1 + i, t)); c.pbd = payback(c.disc);
+    c.vpe = c.disc.slice(1).reduce((a, v) => a + v, 0); c.il = c.vpe / -c.fl[0]; return c; }
+  function fieldsFC(c) {
+    const F = [], one = (sec, id, code, label, ans, kind, tip, x) => F.push(Object.assign({ id, sec, row: id, code, label, col: 1, ans, kind, tip }, x || {}));
+    one('pr', 'inv', 'INVESTIMENTO', 'Investimento (Ano 0)', -c.inv, 'm', ['Saída de caixa na montagem do negócio. Entra negativa no fluxo.', fx('Investimento', '− valor da montagem')], { abs: 1 });
+    one('pr', 'cg', 'CAPITAL DE GIRO', 'Capital de Giro (Ano 0)', -c.cg, 'm', ['Dinheiro preso em estoques e vendas a prazo. Sai no Ano 0 e volta no último ano.', fx('Capital de Giro', '− valor necessário ao giro')], { abs: 1 });
+    one('dre', 'rb', 'RECEITA BRUTA', 'Receita Bruta', c.rb, 'm', ['Faturamento anual com vendas constantes.', fx('Receita Bruta', 'Unidades por ano × Preço médio')]);
+    one('dre', 'imp', 'IMPOSTO SIMPLES', 'Imposto Simples', -c.imp, 'm', ['No Simples Nacional o imposto incide sobre as vendas brutas e já inclui IR e CSLL.', fx('Imposto', 'Receita Bruta × alíquota do Simples')], { abs: 1 });
+    one('dre', 'rl', 'RECEITA LÍQUIDA', 'Receita Líquida', c.rl, 'm', ['Receita depois do imposto sobre vendas.', fx('Receita Líquida', 'Receita Bruta − Imposto Simples')]);
+    one('dre', 'gv', 'GASTOS VARIÁVEIS', 'Gastos Variáveis', -c.gv, 'm', ['Custo das mercadorias vendidas no ano.', fx('Gastos Variáveis', 'Unidades por ano × Custo médio')], { abs: 1 });
+    one('dre', 'gf', 'GASTOS FIXOS', 'Gastos Fixos', -c.gf, 'm', ['Soma dos gastos mensais, inclusive pró-labore, vezes 12.', fx('Gastos Fixos', '(Aluguel + Funcionários + Outras despesas + Pró-labore) × 12')], { abs: 1 });
+    one('dre', 'lo', 'LUCRO OPERACIONAL', 'Lucro Operacional', c.lo, 'm', ['Resultado da operação no ano.', fx('Lucro Operacional', 'Receita Líquida − Gastos Variáveis − Gastos Fixos')]);
+    one('dre', 'll', 'LUCRO LÍQUIDO', 'Lucro Líquido', c.ll, 'm', ['No Simples não há IR e CSLL à parte: o imposto já saiu das vendas, e não há depreciação a descontar neste exercício.', fx('Lucro Líquido', 'Lucro Operacional')]);
+    one('aj', 'vr', 'VALOR RESIDUAL', 'Valor Residual (Ano ' + c.n + ')', c.vr, 'm', ['Quanto os ativos da montagem valem no fim do horizonte. Entra positivo no último ano.', fx('Valor Residual', 'valor de revenda dos ativos no Ano ' + c.n)]);
+    one('aj', 'rcg', 'RECUPERAÇÃO CAPITAL DE GIRO', 'Recuperação do Capital de Giro (Ano ' + c.n + ')', c.cg, 'm', ['Os estoques e recebíveis são liquidados ao encerrar o projeto e o giro volta ao caixa.', fx('Recuperação', 'Capital de Giro investido no Ano 0')]);
+    for (let t = 0; t <= c.n; t++) F.push({ id: 'fc' + t, sec: 'fl', row: 'fc', code: 'FC ANO ' + t, label: 'Fluxo de Caixa do Projeto', col: t, ans: c.fl[t], kind: 'm',
+      tip: ['Soma de tudo que entra e sai do caixa em cada ano. O Ano 0 é negativo.', fx('FC', 'Ano 0: Investimento + Capital de Giro · Anos 1 a ' + (c.n - 1) + ': Lucro Líquido · Ano ' + c.n + ': Lucro Líquido + Valor Residual + Recuperação do Giro')] });
+    one('av', 'vpl', 'VPL', 'VPL à TMA', c.vpl, 'm', ['Valor criado pelo projeto, em dinheiro de hoje, acima da remuneração mínima exigida.', fx('VPL', 'Σ FC<sub>t</sub> ÷ (1 + TMA)<sup>t</sup>') + '<br><span class="fcfm">Excel: =VPL(TMA; FC1:FCn) + FC0</span>']);
+    one('av', 'tir', 'TIR', 'TIR (%)', c.tir * 100, 'p', ['Taxa que zera o VPL. Compare com a TMA.', fx('TIR', 'taxa i tal que Σ FC<sub>t</sub> ÷ (1 + i)<sup>t</sup> = 0') + '<br><span class="fcfm">Excel: =TIR(FC0:FCn)</span>']);
+    one('av', 'pbs', 'PAYBACK SIMPLES', 'Payback simples (anos)', c.pbs, 'a', ['Tempo para recuperar o investimento sem descontar os fluxos. Use fração de ano.', fx('Payback', 'anos completos + saldo que falta ÷ FC do ano seguinte')]);
+    if (c.pbd != null) one('av', 'pbd', 'PAYBACK DESCONTADO', 'Payback descontado (anos)', c.pbd, 'a', ['Igual ao simples, mas com cada fluxo trazido a valor presente pela TMA.', fx('Payback', 'anos completos + saldo descontado que falta ÷ FC descontado do ano seguinte')]);
+    one('av', 'il', 'IL', 'Índice de Lucratividade', c.il, 'x', ['Quanto volta, em valor presente, para cada $ 1 investido no Ano 0.', fx('IL', 'Σ FC<sub>t</sub> ÷ (1 + TMA)<sup>t</sup> (anos 1 a n) ÷ |FC<sub>0</sub>|')]);
+    one('av', 'dec', '', 'Decisão', c.vpl > 0 ? 'viavel' : 'inviavel', 'sel', ['Use o VPL: positivo, o projeto paga a TMA e ainda cria valor.', '<span class="fcfm">VPL &gt; 0 · TIR &gt; TMA · IL &gt; 1 → viável</span>'], { opts: DEC });
+    return F;
+  }
+
   function parseNum(s) { s = String(s).trim().replace(/[R$\s%]/g, ''); if (!s) return null; const neg = /^\(.*\)$/.test(s); s = s.replace(/[()]/g, '');
     if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
     const v = parseFloat(s); return isNaN(v) ? null : neg ? -v : v; }
   const nk = (k) => String(k).toLowerCase().replace(/\s+/g, ' ').trim();
-  const codeOf = (f) => f.row.toUpperCase() + (st.F.filter((x) => x.row === f.row && x.sec === f.sec).length > 1 ? ' ' + (f.col ? st.c.y1 : st.c.y0) : '');
+  const codeOf = (f) => f.code ? f.code : f.row.toUpperCase() + (st.F.filter((x) => x.row === f.row && x.sec === f.sec).length > 1 ? ' ' + (f.col ? st.c.y1 : st.c.y0) : '');
   function evalRaw(raw, depth) { raw = String(raw == null ? '' : raw).trim(); if (raw[0] !== '=') return parseNum(raw); if ((depth || 0) > 25) return null;
     let bad = false, x = raw.slice(1).replace(/\[([^\]]+)\]/g, (m, k) => { k = nk(k); let v = st.refs[k]; if (v == null && st.fref[k]) v = evalRaw(st.val[st.fref[k]], (depth || 0) + 1); if (v == null || !isFinite(v)) { bad = true; return '0'; } return '(' + v + ')'; });
     if (bad) return null; x = x.replace(/\d[\d.]*(,\d+)?/g, (m) => m.includes(',') ? m.replace(/\./g, '').replace(',', '.') : /^\d{1,3}(\.\d{3})+$/.test(m) ? m.replace(/\./g, '') : m).replace(/[×x]/gi, '*').replace(/÷/g, '/').replace(/−/g, '-').replace(/\^/g, '**');
     if (!/^[\d\s+\-*/().e]*$/.test(x) || !x.trim()) return null; try { const v = Function('"use strict";return (' + x + ')')(); return typeof v === 'number' && isFinite(v) ? v : null; } catch (e) { return null; } }
   const disp = (raw) => { raw = String(raw || ''); if (raw.trim()[0] !== '=') return raw; const v = evalRaw(raw); return v == null ? '#ERRO' : f2(v); };
-  function right(f, raw) { if (f.kind === 'sel') return raw === f.ans; const v = evalRaw(raw); if (v == null) return false;
-    const tol = f.kind === 'm' ? Math.max(1, Math.abs(f.ans) * 0.0005) : f.kind === 'd' ? 0.06 : 0.02; return Math.abs(v - f.ans) <= tol; }
-  const show = (f) => f.kind === 'sel' ? TYPES.find((t) => t.k === f.ans).n : f.kind === 'm' ? f2(f.ans) : f.kind === 'd' ? f2(f.ans) + ' dias' : f2(f.ans) + '%';
+  function right(f, raw) { if (f.kind === 'sel') return raw === f.ans; let v = evalRaw(raw); if (v == null) return false; const a = f.abs ? Math.abs(f.ans) : f.ans; if (f.abs) v = Math.abs(v);
+    const tol = f.kind === 'm' ? Math.max(1, Math.abs(a) * 0.0005) : f.kind === 'd' ? 0.06 : f.kind === 'a' ? 0.011 : f.kind === 'x' ? 0.006 : 0.02; return Math.abs(v - a) <= tol; }
+  const show = (f) => f.kind === 'sel' ? (f.opts || TYPES.map((t) => [t.k, t.n])).find((t) => t[0] === f.ans)[1] : f.kind === 'm' ? f2(f.ans) : f.kind === 'd' ? f2(f.ans) + ' dias' : f.kind === 'a' ? f2(f.ans) + ' anos' : f.kind === 'x' ? f2(f.ans) : f2(f.ans) + '%';
 
   // ---------- estado e armazenamento ----------
   let st = null, player = '', tick = null;
@@ -125,7 +174,7 @@
   function record(e) { const d = data(); d.hist.unshift(e); d.hist = d.hist.slice(0, 60); d.open = null; put(d); }
   const loadOpen = () => data().open || null;
   function saveOpen(clear) { const d = data();
-    d.open = clear || !st || st.done ? null : { seed: st.c.seed, hints: st.hints, val: st.val, hint: st.hint, miss: st.miss, okSet: st.okSet, lastBad: st.lastBad || {}, txt: st.txt || '', sec: Math.floor((Date.now() - st.t0) / 1000), at: Date.now() };
+    d.open = clear || !st || st.done ? null : { seed: st.c.seed, kind: st.kind, n: st.F.length, hints: st.hints, val: st.val, hint: st.hint, miss: st.miss, okSet: st.okSet, lastBad: st.lastBad || {}, txt: st.txt || '', sec: Math.floor((Date.now() - st.t0) / 1000), at: Date.now() };
     put(d); }
   const CSS = `#fc{position:fixed;inset:0;z-index:66;background:#eceeef;overflow:auto;display:none;font:15px/1.4 "Noto Sans","Segoe UI",system-ui,sans-serif;color:#1d1f22}#fc.on{display:block}
 #fc .fcbar{position:sticky;top:0;z-index:5;background:#2a5a9a;color:#fff;display:flex;gap:18px;align-items:center;padding:10px 22px;flex-wrap:wrap}#fc .fcbar b{font-size:17px}#fc .fcbar .sp{flex:1}#fc .fcbar .pill{background:rgba(255,255,255,.16);border-radius:14px;padding:3px 12px;font-size:14px}
@@ -146,6 +195,7 @@
 #fc .fcsteps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}#fc .fcsteps div{background:#fff;border:1px solid #d6d9dc;border-radius:10px;padding:14px 16px 14px 58px;position:relative;min-height:74px}#fc .fcsteps i{position:absolute;left:16px;top:16px;width:30px;height:30px;border-radius:50%;background:#e7f0fb;color:#1a4f9c;font:700 15px/30px system-ui;text-align:center}#fc .fcsteps b{display:block;margin-bottom:2px}#fc .fcsteps span{font-size:14px;color:#4a4f54}
 #fc .fcrule{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:14px}#fc .fcrule div{background:#f6f8fa;border-left:4px solid #3a78c3;border-radius:4px;padding:10px 14px}#fc .fcrule b{display:block}#fc .fcrule span{font-size:14px;color:#4a4f54}
 #fc #fcStm.pin{position:sticky;top:58px;z-index:4;max-height:40vh;overflow:auto;background:#eceeef;box-shadow:0 6px 12px rgba(0,0,0,.18);border-bottom:2px solid #3a78c3;font-size:13px}#fc #fcStm.pin td{padding:3px 8px}#fc #fcStm.pin th{padding:4px 8px}
+#fc .fcgrid{overflow-x:auto}#fc .fcgrid input.fi{width:112px}#fc .fcgrid td:first-child{white-space:nowrap}
 #fc .fxhelp{background:#eef4fb;border:1px solid #c5d9f0;border-radius:8px;padding:10px 14px;font-size:14px;margin:10px 0}#fc code{background:#fff;border:1px solid #d6d9dc;border-radius:3px;padding:1px 5px;font:13px ui-monospace,Menlo,monospace}#fc .fi.fxv{font-style:italic}#fc .fi:focus{text-align:left;width:100%;min-width:150px;position:relative;z-index:2}#fc.fx [data-ref]{cursor:cell;outline:1px dashed #3a78c3;outline-offset:-3px}#fc.fx [data-ref]:hover{background:#d8e8fb!important}#fc.fx input[data-ref]:focus{outline:2px solid #3a78c3;cursor:text}
 #fc .fcopen{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;background:#fff8e1;border:1px solid #e0b84a;border-radius:10px;padding:14px 18px;margin-top:18px}#fc .fcopen b{display:block;font-size:16px}#fc .fcopen span{font-size:14px;color:#4a4f54}#fc .fcbar .btn{padding:7px 14px}
 #fc .fcempty{background:#fff;border:1px dashed #b8bcc0;border-radius:10px;padding:26px;text-align:center;color:#666b70}#fc .fcnote{display:inline-block;min-width:58px;text-align:center;font-weight:700;border-radius:12px;padding:2px 10px}#fc .fcnote.g{background:#e3f6e6;color:#1a6b2a}#fc .fcnote.y{background:#fdf3cf;color:#7a5a00}#fc .fcnote.r{background:#fde7e9;color:#a00015}
@@ -155,22 +205,25 @@
 
   function lobby() {
     clearInterval(tick); if (st && !st.done) saveOpen(); st = null; const op = loadOpen(), h = hist(), n = h.length, best = n ? Math.max(...h.map((x) => x.score)) : null, avg = n ? h.reduce((a, x) => a + x.score, 0) / n : null, tm = n ? Math.round(h.reduce((a, x) => a + x.sec, 0) / n) : null;
-    const steps = [['Modelo dinâmico', 'Reclassifique o balanço em contas erráticas, cíclicas e de longo prazo.'], ['ST, NCG e CDG', 'Calcule os três indicadores e identifique a estrutura financeira de cada ano.'], ['Ciclo financeiro', 'Monte PME, PMR e PMP em dias e confirme a NCG pelo ciclo.'], ['Problema de gestão', 'Ache o prazo de estocagem que cabe no teto de investimento em NCG.'], ['EVA', 'Chegue ao mesmo valor por quatro caminhos: ROCE, NOPAT, custo das fontes e ROE.'], ['Parecer', 'Escreva sua análise de risco e de valor e compare com a de referência.']];
+    const STEPS = { fc: [['Ano 0', 'Lance o investimento na montagem e o capital de giro como saídas de caixa.'], ['Resultado anual', 'Monte receita, imposto do Simples, gastos variáveis e fixos até o lucro líquido.'], ['Ajustes do último ano', 'Some o valor residual e a recuperação do capital de giro.'], ['Fluxo do projeto', 'Feche o fluxo de caixa de cada ano, do Ano 0 ao fim do horizonte.'], ['VPL, TIR e paybacks', 'Avalie o projeto pela TMA: VPL, TIR, paybacks simples e descontado e IL.'], ['Decisão e parecer', 'Diga se o projeto é viável e compare seu parecer com o de referência.']] };
+    STEPS.eva = [['Modelo dinâmico', 'Reclassifique o balanço em contas erráticas, cíclicas e de longo prazo.'], ['ST, NCG e CDG', 'Calcule os três indicadores e identifique a estrutura financeira de cada ano.'], ['Ciclo financeiro', 'Monte PME, PMR e PMP em dias e confirme a NCG pelo ciclo.'], ['Problema de gestão', 'Ache o prazo de estocagem que cabe no teto de investimento em NCG.'], ['EVA', 'Chegue ao mesmo valor por quatro caminhos: ROCE, NOPAT, custo das fontes e ROE.'], ['Parecer', 'Escreva sua análise de risco e de valor e compare com a de referência.']];
+    const stepsHTML = (k) => STEPS[k].map((x, i) => `<div><i>${i + 1}</i><b>${x[0]}</b><span>${x[1]}</span></div>`).join(''); lobby.steps = stepsHTML;
+    const KN = { eva: 'Modelo dinâmico e EVA', fc: 'Fluxo de caixa de projeto' };
     const badge = (s) => { const p = s / 75; return `<span class="fcnote ${p >= 0.9 ? 'g' : p >= 0.6 ? 'y' : 'r'}">${f2(s)}</span>`; };
     root().innerHTML = `<div class="fcbar"><b>Casos de Finanças</b><span class="pill">Jogador: ${esc(player)}</span><span class="sp"></span><button class="btn" data-a="exit">Voltar ao Simulador</button></div><div class="fcw fclob">
-      <div class="fchero"><div><h1>Treine análise financeira com casos novos a cada rodada</h1><p>Cada caso traz o Balanço Patrimonial e a DRE de uma empresa fictícia. Você preenche 42 campos, confere na hora e recebe uma nota de 0 a 75.</p></div>
-        <div class="fcgo"><label>Número do caso<input id="fcSeed" type="number" min="1" value="${Math.floor(Math.random() * 9000) + 1000}"></label><label>Dicas<select id="fcHints"><option value="1">Permitidas (com desconto)</option><option value="0">Desligadas (modo prova)</option></select></label><button class="btn pri big" data-a="start">Começar caso</button><span class="note">O mesmo número gera sempre o mesmo caso.</span></div></div>
-      ${op ? `<div class="fcopen"><div><b>Caso ${op.seed} em andamento</b><span>${Object.keys(op.okSet || {}).length} de 42 campos certos · ${Object.values(op.val || {}).filter((v) => String(v).trim()).length} preenchidos · tempo ${clock(op.sec || 0)} · salvo em ${new Date(op.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span></div><span><button class="btn pri" data-a="resume">Continuar</button> <button class="btn" data-a="discard">Descartar</button></span></div>` : ''}
+      <div class="fchero"><div><h1>Treine análise financeira com casos novos a cada rodada</h1><p>Escolha o tipo de exercício: a análise do balanço de uma empresa fictícia (modelo dinâmico, ciclo financeiro e EVA) ou a avaliação de um novo negócio pelo fluxo de caixa (VPL, TIR e payback). Você confere na hora e recebe uma nota de 0 a 75.</p></div>
+        <div class="fcgo"><label>Tipo de caso<select id="fcType"><option value="eva"${lastKind === 'eva' ? ' selected' : ''}>Modelo dinâmico e EVA</option><option value="fc"${lastKind === 'fc' ? ' selected' : ''}>Fluxo de caixa de projeto</option></select></label><label>Número do caso<input id="fcSeed" type="number" min="1" value="${Math.floor(Math.random() * 9000) + 1000}"></label><label>Dicas<select id="fcHints"><option value="1">Permitidas (com desconto)</option><option value="0">Desligadas (modo prova)</option></select></label><button class="btn pri big" data-a="start">Começar caso</button><span class="note">O mesmo número gera sempre o mesmo caso. No fluxo de caixa, o caso 1 é o exercício da loja de calçados da aula.</span></div></div>
+      ${op ? `<div class="fcopen"><div><b>Caso ${op.seed} em andamento · ${KN[op.kind || 'eva']}</b><span>${Object.keys(op.okSet || {}).length} de ${op.n || 42} campos certos · ${Object.values(op.val || {}).filter((v) => String(v).trim()).length} preenchidos · tempo ${clock(op.sec || 0)} · salvo em ${new Date(op.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span></div><span><button class="btn pri" data-a="resume">Continuar</button> <button class="btn" data-a="discard">Descartar</button></span></div>` : ''}
       <div class="fcstats"><div><span>Casos resolvidos</span><b>${n}</b></div><div><span>Melhor nota</span><b>${best != null ? f2(best) : '–'}</b></div><div><span>Nota média</span><b>${avg != null ? f2(avg) : '–'}</b></div><div><span>Tempo médio</span><b>${tm != null ? clock(tm) : '–'}</b></div></div>
-      <h3>O que você resolve em cada caso</h3><div class="fcsteps">${steps.map((x, i) => `<div><i>${i + 1}</i><b>${x[0]}</b><span>${x[1]}</span></div>`).join('')}</div>
-      <div class="fcrule"><div><b>Campo certo</b><span>vale 75 ÷ 42 ≈ 1,79 ponto</span></div><div><b>Dica aberta (?)</b><span>o campo passa a valer metade</span></div><div><b>Conferência errada</b><span>cada uma tira 25% do campo</span></div></div>
-      <h3>Seu histórico</h3>${n ? `<table><thead><tr><th>Data</th><th>Caso</th><th>Estrutura</th><th>Acertos</th><th>Tempo</th><th>Nota (de 75)</th><th></th></tr></thead><tbody>${h.map((x) => `<tr><td>${new Date(x.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td><td>${x.seed}</td><td>${esc(x.type)}</td><td>${x.ok}/${x.n}</td><td>${clock(x.sec)}</td><td>${badge(x.score)}</td><td><button class="btn sm" data-a="again" data-seed="${x.seed}">Refazer</button></td></tr>`).join('')}</tbody></table>` : '<div class="fcempty">Nenhum caso resolvido ainda. Comece pelo caso acima; as notas aparecem aqui.</div>'}</div>`;
+      <h3>O que você resolve em cada caso</h3><div class="fcsteps" id="fcSteps">${stepsHTML(lastKind)}</div>
+      <div class="fcrule"><div><b>Campo certo</b><span>75 pontos divididos igualmente entre os campos do caso</span></div><div><b>Dica aberta (?)</b><span>o campo passa a valer metade</span></div><div><b>Conferência errada</b><span>cada uma tira 25% do campo</span></div></div>
+      <h3>Seu histórico</h3>${n ? `<table><thead><tr><th>Data</th><th>Caso</th><th>Tipo</th><th>Resultado</th><th>Acertos</th><th>Tempo</th><th>Nota (de 75)</th><th></th></tr></thead><tbody>${h.map((x) => `<tr><td>${new Date(x.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td><td>${x.seed}</td><td>${KN[x.kind || 'eva']}</td><td>${esc(x.type)}</td><td>${x.ok}/${x.n}</td><td>${clock(x.sec)}</td><td>${badge(x.score)}</td><td><button class="btn sm" data-a="again" data-seed="${x.seed}" data-kind="${x.kind || 'eva'}">Refazer</button></td></tr>`).join('')}</tbody></table>` : '<div class="fcempty">Nenhum caso resolvido ainda. Comece pelo caso acima; as notas aparecem aqui.</div>'}</div>`;
     root().classList.add('on'); root().scrollTop = 0;
   }
 
-  function start(seed, hints, sv) {
-    const c = generate(seed), F = fields(c); st = { c, F, hints, t0: Date.now(), done: false, val: {}, hint: {}, miss: {}, okSet: {} };
-    st.refs = {}; st.fref = {}; F.forEach((f) => { if (f.kind !== 'sel') st.fref[nk(codeOf(f))] = f.id; });
+  function start(seed, hints, sv, kind) {
+    kind = kind === 'fc' ? 'fc' : 'eva'; lastKind = kind; const c = kind === 'fc' ? generateFC(seed) : generate(seed), F = kind === 'fc' ? fieldsFC(c) : fields(c); st = { c, F, hints, t0: Date.now(), done: false, val: {}, hint: {}, miss: {}, okSet: {} };
+    st.refs = {}; st.fref = {}; F.forEach((f) => { if (f.kind !== 'sel') st.fref[nk(codeOf(f))] = f.id; }); st.kind = kind;
     if (sv) { Object.assign(st, { val: sv.val || {}, hint: sv.hint || {}, miss: sv.miss || {}, okSet: sv.okSet || {}, lastBad: sv.lastBad || {}, txt: sv.txt || '', t0: Date.now() - (sv.sec || 0) * 1000 }); }
     draw(); root().scrollTop = 0; clearInterval(tick); tick = setInterval(() => { const el = document.getElementById('fcClock'); if (el && st && !st.done) { const s = Math.floor((Date.now() - st.t0) / 1000); el.textContent = clock(s); if (s % 15 === 0) saveOpen(); } }, 1000); saveOpen();
   }
@@ -178,13 +231,14 @@
   const score = () => st.F.reduce((s, f) => s + worth(f), 0);
 
   function inp(f) { const v = st.val[f.id] || '', cls = st.okSet[f.id] ? ' ok' : st.miss[f.id] && st.val[f.id] === st.lastBad[f.id] ? ' no' : st.done ? ' no' : '', lock = st.done || st.okSet[f.id], dis = lock ? (f.kind === 'sel' ? ' disabled' : ' readonly') : '';
-    const el = f.kind === 'sel' ? `<select class="fi${cls}" data-f="${f.id}"${dis}><option value="">Escolha…</option>${TYPES.map((t) => `<option value="${t.k}"${v === t.k ? ' selected' : ''}>${t.n}</option>`).join('')}</select>` : `<input class="fi${cls}${String(v).trim()[0] === '=' ? ' fxv' : ''}" data-f="${f.id}" data-ref="${esc(codeOf(f))}" value="${esc(disp(v))}" title="${String(v).trim()[0] === '=' ? esc(v) : ''}" autocomplete="off" spellcheck="false"${dis} aria-label="${esc(f.label)}">`;
+    const el = f.kind === 'sel' ? `<select class="fi${cls}" data-f="${f.id}"${dis}><option value="">Escolha…</option>${(f.opts || TYPES.map((t) => [t.k, t.n])).map((t) => `<option value="${t[0]}"${v === t[0] ? ' selected' : ''}>${t[1]}</option>`).join('')}</select>` : `<input class="fi${cls}${String(v).trim()[0] === '=' ? ' fxv' : ''}" data-f="${f.id}" data-ref="${esc(codeOf(f))}" value="${esc(disp(v))}" title="${String(v).trim()[0] === '=' ? esc(v) : ''}" autocomplete="off" spellcheck="false"${dis} aria-label="${esc(f.label)}">`;
     return el + (st.done && !st.okSet[f.id] ? `<span class="ans">Resposta: ${show(f)}</span>` : ''); }
   const qb = (f) => st.hints ? `<button class="q${st.hint[f.id] ? ' used' : ''}" data-q="${f.id}" title="Dica (reduz o valor do campo à metade)" aria-label="Dica">?</button>` : '';
   function tbl(sec, heads) { const rows = [], seen = {}; st.F.filter((f) => f.sec === sec).forEach((f) => { if (seen[f.row]) return; seen[f.row] = 1; const fs = st.F.filter((x) => x.sec === sec && x.row === f.row); rows.push(`<tr><td>${f.label}${qb(f)}</td>${fs.map((x) => `<td>${inp(x)}</td>`).join('')}</tr>`); });
     return `<table><thead><tr>${heads.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`; }
 
   function draw() {
+    if (st.kind === 'fc') return drawFC();
     const { c } = st, { a, b, dre } = c; st.lastBad = st.lastBad || {};
     const ref = (k, v) => { st.refs[nk(k)] = v; return ` data-ref="${esc(k)}"`; }, kk = (l) => l.replace(/^\(−\)\s*/, '').replace(/\s*[=−-]\s.*$/, '').replace(/ c\/ /, ' ').trim();
     const R = (l, x, y, cl, k) => `<tr class="${cl || 'i'}"><td>${l}</td><td${ref((k || kk(l)) + ' ' + c.y1, x)}>${f0(x)}</td><td${ref((k || kk(l)) + ' ' + c.y0, y)}>${f0(y)}</td></tr>`;
@@ -211,6 +265,31 @@
       <h3>6. Parecer</h3><p>Qual é o risco financeiro da empresa e para qual tipo de estrutura ela evoluiu ou regrediu? A empresa gerou valor para os acionistas? Você investiria nela?</p><textarea id="fcTxt" placeholder="Escreva seu parecer. Ele não vale pontos; ao entregar, você compara com o parecer de referência."${st.done ? ' disabled' : ''}>${esc(st.txt || '')}</textarea>
       ${end}<div class="acts">${st.done ? '<button class="btn pri" data-a="new">Novo caso</button><button class="btn" data-a="lobby">Histórico</button>' : '<button class="btn" data-a="check">Conferir preenchidos</button><button class="btn pri" data-a="finish">Entregar caso</button>'}</div></div>`;
   }
+  function drawFC() {
+    const { c } = st; st.lastBad = st.lastBad || {};
+    const ref = (k, v) => { st.refs[nk(k)] = v; return ` data-ref="${esc(k)}"`; }, money = (v) => 'R$ ' + f2(v);
+    const L = (lab, k, v, txt) => `<tr><td>${lab}</td><td${ref(k, v)}>${txt || money(v)}</td></tr>`;
+    const dados = `<table><thead><tr><th>Dados levantados</th><th>Valor</th></tr></thead><tbody>${L('Investimento na montagem', 'Investimento', c.inv)}${L('Capital de Giro (estoques e vendas a prazo)', 'Capital de Giro', c.cg)}${L('Vendas', 'Unidades', c.q, f0(c.q) + ' unidades por ano')}${L('Preço de venda médio', 'Preço', c.p, money(c.p) + '/unid.')}${L('Custo médio dos produtos', 'Custo', c.cv, money(c.cv) + '/unid.')}${L('Valor residual dos ativos no Ano ' + c.n, 'Valor residual', c.vr)}</tbody></table>`;
+    const gastos = `<table><thead><tr><th>Gastos e premissas</th><th>Valor</th></tr></thead><tbody>${L('Aluguel', 'Aluguel', c.al, money(c.al) + '/mês')}${L('Funcionários', 'Funcionários', c.fu, money(c.fu) + '/mês')}${L('Outras despesas (contabilidade, propaganda, telefone, energia)', 'Outras despesas', c.ou, money(c.ou) + '/mês')}${L('Pró-labore', 'Pró-labore', c.pl, money(c.pl) + '/mês')}${L('Alíquota do Simples Nacional sobre as vendas brutas', 'Alíquota', c.aliq, f2(c.aliq) + '%')}${L('Remuneração mínima exigida (TMA)', 'TMA', c.tma, f2(c.tma) + '% a.a.')}${L('Horizonte de análise', 'Anos', c.n, c.n + ' anos')}</tbody></table>`;
+    const sec = Math.floor(((st.done ? st.t1 : Date.now()) - st.t0) / 1000), nOk = Object.keys(st.okSet).length, yrs = Array.from({ length: c.n + 1 }, (_, t) => 'Ano ' + t);
+    let end = '';
+    if (st.done) { const ok = c.vpl > 0;
+      end = `<h3>Resultado</h3><div class="box"><p class="res">Nota: ${f2(score())} de 75 · ${nOk} de ${st.F.length} campos certos · tempo ${clock(sec)}</p>
+        <p><b>Parecer de referência.</b> O projeto exige R$ ${f2(-c.fl[0])} no Ano 0 e gera R$ ${f2(c.ll)} por ano${c.n > 1 ? `, com R$ ${f2(c.vr + c.cg)} a mais no Ano ${c.n} pelo valor residual e pela volta do capital de giro` : ''}. A TMA de ${f2(c.tma)}% leva a um VPL de <b>R$ ${f2(c.vpl)}</b> e a TIR é de <b>${f2(c.tir * 100)}%</b>. ${ok ? `O projeto é <b>viável</b>: remunera a TMA e ainda cria valor; cada R$ 1 investido volta como R$ ${f2(c.il)} em valor presente.` : `O projeto é <b>inviável</b> à TMA exigida: a TIR fica abaixo dela e cada R$ 1 investido volta como apenas R$ ${f2(c.il)} em valor presente.`}</p>
+        <p><b>Recuperação do investimento.</b> O payback simples é de ${f2(c.pbs)} anos${c.pbd != null ? ` e o descontado, de ${f2(c.pbd)} anos` : `, mas, descontando os fluxos pela TMA, o investimento não se paga dentro dos ${c.n} anos`}. ${c.pbs > c.n * 0.7 ? 'É um retorno lento para o horizonte; vale testar cenários de venda menor ou de gastos maiores antes de decidir.' : 'A folga entre o payback e o horizonte dá margem para absorver anos de venda mais fraca.'}</p>
+        <p class="note">Neste exercício não há depreciação nem financiamento: no Simples o imposto já sai das vendas, então o lucro líquido é igual ao operacional e vira fluxo de caixa.</p></div>`; }
+    root().innerHTML = `<div class="fcbar"><b>Casos de Finanças</b><span class="pill">Caso ${c.seed} · ${esc(c.name)}</span><span class="pill">Tempo <span id="fcClock">${clock(sec)}</span></span><span class="pill">Certos ${nOk}/${st.F.length}</span><span class="pill">Nota ${f2(score())}</span><span class="sp"></span><button class="btn" data-a="pin">${st.pin ? 'Soltar dados' : 'Fixar dados'}</button>${st.done ? '' : '<span class="pill" id="fcSaved">Salvo automaticamente</span><button class="btn" data-a="save">Salvar</button>'}<button class="btn" data-a="lobby">${st.done ? 'Sair do caso' : 'Salvar e sair'}</button></div><div class="fcw">
+      <h3>Exercício sobre fluxo de caixa · tributação pelo Simples</h3><div class="box"><p>${esc(c.biz[1])}, depois da Pós-Graduação em Gestão, resolveram abrir uma <b>${esc(c.name)}</b> em ${esc(c.biz[2])}. Monte o fluxo de caixa do negócio considerando <b>vendas constantes durante os ${c.n} anos</b>. A empresa é tributada pelo Simples Nacional na alíquota de ${f2(c.aliq)}% sobre as vendas brutas.</p></div>
+      <div class="fxhelp"><b>Fórmulas como no Excel.</b> Comece o campo com <code>=</code> e clique nos dados ou em outros campos para inserir a referência, por exemplo <code>=[Unidades]*[Preço]</code> ou <code>=[RECEITA BRUTA]*[Alíquota]/100</code>. Saídas de caixa podem ser digitadas com ou sem sinal de menos, exceto no fluxo do projeto, onde o Ano 0 é negativo. Enter confirma, Esc cancela.</div>
+      <div id="fcStm" class="g2e${st.pin ? ' pin' : ''}">${dados}${gastos}</div>
+      <h3>1. Ano 0 · investimentos</h3>${tbl('pr', ['Discriminação', 'Ano 0'])}
+      <h3>2. Resultado de cada ano · Anos 1 a ${c.n}</h3>${tbl('dre', ['Discriminação', 'Cada ano'])}
+      <h3>3. Ajustes no último ano</h3>${tbl('aj', ['Discriminação', 'Ano ' + c.n])}
+      <h3>4. Fluxo de caixa do projeto</h3><div class="fcgrid">${tbl('fl', ['Discriminação', ...yrs])}</div>
+      <h3>5. Avaliação econômica · TMA de ${f2(c.tma)}% a.a.</h3>${tbl('av', ['Indicador', 'Valor'])}
+      <h3>6. Parecer</h3><p>O negócio vale a pena para ${esc(c.biz[1])}? Em quanto tempo o investimento volta e qual é o risco de o retorno não se confirmar?</p><textarea id="fcTxt" placeholder="Escreva seu parecer. Ele não vale pontos; ao entregar, você compara com o parecer de referência."${st.done ? ' disabled' : ''}>${esc(st.txt || '')}</textarea>
+      ${end}<div class="acts">${st.done ? '<button class="btn pri" data-a="new">Novo caso</button><button class="btn" data-a="lobby">Histórico</button>' : '<button class="btn" data-a="check">Conferir preenchidos</button><button class="btn pri" data-a="finish">Entregar caso</button>'}</div></div>`;
+  }
   function check() { st.F.forEach((f) => { const v = (st.val[f.id] || '').trim(); if (!v || st.okSet[f.id]) return; if (right(f, v)) st.okSet[f.id] = 1; else if (st.lastBad[f.id] !== v) { st.miss[f.id] = (st.miss[f.id] || 0) + 1; st.lastBad[f.id] = v; } }); }
   function closeTip() { const t = root().querySelector('.fctip'); if (t) t.remove(); }
   const fxOn = () => { const a = document.activeElement; return a && a.dataset && a.dataset.f && a.tagName === 'INPUT' && !a.readOnly && a.value.trim()[0] === '=' ? a : null; };
@@ -220,7 +299,7 @@
     else { const raw = st.val[t.dataset.f] || ''; t.value = disp(raw); t.title = raw.trim()[0] === '=' ? raw : ''; t.classList.toggle('fxv', raw.trim()[0] === '='); root().classList.remove('fx'); } }
   function onKey(e) { const t = e.target; if (!st || !t.dataset || !t.dataset.f || t.tagName !== 'INPUT') return; if (e.key === 'Enter') { e.preventDefault(); const all = [...root().querySelectorAll('input.fi:not([readonly])')], i = all.indexOf(t); t.blur(); if (all[i + 1]) all[i + 1].focus(); }
     else if (e.key === 'Escape') { t.value = t.dataset.old || ''; st.val[t.dataset.f] = t.value; t.blur(); } }
-  function onInput(e) { const t = e.target; if (!st) return; if (t.dataset && t.dataset.f) { if (t.readOnly) return; st.val[t.dataset.f] = t.value; t.classList.remove('no'); root().classList.toggle('fx', t.tagName === 'INPUT' && t.value.trim()[0] === '='); } else if (t.id === 'fcTxt') st.txt = t.value; else return; clearTimeout(onInput.t); onInput.t = setTimeout(() => saveOpen(), 600); }
+  function onInput(e) { const t = e.target; if (t.id === 'fcType') { lastKind = t.value; const el = document.getElementById('fcSteps'); if (el && lobby.steps) el.innerHTML = lobby.steps(t.value); return; } if (!st) return; if (t.dataset && t.dataset.f) { if (t.readOnly) return; st.val[t.dataset.f] = t.value; t.classList.remove('no'); root().classList.toggle('fx', t.tagName === 'INPUT' && t.value.trim()[0] === '='); } else if (t.id === 'fcTxt') st.txt = t.value; else return; clearTimeout(onInput.t); onInput.t = setTimeout(() => saveOpen(), 600); }
   function onClick(e) {
     const q = e.target.closest('[data-q]'), b = e.target.closest('[data-a]'); closeTip();
     if (q && st) { const f = st.F.find((x) => x.id === q.dataset.q) ; st.F.filter((x) => x.row === f.row && x.sec === f.sec).forEach((x) => { if (!st.okSet[x.id]) st.hint[x.id] = 1; }); q.classList.add('used');
@@ -230,17 +309,17 @@
       tip.style.left = left + 'px'; tip.style.top = (qb + 10) + 'px'; tip.style.setProperty('--ax', (qx + qw / 2 - left) + 'px'); saveOpen(); e.stopPropagation(); return; }
     if (!b) return; const a = b.dataset.a;
     if (a === 'exit') { if (st && !st.done) saveOpen(); clearInterval(tick); root().classList.remove('on'); if (onExit) onExit(); }
-    else if (a === 'resume') { const o = loadOpen(); if (o) start(o.seed, o.hints, o); }
-    else if (a === 'pin') { st.pin = !st.pin; const el = document.getElementById('fcStm'); el.classList.toggle('pin', st.pin); b.textContent = st.pin ? 'Soltar balanço' : 'Fixar balanço'; }
+    else if (a === 'resume') { const o = loadOpen(); if (o) start(o.seed, o.hints, o, o.kind); }
+    else if (a === 'pin') { st.pin = !st.pin; const el = document.getElementById('fcStm'); el.classList.toggle('pin', st.pin); b.textContent = st.kind === 'fc' ? (st.pin ? 'Soltar dados' : 'Fixar dados') : (st.pin ? 'Soltar balanço' : 'Fixar balanço'); }
     else if (a === 'discard') { saveOpen(true); lobby(); }
     else if (a === 'save') { saveOpen(); const el = document.getElementById('fcSaved'); if (el) el.textContent = 'Salvo às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
-    else if (a === 'start') start(Math.max(1, +document.getElementById('fcSeed').value || 1), document.getElementById('fcHints').value === '1');
-    else if (a === 'again') start(+b.dataset.seed, true);
-    else if (a === 'new') start(Math.floor(Math.random() * 9000) + 1000, st ? st.hints : true);
+    else if (a === 'start') start(Math.max(1, +document.getElementById('fcSeed').value || 1), document.getElementById('fcHints').value === '1', null, document.getElementById('fcType').value);
+    else if (a === 'again') start(+b.dataset.seed, true, null, b.dataset.kind);
+    else if (a === 'new') start(Math.floor(Math.random() * 9000) + 1000, st ? st.hints : true, null, st ? st.kind : lastKind);
     else if (a === 'lobby') { lobby(); }
     else if (a === 'check') { const y = root().scrollTop; check(); draw(); root().scrollTop = y; saveOpen(); }
-    else if (a === 'finish') { check(); st.done = true; st.t1 = Date.now(); clearInterval(tick); saveOpen(true); record({ at: Date.now(), seed: st.c.seed, type: st.c.b.type.n, ok: Object.keys(st.okSet).length, n: st.F.length, sec: Math.floor((st.t1 - st.t0) / 1000), score: Math.round(score() * 100) / 100 }); draw(); const r = root().querySelector('.res'); if (r) r.scrollIntoView({ block: 'center' }); }
+    else if (a === 'finish') { check(); st.done = true; st.t1 = Date.now(); clearInterval(tick); saveOpen(true); record({ at: Date.now(), seed: st.c.seed, kind: st.kind, type: st.kind === 'fc' ? 'VPL ' + (st.c.vpl > 0 ? 'positivo' : 'negativo') : st.c.b.type.n, ok: Object.keys(st.okSet).length, n: st.F.length, sec: Math.floor((st.t1 - st.t0) / 1000), score: Math.round(score() * 100) / 100 }); draw(); const r = root().querySelector('.res'); if (r) r.scrollIntoView({ block: 'center' }); }
   }
-  let onExit = null;
-  window.FinCases = { open(p, store, o) { player = p || 'Jogador'; io = store || null; st = null; o = o || {}; onExit = o.onExit || null; const op = o.resume && loadOpen(); if (op) start(op.seed, op.hints, op); else if (o.seed) start(o.seed, true); else lobby(); root().classList.add('on'); }, generate, fields, right, TYPES };
+  let onExit = null, lastKind = 'eva';
+  window.FinCases = { open(p, store, o) { player = p || 'Jogador'; io = store || null; st = null; o = o || {}; onExit = o.onExit || null; const op = o.resume && loadOpen(); if (op) start(op.seed, op.hints, op, op.kind); else if (o.seed) start(o.seed, true, null, o.kind); else lobby(); root().classList.add('on'); }, generate, fields, generateFC, fieldsFC, right, TYPES };
 })();

@@ -1416,7 +1416,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ================================================ JOGO: jogadores, saves, configurações, cronômetro, cenários
-const APPVER = '17/11 15:45';
+const APPVER = '17/11 17:30';
 const SKEY = 'simEnividia.store.v1';
 // N empresas no mercado: o tamanho do mercado acompanha o número de empresas (4 = jogo original)
 function setCompanies(p, n) { n = Math.max(2, Math.min(6, +n || 4)); p.nCompanies = n; delete p.marketScale; delete p.nRegions; return p; }
@@ -1510,12 +1510,12 @@ function showHome(step) {
         <div class="acts"><button class="btn pri" data-open="${x.id}">${x.ended ? 'Ver' : 'Continuar'}</button><button class="btn" data-ren="${x.id}">Renomear</button><button class="btn" data-del="${x.id}" style="color:#d0021b;border-color:#d0021b">Excluir</button></div></div>`; }).join('')}</div>`
     : '<p class="note">Nenhum jogo salvo ainda.</p>'}
     <div class="hsec"><h2>Casos de Finanças</h2><button class="btn pri" id="bCases">${fo ? 'Abrir casos' : 'Novo caso'}</button></div>
-    ${fo || fh.length ? `<div class="slist">${fo ? `<div class="slot"><div><b>Caso ${fo.seed}</b><span class="tag" style="background:#fdf3cf;color:#7a5a00">em andamento</span>
-        <div class="meta">${Object.keys(fo.okSet || {}).length} de 42 campos certos · tempo ${fclock(fo.sec || 0)}<br>Salvo em ${new Date(fo.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</div></div>
+    ${fo || fh.length ? `<div class="slist">${fo ? `<div class="slot"><div><b>Caso ${fo.seed}</b><span class="tag" style="background:#fdf3cf;color:#7a5a00">em andamento</span><span class="tag">${fo.kind === 'fc' ? 'Fluxo de caixa' : 'Modelo dinâmico e EVA'}</span>
+        <div class="meta">${Object.keys(fo.okSet || {}).length} de ${fo.n || 42} campos certos · tempo ${fclock(fo.sec || 0)}<br>Salvo em ${new Date(fo.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</div></div>
         <div class="acts"><button class="btn pri" id="bCaseResume">Continuar</button><button class="btn" id="bCaseDrop" style="color:#d0021b;border-color:#d0021b">Descartar</button></div></div>` : ''}
-      ${fh.slice(0, 5).map((x) => `<div class="slot ended"><div><b>Caso ${x.seed}</b><span class="tag">entregue</span><span class="tag">${esc(x.type)}</span>
+      ${fh.slice(0, 5).map((x) => `<div class="slot ended"><div><b>Caso ${x.seed}</b><span class="tag">entregue</span><span class="tag">${x.kind === 'fc' ? 'Fluxo de caixa' : 'Modelo dinâmico e EVA'}</span><span class="tag">${esc(x.type)}</span>
         <div class="meta">Nota ${f2(x.score)} de 75 · ${x.ok} de ${x.n} campos certos · tempo ${fclock(x.sec)}<br>Entregue em ${new Date(x.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</div></div>
-        <div class="acts"><button class="btn" data-caseagain="${x.seed}">Refazer</button></div></div>`).join('')}</div>${fh.length > 5 ? `<p class="note">Mais ${fh.length - 5} no histórico completo, em “${fo ? 'Abrir casos' : 'Novo caso'}”.</p>` : ''}`
+        <div class="acts"><button class="btn" data-caseagain="${x.seed}" data-casekind="${x.kind || 'eva'}">Refazer</button></div></div>`).join('')}</div>${fh.length > 5 ? `<p class="note">Mais ${fh.length - 5} no histórico completo, em “${fo ? 'Abrir casos' : 'Novo caso'}”.</p>` : ''}`
     : '<p class="note">Nenhum caso resolvido ainda.</p>'}
     ${PRACTICE}
     <div class="hfoot"><button class="btn" id="bSwitch">Trocar jogador</button></div>`;
@@ -1559,7 +1559,7 @@ document.addEventListener('click', (e) => {
   if (t.id === 'bNewGame') { showHome('new'); return; }
   if (t.id === 'bCases' || t.id === 'bCaseResume' || t.id === 'bCaseDrop' || t.dataset.caseagain) { const pl = store.players[cur.player];
     if (t.id === 'bCaseDrop') { if (pl.fin) pl.fin.open = null; persistNow(); showHome('saves'); return; }
-    window.FinCases.open(cur.player, { get: () => pl.fin || {}, set: (v) => { pl.fin = v; persistNow(); } }, { resume: t.id === 'bCaseResume', seed: +t.dataset.caseagain || 0, onExit: () => showHome('saves') }); return; }
+    window.FinCases.open(cur.player, { get: () => pl.fin || {}, set: (v) => { pl.fin = v; persistNow(); } }, { resume: t.id === 'bCaseResume', seed: +t.dataset.caseagain || 0, kind: t.dataset.casekind, onExit: () => showHome('saves') }); return; }
   if (t.id === 'bBackSaves') { showHome('saves'); return; }
   if (t.id === 'bStart') { startGame(); return; }
   if (t.dataset.open) { openSave(t.dataset.open); return; }
