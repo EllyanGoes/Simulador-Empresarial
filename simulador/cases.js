@@ -491,34 +491,34 @@
     return map;
   }
   function sheetFCR(wb) {
-    const { c } = st, n = c.n, ws = wb.addWorksheet('Fluxo de Caixa', { views: [{ showGridLines: false }], pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } }), map = [];
-    const cols = [['D', 'Ano 0'], ['E', 'Ano 1'], ['F', 'Ano 2'], ['G', n - 1 > 3 ? 'Ano 3-' + (n - 1) : 'Ano 3'], ['H', 'Ano ' + n]], last = 'H';
-    ws.columns = [40, 13, 15, 17, 17, 17, 17, 17].map((w) => ({ width: w }));
+    const { c } = st, n = c.n, ws = wb.addWorksheet('Planilha1', { views: [{ showGridLines: false }], pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } }), map = [];
+    const col = (t) => String.fromCharCode(68 + t), last = col(n);
+    ws.columns = [36, 12.9, 17, 15.7].concat(Array.from({ length: n }, () => 14.1)).map((w) => ({ width: w }));
     const S = (addr, v, o) => { const x = ws.getCell(addr); x.value = v; o = o || {}; if (o.b) x.font = { name: 'Calibri', size: 11, bold: true }; if (o.nf) x.numFmt = o.nf; if (o.fill) x.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: o.fill } }; if (o.wrap) x.alignment = { wrapText: true, vertical: 'top' }; if (o.c) x.alignment = { horizontal: 'center', vertical: 'middle' }; return x; };
-    const IN = (addr, id, nf, fill) => { const f = st.F.find((x) => x.id === id); const x = S(addr, f ? curNum(f) : null, { nf, fill: fill || XF.fcIn, b: fill === XF.th }); if (f && f.kind === 'sel') x.dataValidation = { type: 'list', allowBlank: true, formulae: ['"' + f.opts.map((o) => o[1]).join(',') + '"'] }; if (f) map.push([id, 'Fluxo de Caixa', addr, f.kind]); return x; };
+    const IN = (addr, id, nf, fill) => { const f = st.F.find((x) => x.id === id); const x = S(addr, f ? curNum(f) : null, { nf, fill: fill || XF.fcIn, b: fill === XF.th }); if (f && f.kind === 'sel') x.dataValidation = { type: 'list', allowBlank: true, formulae: ['"' + f.opts.map((o) => o[1]).join(',') + '"'] }; if (f) map.push([id, 'Planilha1', addr, f.kind]); return x; };
     const M = (r) => ws.mergeCells(r);
-    [['Pós-graduação em Gestão de Negócios'], ['Análise Econômica de Investimentos'], ['Caso ' + c.seed + ' · Exemplo de Fluxo de Caixa e Lucro Real · Participante: ' + player]].forEach((r, i) => { S('A' + (i + 1), r[0], { b: 1, fill: XF.cab, c: 1 }); M(`A${i + 1}:${last}${i + 1}`); });
-    S('A5', `Projeto ${c.name} - Avaliação Econômica - Lucro Real`, { b: 1, fill: XF.cab, c: 1 }); M(`A5:${last}5`);
+    [['Pós- graduação em Gestão de Negócios'], ['Análise Econômica de Investimentos'], ['Exemplo de Fluxo de Caixa - Lucro Real · Caso ' + c.seed + ' · Participante: ' + player]].forEach((r, i) => { S('A' + (i + 1), null, { fill: XF.cab }); S('B' + (i + 1), r[0], { b: 1, fill: XF.cab, c: 1 }); M(`B${i + 1}:${last}${i + 1}`); });
+    S('A5', `Projeto ${c.name} - avaliação econômica - Lucro Real`, { fill: XF.th, c: 1 }); M(`A5:${last}5`);
     S('A6', 'Discriminação', { b: 1, fill: XF.th, c: 1 }); M('A6:A7'); S('B6', 'Quantidade', { b: 1, fill: XF.th, c: 1 }); M('B6:B7'); S('C6', 'Informações', { b: 1, fill: XF.th, c: 1 }); M('C6:C7');
-    S('D6', 'Ano', { fill: XF.th, c: 1 }); M(`D6:${last}6`); cols.forEach(([k, l]) => S(k + '7', l, { b: 1, fill: XF.th, c: 1 }));
-    const rows = [[8, 'Investimento'], [9, 'Capital de Giro'], [10, 'Receita Bruta', 'rb'], [11, 'Impostos sobre a Receita Bruta', 'imp'], [12, 'Receita Líquida', 'rl'], [13, 'Gastos Variáveis', 'gv'], [14, 'Gastos Fixos', 'gf'], [15, 'Lucro Operacional', 'lo'], [16, 'Depreciação (Vida Útil: ' + n + ' anos)', 'dep'], [17, 'Lucro Tributável', 'lt'], [18, 'Imp. Renda / Contrib. Social', 'irv'], [19, 'Lucro Líquido', 'll']];
-    rows.forEach(([r, lab, id]) => { S('A' + r, lab); if (!id) return; IN('E' + r, id, NF.rs); ['F', 'G', 'H'].forEach((k) => S(k + r, null, { nf: NF.rs, fill: XF.fcIn })); });
-    IN('D8', 'inv', NF.rs); IN('D9', 'cg', NF.rs); S('C9', c.cgp / 100, { nf: '0%' });
-    S('B10', c.q, { nf: NF.q }); S('C10', c.p, { nf: NF.rs }); S('C11', c.ti / 100, { nf: '0.00%' }); S('C13', c.cv, { nf: NF.rs }); S('C14', c.gf, { nf: NF.rs }); S('C16', n); S('C18', c.ir / 100, { nf: '0.0%' });
-    S('A20', 'Ajustes'); S('A21', 'Depreciação'); IN('E21', 'adep', NF.rs); ['F', 'G', 'H'].forEach((k) => S(k + '21', null, { nf: NF.rs, fill: XF.fcIn }));
-    S('A22', 'Valor Residual'); IN('H22', 'vr', NF.rs); S('A23', 'Recuperação do Capital de Giro'); IN('H23', 'rcg', NF.rs);
-    S('A24', 'Fluxo de Caixa do Projeto', { b: 1, fill: XF.th }); ['B24', 'C24'].forEach((k) => S(k, null, { fill: XF.th })); IN('D24', 'fc0', NF.rs, XF.th); IN('E24', 'fc1', NF.rs, XF.th); S('F24', null, { nf: NF.rs, fill: XF.th }); S('G24', null, { nf: NF.rs, fill: XF.th }); IN('H24', 'fc' + n, NF.rs, XF.th);
+    S('D6', 'Ano', { fill: XF.th, c: 1 }); M(`D6:${last}6`); for (let t = 0; t <= n; t++) S(col(t) + '7', t, { b: 1, fill: XF.th, c: 1 });
+    const rows = [[8, 'Investimento'], [9, 'Capital de Giro'], [10, 'Receita Bruta', 'rb'], [11, 'Imposto sobre Receita Bruta', 'imp'], [12, 'Receita Liquida', 'rl'], [13, 'Gastos Variaveis', 'gv'], [14, 'Gastos Fixos (mensais/anuais)', 'gf'], [15, 'Lucro Operacional', 'lo'], [16, 'Depreciação', 'dep'], [17, 'Lucro Tributável', 'lt'], [18, 'Imposto de Renda/Contribuição Social', 'irv'], [19, 'Lucro Liquido', 'll'], [20, 'Ajustes'], [21, 'Depreciação (efeito caixa)', 'adep']];
+    rows.forEach(([r, lab, id]) => { S('A' + r, lab); if (!id) return; IN('E' + r, id, NF.rs); for (let t = 2; t <= n; t++) S(col(t) + r, null, { nf: NF.rs, fill: XF.fcIn }); });
+    IN('D8', 'inv', NF.rs); IN('D9', 'cg', NF.rs);
+    S('B10', c.q, { nf: '_-* #,##0_-;\\-* #,##0_-;_-* "-"??_-;_-@' }); S('C10', c.p, { nf: NF.rs }); S('C11', c.ti / 100, { nf: '0.00%' }); S('C13', c.cv, { nf: NF.rs }); S('C14', c.gf, { nf: NF.rs });
+    S('B16', n); S('C16', null, { nf: NF.rs }); S('C18', c.ir / 100, { nf: '0%' });
+    S('A22', 'Valor Residual'); IN(last + '22', 'vr', NF.rs); S('A23', 'Recuperação do Capital de Giro'); IN(last + '23', 'rcg', NF.rs);
+    S('A24', 'Fluxo de Caixa do Projeto', { b: 1, fill: XF.th }); ['B24', 'C24'].forEach((k) => S(k, null, { fill: XF.th }));
+    for (let t = 0; t <= n; t++) { if (t === 0 || t === 1 || t === n) IN(col(t) + '24', 'fc' + t, NF.rs, XF.th); else S(col(t) + '24', null, { nf: NF.rs, fill: XF.th, b: 1 }); }
     S('A26', 'Avaliação Econômica', { b: 1, fill: XF.cab, c: 1 }); M(`A26:${last}26`);
     S('A27', 'TMA (remuneração mínima exigida)'); S('C27', c.tma / 100, { nf: '0.00%', b: 1 });
-    S('A28', 'Para VPL e TIR no Excel, monte os ' + (n + 1) + ' fluxos (Ano 0 a ' + n + ') numa linha auxiliar abaixo, se quiser.', {});
-    [['VPL à TMA', 'vpl', NF.rs], ['TIR', 'tir', NF.p], ['Payback simples (anos)', 'pbs', NF.a], ['Payback descontado (anos)', 'pbd', NF.a], ['Índice de Lucratividade', 'il', NF.a], ['Decisão (Viável / Inviável)', 'dec']].forEach(([lab, id, nf], i) => { const r = 29 + i; S('A' + r, lab);
+    [['VPL à TMA', 'vpl', NF.rs], ['TIR', 'tir', NF.p], ['Payback simples (anos)', 'pbs', NF.a], ['Payback descontado (anos)', 'pbd', NF.a], ['Índice de Lucratividade', 'il', NF.a], ['Decisão (Viável / Inviável)', 'dec']].forEach(([lab, id, nf], i) => { const r = 28 + i; S('A' + r, lab);
       if (id === 'pbd' && c.pbd == null) { S('D' + r, 'O investimento não se paga dentro da vida útil quando descontado pela TMA (campo sem nota).'); return; } IN('D' + r, id, nf); });
-    S('A36', 'Dados do projeto', { b: 1, fill: XF.cab, c: 1 }); M(`A36:${last}36`);
-    S('A37', `A empresa ${c.firm[0]} está planejando a instalação de ${c.firm[1]}. Monte o fluxo de caixa desse investimento considerando produção e vendas constantes durante os ${n} anos. Depreciação = (Investimento inicial − Valor residual) ÷ Vida útil.`, { wrap: 1 }); M(`A37:${last}37`); ws.getRow(37).height = 46;
-    [['Valor do investimento', c.inv, NF.rs], ['Capacidade de produção (' + c.firm[2] + ' por ano)', c.q, NF.q], ['Capital de giro (% do valor do investimento)', c.cgp / 100, '0%'], ['Preço de venda do produto (por ' + c.firm[2] + ')', c.p, NF.rs], ['Impostos sobre a receita bruta', c.ti / 100, '0.00%'], ['Gasto variável (por ' + c.firm[2] + ')', c.cv, NF.rs], ['Gasto fixo (por ano)', c.gf, NF.rs], ['Vida útil do projeto (anos)', n, '0'], ['Valor residual', c.vr, NF.rs], ['Alíquota de IR e Contribuição Social', c.ir / 100, '0.0%'], ['Remuneração mínima exigida (TMA)', c.tma / 100, '0.00%']].forEach(([lab, v, nf], i) => { S('A' + (38 + i), lab); S('C' + (38 + i), v, { nf, b: 1 }); });
-    S('A50', 'Células cinza: preencha (pode usar fórmulas). Ao terminar, salve e importe no app em Casos de Finanças → Importar Excel.');
-    S('A52', 'Parecer: a empresa deve fazer o investimento? Qual é o peso da depreciação e do imposto de renda no resultado?', { b: 1, fill: XF.cab }); M(`A52:${last}52`);
-    S('A53', st.txt || null, { wrap: 1, fill: XF.fcIn }); M(`A53:${last}58`); map.push(['txt', 'Fluxo de Caixa', 'A53', 'txt']);
+    S('A35', 'Dados do projeto', { b: 1, fill: XF.cab, c: 1 }); M(`A35:${last}35`);
+    S('A36', `A empresa ${c.firm[0]} está planejando a instalação de ${c.firm[1]}. Monte o fluxo de caixa desse investimento considerando produção e vendas constantes durante os ${n} anos. Depreciação = (Investimento inicial − Valor residual) ÷ Vida útil.`, { wrap: 1 }); M(`A36:${last}36`); ws.getRow(36).height = 34;
+    [['Valor do investimento', c.inv, NF.rs], ['Capacidade de produção (' + c.firm[2] + ' por ano)', c.q, NF.q], ['Capital de giro (% do valor do investimento)', c.cgp / 100, '0%'], ['Preço de venda do produto (por ' + c.firm[2] + ')', c.p, NF.rs], ['Impostos sobre a receita bruta', c.ti / 100, '0.00%'], ['Gasto variável (por ' + c.firm[2] + ')', c.cv, NF.rs], ['Gasto fixo (por ano)', c.gf, NF.rs], ['Vida útil do projeto (anos)', n, '0'], ['Valor residual', c.vr, NF.rs], ['Alíquota de IR e Contribuição Social', c.ir / 100, '0%'], ['Remuneração mínima exigida (TMA)', c.tma / 100, '0.00%']].forEach(([lab, v, nf], i) => { S('A' + (37 + i), lab); S('C' + (37 + i), v, { nf, b: 1 }); });
+    S('A49', 'Células cinza: preencha (pode usar fórmulas). As notas consideram o Ano 0, o Ano 1 e o último ano; preencha os demais para usar VPL e TIR do Excel. Ao terminar, salve e importe no app em Casos de Finanças → Importar Excel.');
+    S('A51', 'Parecer: a empresa deve fazer o investimento? Qual é o peso da depreciação e do imposto de renda no resultado?', { b: 1, fill: XF.cab }); M(`A51:${last}51`);
+    S('A52', st.txt || null, { wrap: 1, fill: XF.fcIn }); M(`A52:${last}57`); map.push(['txt', 'Planilha1', 'A52', 'txt']);
     return map;
   }
   function b64(buf) { const u = new Uint8Array(buf); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); }
