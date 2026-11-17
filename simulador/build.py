@@ -4,6 +4,7 @@ lib=open('/home/claude/sim/node_modules/xlsx/dist/xlsx.core.min.js').read().repl
 init=open('/home/claude/sim/initial_p5.json').read().replace('</','<\\/')
 bots=open('/home/claude/sim/bots.js').read()
 cases=open('/home/claude/sim/cases.js').read()
-out=ui.replace('/*CASES*/',cases,1).replace('/*BOTS*/',bots,1).replace('/*XLSX*/',lib,1).replace('/*ENGINE*/',eng,1).replace('/*INITIAL*/',init,1)
+exl=open('/home/claude/sim/node_modules/exceljs/dist/exceljs.min.js').read().replace('</script','<\\/script')
+out=ui.replace('/*CASES*/',cases,1).replace('/*BOTS*/',bots,1).replace('/*XLSX*/',lib,1).replace('/*EXCELJS*/',exl,1).replace('/*ENGINE*/',eng,1).replace('/*INITIAL*/',init,1)
 open('/home/claude/sim/index.html','w').write(out)
 print(len(out))
