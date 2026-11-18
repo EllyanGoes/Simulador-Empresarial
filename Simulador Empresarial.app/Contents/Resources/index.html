@@ -2487,7 +2487,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ================================================ JOGO: jogadores, saves, configurações, cronômetro, cenários
-const APPVER = '17/11 19:40';
+const APPVER = '18/11 12:00';
 const SKEY = 'simEnividia.store.v1';
 // N empresas no mercado: o tamanho do mercado acompanha o número de empresas (4 = jogo original)
 function setCompanies(p, n) { n = Math.max(2, Math.min(6, +n || 4)); p.nCompanies = n; delete p.marketScale; delete p.nRegions; return p; }
@@ -3373,7 +3373,7 @@ if (store.last && store.last.player && store.players[store.last.player]) { cur =
 #fc #fcStm.pin{position:sticky;top:58px;z-index:4;max-height:40vh;overflow:auto;background:#eceeef;box-shadow:0 6px 12px rgba(0,0,0,.18);border-bottom:2px solid #3a78c3;font-size:13px}#fc #fcStm.pin td{padding:3px 8px}#fc #fcStm.pin th{padding:4px 8px}
 #fc .fcgrid{overflow-x:auto}#fc .fcgrid input.fi{width:112px}#fc .fcgrid td:first-child{white-space:nowrap}
 #fc .fcmsg{background:#e3f6e6;border:1px solid #2e9e3f;color:#16521f;border-radius:8px;padding:10px 14px;margin:10px 0;font-weight:600}#fc .fcbar{row-gap:8px}
-#fc .fxhelp{background:#eef4fb;border:1px solid #c5d9f0;border-radius:8px;padding:10px 14px;font-size:14px;margin:10px 0}#fc code{background:#fff;border:1px solid #d6d9dc;border-radius:3px;padding:1px 5px;font:13px ui-monospace,Menlo,monospace}#fc .fi.fxv{font-style:italic}#fc .fi:focus{text-align:left;width:100%;min-width:150px;position:relative;z-index:2}#fc.fx [data-ref]{cursor:cell;outline:1px dashed #3a78c3;outline-offset:-3px}#fc.fx [data-ref]:hover{background:#d8e8fb!important}#fc.fx input[data-ref]:focus{outline:2px solid #3a78c3;cursor:text}
+#fc .fxhelp{background:#eef4fb;border:1px solid #c5d9f0;border-radius:8px;padding:10px 14px;font-size:14px;margin:10px 0}#fc code{background:#fff;border:1px solid #d6d9dc;border-radius:3px;padding:1px 5px;font:13px ui-monospace,Menlo,monospace}#fc .fi.fxv{font-style:italic}#fc .fi:focus{text-align:right;width:100%;min-width:150px;position:relative;z-index:2}#fc.fx [data-ref]{cursor:cell;outline:1px dashed #3a78c3;outline-offset:-3px}#fc.fx [data-ref]:hover{background:#d8e8fb!important}#fc.fx input[data-ref]:focus{outline:2px solid #3a78c3;cursor:text}
 #fc .fcopen{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;background:#fff8e1;border:1px solid #e0b84a;border-radius:10px;padding:14px 18px;margin-top:18px}#fc .fcopen b{display:block;font-size:16px}#fc .fcopen span{font-size:14px;color:#4a4f54}#fc .fcbar .btn{padding:7px 14px}
 #fc .fcempty{background:#fff;border:1px dashed #b8bcc0;border-radius:10px;padding:26px;text-align:center;color:#666b70}#fc .fcnote{display:inline-block;min-width:58px;text-align:center;font-weight:700;border-radius:12px;padding:2px 10px}#fc .fcnote.g{background:#e3f6e6;color:#1a6b2a}#fc .fcnote.y{background:#fdf3cf;color:#7a5a00}#fc .fcnote.r{background:#fde7e9;color:#a00015}
 @media(max-width:800px){#fc .fchero,#fc .fcsteps,#fc .fcrule{grid-template-columns:minmax(0,1fr)}#fc .fcstats{grid-template-columns:repeat(2,minmax(0,1fr))}}`;
@@ -3498,8 +3498,8 @@ if (store.last && store.last.player && store.players[store.last.player]) { cur =
   function closeTip() { const t = root().querySelector('.fctip'); if (t) t.remove(); }
   const fxOn = () => { const a = document.activeElement; return a && a.dataset && a.dataset.f && a.tagName === 'INPUT' && !a.readOnly && a.value.trim()[0] === '=' ? a : null; };
   function onDown(e) { const a = fxOn(); root().classList.toggle('fx', !!a); if (!a) return; const r = e.target.closest('[data-ref]'); if (!r || r === a) return; e.preventDefault();
-    const tok = '[' + r.dataset.ref + ']', p0 = a.selectionStart, p1 = a.selectionEnd; a.value = a.value.slice(0, p0) + tok + a.value.slice(p1); a.selectionStart = a.selectionEnd = p0 + tok.length; a.dispatchEvent(new Event('input', { bubbles: true })); }
-  function onFocus(e) { const t = e.target; if (!st || !t.dataset || !t.dataset.f || t.tagName !== 'INPUT') return; if (e.type === 'focusin') { if (!t.readOnly) { t.value = st.val[t.dataset.f] || ''; t.dataset.old = t.value; } }
+    const tok = '[' + r.dataset.ref + ']', p0 = a.selectionStart, p1 = a.selectionEnd; a.value = a.value.slice(0, p0) + tok + a.value.slice(p1); a.selectionStart = a.selectionEnd = p0 + tok.length; a.dispatchEvent(new Event('input', { bubbles: true })); const end = () => { if (a.selectionEnd >= a.value.length) a.scrollLeft = a.scrollWidth; }; end(); requestAnimationFrame(end); }
+  function onFocus(e) { const t = e.target; if (!st || !t.dataset || !t.dataset.f || t.tagName !== 'INPUT') return; if (e.type === 'focusin') { if (!t.readOnly) { t.value = st.val[t.dataset.f] || ''; t.dataset.old = t.value; requestAnimationFrame(() => { try { t.selectionStart = t.selectionEnd = t.value.length; } catch (x) {} t.scrollLeft = t.scrollWidth; }); } }
     else { const raw = st.val[t.dataset.f] || ''; t.value = disp(raw); t.title = raw.trim()[0] === '=' ? raw : ''; t.classList.toggle('fxv', raw.trim()[0] === '='); root().classList.remove('fx'); } }
   function onKey(e) { const t = e.target; if (!st || !t.dataset || !t.dataset.f || t.tagName !== 'INPUT') return; if (e.key === 'Enter') { e.preventDefault(); const all = [...root().querySelectorAll('input.fi:not([readonly])')], i = all.indexOf(t); t.blur(); if (all[i + 1]) all[i + 1].focus(); }
     else if (e.key === 'Escape') { t.value = t.dataset.old || ''; st.val[t.dataset.f] = t.value; t.blur(); } }
