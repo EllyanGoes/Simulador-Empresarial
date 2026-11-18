@@ -76,9 +76,9 @@
     F.push({ id: 'tef1', sec: 'md', row: 'tef', label: 'Tipo de Estrutura Financeira', col: 1, ans: b.type.k, kind: 'sel', tip: ['Combine os sinais de CDG, NCG e ST.', '<span class="fcfm">Excelente (+ − +) · Sólida (+ + +) · Insatisfatória (+ + −) · Péssima (− + −) · Muito ruim (− − −) · Alto risco (− − +)</span>'] });
     F.push({ id: 'tef0', sec: 'md', row: 'tef', label: 'Tipo de Estrutura Financeira', col: 0, ans: a.type.k, kind: 'sel', tip: F[F.length - 1].tip });
     const one = (sec, id, label, ans, kind, tip) => F.push({ id, sec, row: id, label, col: 1, ans, kind, tip });
-    one('cf', 'pme', 'Prazo Médio de Estocagem (PME)', cy.pme, 'd', ['Dias que o estoque leva para girar.', fx('PME', 'Estoques ÷ Receita Líquida × 360')]);
-    one('cf', 'pmr', 'Prazo Médio de Recebimento (PMR)', cy.pmr, 'd', ['Dias de receita aplicados nos demais ativos cíclicos.', fx('PMR', '(ACC − Estoques) ÷ Receita Líquida × 360')]);
-    one('cf', 'pmp', 'Prazo Médio de Pagamento (PMP)', cy.pmp, 'd', ['Dias de receita financiados pelo passivo cíclico.', fx('PMP', 'PCC ÷ Receita Líquida × 360')]);
+    one('cf', 'pme', 'Prazo Médio de Estocagem (PME)', cy.pme, 'd', ['Quantos dias de venda estão parados no estoque. Receita Líquida ÷ 360 é a venda de um dia; o estoque dividido por ela dá o número de dias. Nesta disciplina os três prazos usam a receita líquida, para que somados batam com a NCG do balanço.', fx('PME', 'Estoques ÷ Receita Líquida × 360') + '<br><span class="fcfm">Nos livros: Estoques ÷ CPV × 360 (tempo físico do estoque, a custo)</span>']);
+    one('cf', 'pmr', 'Prazo Médio de Recebimento (PMR)', cy.pmr, 'd', ['Dias de receita aplicados nos demais ativos cíclicos (contas a receber, tributos a recuperar e adiantamentos). Mesma base da receita líquida, para fechar com a NCG.', fx('PMR', '(ACC − Estoques) ÷ Receita Líquida × 360')]);
+    one('cf', 'pmp', 'Prazo Médio de Pagamento (PMP)', cy.pmp, 'd', ['Dias de receita financiados pelo passivo cíclico (fornecedores, salários e impostos a pagar). Mesma base da receita líquida, para fechar com a NCG.', fx('PMP', 'PCC ÷ Receita Líquida × 360')]);
     one('cf', 'cf', 'Ciclo Financeiro', cy.cf, 'd', ['Dias em que a empresa financia a operação com recursos próprios ou onerosos.', fx('CF', 'PME + PMR − PMP')]);
     one('cf', 'ncgcf', 'NCG com base no Ciclo Financeiro', cy.ncg, 'm', ['Deve bater com a NCG do balanço.', fx('NCG', 'Receita Líquida ÷ 360 × CF')]);
     one('pb', 'pme2', 'Novo PME admissível', pb.pme, 'd', ['Isole o PME na fórmula da NCG, mantendo PMR e PMP.', fx('PME', 'Teto de NCG ÷ Receita prevista × 360 + PMP − PMR')]);
@@ -268,7 +268,7 @@
         <div class="fcgo"><label>Tipo de caso<select id="fcType"><option value="eva"${lastKind === 'eva' ? ' selected' : ''}>Modelo dinâmico e EVA</option><option value="fc"${lastKind === 'fc' ? ' selected' : ''}>Fluxo de caixa · Simples</option><option value="fcr"${lastKind === 'fcr' ? ' selected' : ''}>Fluxo de caixa · Lucro Real</option></select></label><label>Número do caso<input id="fcSeed" type="number" min="1" value="${Math.floor(Math.random() * 9000) + 1000}"></label><label>Dicas<select id="fcHints"><option value="1">Permitidas (com desconto)</option><option value="0">Desligadas (modo prova)</option></select></label><button class="btn pri big" data-a="start">Começar caso</button><button class="btn big" data-a="imp">Importar Excel preenchido</button><span class="note">O mesmo número gera sempre o mesmo caso. Nos fluxos de caixa, o caso 1 é o exercício da aula (loja de calçados no Simples; fábrica de ração no Lucro Real).</span></div></div>
       ${op ? `<div class="fcopen"><div><b>Caso ${op.seed} em andamento · ${KN[op.kind || 'eva']}</b><span>${Object.keys(op.okSet || {}).length} de ${op.n || 42} campos certos · ${Object.values(op.val || {}).filter((v) => String(v).trim()).length} preenchidos · tempo ${clock(op.sec || 0)} · salvo em ${new Date(op.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span></div><span><button class="btn pri" data-a="resume">Continuar</button> <button class="btn" data-a="discard">Descartar</button></span></div>` : ''}
       <div class="fcstats"><div><span>Casos resolvidos</span><b>${n}</b></div><div><span>Melhor nota</span><b>${best != null ? f2(best) : '–'}</b></div><div><span>Nota média</span><b>${avg != null ? f2(avg) : '–'}</b></div><div><span>Tempo médio</span><b>${tm != null ? clock(tm) : '–'}</b></div></div>
-      <div class="cgcard"><div><b>Resumo: capital de giro</b><span>NCG, CDG e Saldo de Tesouraria, as seis estruturas financeiras e a diferença do termo no modelo dinâmico e no fluxo de caixa.</span></div><button class="btn" data-a="concepts">Abrir resumo</button></div>
+      <div class="cgcard"><div><b>Resumo: capital de giro</b><span>NCG, CDG e Saldo de Tesouraria, prazos médios (por que sobre a receita líquida), as seis estruturas financeiras e a diferença do termo no modelo dinâmico e no fluxo de caixa.</span></div><button class="btn" data-a="concepts">Abrir resumo</button></div>
       <h3>O que você resolve em cada caso</h3><div class="fcsteps" id="fcSteps">${stepsHTML(lastKind)}</div>
       <div class="fcrule"><div><b>Campo certo</b><span>75 pontos divididos igualmente entre os campos do caso</span></div><div><b>Dica aberta (?)</b><span>o campo passa a valer metade</span></div><div><b>Conferência errada</b><span>cada uma tira 25% do campo</span></div></div>
       <h3>Seu histórico</h3>${n ? `<table><thead><tr><th>Data</th><th>Caso</th><th>Tipo</th><th>Resultado</th><th>Acertos</th><th>Tempo</th><th>Nota (de 75)</th><th></th></tr></thead><tbody>${h.map((x, i) => `<tr><td>${new Date(x.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td><td>${x.seed}</td><td>${KN[x.kind || 'eva']}</td><td>${esc(x.type)}</td><td>${x.ok}/${x.n}</td><td>${clock(x.sec)}</td><td>${badge(x.score)}</td><td style="white-space:nowrap">${x.snap ? `<button class="btn sm" data-a="view" data-i="${i}">Ver resolução</button> ` : ''}<button class="btn sm" data-a="again" data-seed="${x.seed}" data-kind="${x.kind || 'eva'}">Refazer</button></td></tr>`).join('')}</tbody></table>` : '<div class="fcempty">Nenhum caso resolvido ainda. Comece pelo caso acima; as notas aparecem aqui.</div>'}</div>`;
@@ -281,6 +281,14 @@
   <h3>Por que ele existe</h3>
   <p>Há um descompasso de tempo entre pagar e receber. A empresa paga o fornecedor, estoca, vende a prazo e só depois recebe. Esse intervalo precisa ser financiado por alguém. Quanto maior o intervalo, mais capital de giro a empresa precisa.</p>
   <div class="cgbox"><span class="fcfm"><i>Ciclo Financeiro</i> = PME + PMR − PMP</span> <span class="fcfm"><i>NCG</i> = Receita Líquida ÷ 360 × Ciclo Financeiro</span></div>
+  <h3 id="cgPrazos">Prazos médios: por que sobre a receita líquida</h3>
+  <p>Nos casos, os prazos seguem a planilha da disciplina:</p>
+  <div class="cgbox"><span class="fcfm"><i>PME</i> = Estoques ÷ Receita Líquida × 360</span> <span class="fcfm"><i>PMR</i> = (ACC − Estoques) ÷ Receita Líquida × 360</span> <span class="fcfm"><i>PMP</i> = PCC ÷ Receita Líquida × 360</span></div>
+  <ul class="cgl2"><li><b>A lógica:</b> Receita Líquida ÷ 360 é a venda média de um dia (ano comercial de 360 dias). Dividir o estoque por ela dá quantos <b>dias de venda</b> estão parados no estoque. Multiplicar por 360 é o mesmo que dividir pela venda diária.</li>
+    <li><b>Exemplo:</b> estoque de 41.700 e receita líquida de 140.500 → 41.700 ÷ 140.500 × 360 = <b>106,8 dias</b> de venda no estoque.</li>
+    <li><b>Por que receita e não custo:</b> a NCG pelo ciclo é <span class="fcfm" style="margin:0">Receita Líquida ÷ 360 × (PME + PMR − PMP)</span>. Para essa conta fechar, os três prazos precisam estar na mesma unidade, <b>dias de receita</b>. Assim a soma bate exatamente com a NCG do balanço (ACC − PCC), que é o que o campo “NCG com base no Ciclo Financeiro” pede para conferir.</li>
+    <li><b>Nos livros:</b> o PME “puro” usa o CPV (Estoques ÷ CPV × 360), porque o estoque está registrado a custo. No mesmo exemplo, com CPV de 88.100, daria <b>170 dias</b>: o tempo físico que a mercadoria fica parada.</li>
+    <li><b>Qual usar:</b> na prova e nos casos, a receita líquida, como na planilha do professor. Para entender a operação, o PME sobre o CPV mostra o tempo do estoque; o PME sobre a receita mostra quanto do faturamento está preso nele, que é a pergunta do capital de giro.</li></ul>
   <h3>No modelo dinâmico (Fleuriet): três medidas que não se confundem</h3>
   <table class="cgt"><thead><tr><th>Medida</th><th>Fórmula</th><th>Pergunta que responde</th></tr></thead><tbody>
     <tr><td><b>NCG</b> · Necessidade de Capital de Giro</td><td><span class="fcfm">ACC − PCC</span></td><td>Quanto a operação <b>exige</b>? O ativo cíclico (estoques, contas a receber, tributos a recuperar) consome recursos; o passivo cíclico (fornecedores, salários e impostos a pagar) financia uma parte. A NCG é o que sobra para financiar.</td></tr>
@@ -318,11 +326,11 @@
     <li><b>Reduzir a NCG:</b> girar o estoque mais rápido, receber dos clientes mais cedo.</li>
     <li><b>Não financiar ativo permanente com dinheiro de curto prazo.</b></li>
     <li>Cuidado ao esticar demais o prazo com fornecedores: melhora o indicador, mas desgasta a relação e encarece as compras.</li></ul>`;
-  function showConcepts() {
+  function showConcepts(sec) {
     let o = document.getElementById('fcCg'); if (o) o.remove();
     o = document.createElement('div'); o.id = 'fcCg';
     o.innerHTML = `<div class="cgp" role="dialog" aria-label="Resumo: capital de giro"><button class="btn cgx" data-a="cgclose">Fechar</button>${CONCEPT_CG}<div style="text-align:right;margin-top:18px"><button class="btn pri" data-a="cgclose">Fechar</button></div></div>`;
-    root().appendChild(o); o.querySelector('.cgp').scrollTop = 0;
+    root().appendChild(o); if (sec === 'prazos') { const h = o.querySelector('#cgPrazos'); if (h) o.scrollTop = h.offsetTop - 10; }
   }
   function viewHist(i) { const x = hist()[i]; if (!x || !x.snap) return; start(x.seed, x.snap.hints !== false, x.snap, x.kind, { at: x.at, score: x.score }); }
   function start(seed, hints, sv, kind, rev) {
@@ -364,7 +372,7 @@
       <h3>Balanço Patrimonial e DRE · ${esc(c.name)}</h3><div id="fcStm" class="g2${st.pin ? ' pin' : ''}"><div class="g2e">${at}${pa}</div>${dr}</div>
       <h3>1. Modelo dinâmico · reclassificação do balanço</h3>${tbl('rc', ['Grupo', ...yy])}
       <h3>2. Indicadores do modelo dinâmico <a href="#" class="cglink" data-a="concepts">NCG × CDG: ver resumo</a></h3>${tbl('md', ['Indicador', ...yy])}
-      <h3>3. Ciclo financeiro em dias · ${c.y1}</h3>${tbl('cf', ['Descrição', c.y1])}
+      <h3>3. Ciclo financeiro em dias · ${c.y1} <a href="#" class="cglink" data-a="concepts" data-sec="prazos">Por que os prazos usam a receita líquida</a></h3>${tbl('cf', ['Descrição', c.y1])}
       <h3>4. Problema de gestão</h3><div class="box"><p>Para ${c.y1 + 1}, a previsão de faturamento líquido é de <b${ref('Receita prevista', c.pb.rl2)}>$ ${f0(c.pb.rl2)}</b>. A empresa aceita investir no máximo <b${ref('Teto NCG', c.pb.cap)}>$ ${f0(c.pb.cap)}</b> em NCG e não consegue mexer nos prazos médios de recebimento e de pagamento. Resta ajustar os estoques. Qual prazo médio de estocagem a empresa pode admitir?</p></div>${tbl('pb', ['Descrição', c.y1 + 1])}
       <h3>5. Avaliação do EVA · ${c.y1}</h3><div class="box"><p>Custo do capital próprio (Ke): <b${ref('Ke', c.ev.ke * 100)}>${f2(c.ev.ke * 100)}%</b>. Alíquota de IR e CSLL: <b>34%</b>.</p></div>${tbl('ev', ['Descrição', c.y1])}
       <h3>6. Parecer</h3><p>Qual é o risco financeiro da empresa e para qual tipo de estrutura ela evoluiu ou regrediu? A empresa gerou valor para os acionistas? Você investiria nela?</p><textarea id="fcTxt" placeholder="Escreva seu parecer. Ele não vale pontos; ao entregar, você compara com o parecer de referência."${st.done ? ' disabled' : ''}>${esc(st.txt || '')}</textarea>
@@ -450,7 +458,7 @@
     else if (a === 'start') start(Math.max(1, +document.getElementById('fcSeed').value || 1), document.getElementById('fcHints').value === '1', null, document.getElementById('fcType').value);
     else if (a === 'again') start(+b.dataset.seed, true, null, b.dataset.kind);
     else if (a === 'view') viewHist(+b.dataset.i);
-    else if (a === 'concepts') { e.preventDefault(); showConcepts(); }
+    else if (a === 'concepts') { e.preventDefault(); showConcepts(b.dataset.sec); }
     else if (a === 'cgclose') { const o = document.getElementById('fcCg'); if (o) o.remove(); }
     else if (a === 'new') start(Math.floor(Math.random() * 9000) + 1000, st ? st.hints : true, null, st ? st.kind : lastKind);
     else if (a === 'lobby') { lobby(); }
