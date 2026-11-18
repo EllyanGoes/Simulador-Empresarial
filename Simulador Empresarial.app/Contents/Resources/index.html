@@ -2487,7 +2487,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ================================================ JOGO: jogadores, saves, configurações, cronômetro, cenários
-const APPVER = '18/11 12:00';
+const APPVER = '18/11 12:10';
 const SKEY = 'simEnividia.store.v1';
 // N empresas no mercado: o tamanho do mercado acompanha o número de empresas (4 = jogo original)
 function setCompanies(p, n) { n = Math.max(2, Math.min(6, +n || 4)); p.nCompanies = n; delete p.marketScale; delete p.nRegions; return p; }
@@ -3034,7 +3034,7 @@ function exportReports(which) {
   page = oldPage;
   const name = `${ME().replace(/[^\wÀ-ú-]+/g, '_')}_p${c.period}_${c.mode === 'real' ? 'real' : c.mode === 'cur' ? 'projetado' : 'simulado'}_${which === 'visao' ? 'VISAO_GERAL' : 'TODOS'}.xls`;
   const b64 = XLSX.write(wb, { bookType: 'biff8', type: 'base64' });
-  if (NATIVE) { if (window.__NATIVE_SAVEFILE) toNative('savefile:' + name + '|' + b64); else alert('Para salvar a planilha pela janela nativa, recompile o app: dê dois cliques em "Compilar app nativo.command" e abra o app de novo.'); return; }
+  if (NATIVE) { if (window.__NATIVE_SAVEFILE) toNative('savefile:' + name + '|' + b64); else (window.uiNote || alert)('Falta um passo para salvar a planilha pela janela do app: o app precisa ser recompilado uma vez.\n\n1. Feche o Simulador.\n2. No Finder, abra a pasta Developer › Simulador Empresarial.\n3. Dê dois cliques em “Compilar app nativo.command” e espere o “Pronto!”.'); return; }
   const bin = atob(b64), arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([arr], { type: 'application/vnd.ms-excel' })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
@@ -3650,14 +3650,24 @@ if (store.last && store.last.player && store.players[store.last.player]) { cur =
     S('A52', st.txt || null, { wrap: 1, fill: XF.fcIn }); M(`A52:${last}57`); map.push(['txt', 'Planilha1', 'A52', 'txt']);
     return map;
   }
+  // aviso dentro da página (a janela nativa não mostra alert/confirm do navegador)
+  function note(msg, yes) {
+    let o = document.getElementById('fcNote'); if (o) o.remove();
+    o = document.createElement('div'); o.id = 'fcNote';
+    o.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(10,20,40,.35);display:flex;align-items:center;justify-content:center;font:15px/1.45 system-ui,sans-serif';
+    o.innerHTML = `<div style="background:#fff;color:#1d1f22;border-radius:12px;max-width:520px;margin:20px;padding:22px 24px;box-shadow:0 12px 40px rgba(0,0,0,.35)"><div style="white-space:pre-line">${esc(msg)}</div><div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px">${yes ? '<button data-n="no" style="font:600 14px system-ui;padding:8px 16px;border-radius:4px;border:1px solid #3a78c3;background:#fff;color:#3a78c3;cursor:pointer">Cancelar</button>' : ''}<button data-n="ok" style="font:600 14px system-ui;padding:8px 16px;border-radius:4px;border:1px solid #3a78c3;background:#3a78c3;color:#fff;cursor:pointer">${yes ? 'Continuar' : 'Entendi'}</button></div></div>`;
+    o.addEventListener('click', (e) => { const b = e.target.closest('[data-n]'); if (!b) return; o.remove(); if (b.dataset.n === 'ok' && yes) yes(); });
+    document.body.appendChild(o);
+  }
+  window.uiNote = note;
   function b64(buf) { const u = new Uint8Array(buf); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); }
   function saveBytes(name, buf) {
     const nat = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.sim);
-    if (nat) { if (window.__NATIVE_SAVEFILE) window.webkit.messageHandlers.sim.postMessage('savefile:' + name + '|' + b64(buf)); else alert('Para salvar a planilha pela janela nativa, recompile o app uma vez: dê dois cliques em "Compilar app nativo.command" e abra o app de novo.'); return; }
+    if (nat) { if (window.__NATIVE_SAVEFILE) window.webkit.messageHandlers.sim.postMessage('savefile:' + name + '|' + b64(buf)); else note('Falta um passo para salvar a planilha pela janela do app: o app precisa ser recompilado uma vez.\n\n1. Feche o Simulador.\n2. No Finder, abra a pasta Developer › Simulador Empresarial.\n3. Dê dois cliques em “Compilar app nativo.command” e espere o “Pronto!”.\n\nO app abre sozinho e o “Baixar Excel” passa a abrir a janela para escolher onde salvar.'); return; }
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
   }
   async function exportXlsx() {
-    if (!window.ExcelJS) { alert('A biblioteca de Excel não carregou.'); return; }
+    if (!window.ExcelJS) { note('A biblioteca de Excel não carregou.'); return; }
     const wb = new ExcelJS.Workbook(); wb.creator = 'Simulador Empresarial'; wb.created = new Date();
     const map = st.kind === 'fc' ? sheetFC(wb) : st.kind === 'fcr' ? sheetFCR(wb) : sheetEVA(wb), ctl = wb.addWorksheet('_controle'); ctl.state = 'veryHidden';
     ctl.addRow(['simfin', 1]); ctl.addRow(['kind', st.kind]); ctl.addRow(['seed', st.c.seed]); ctl.addRow(['player', player]); map.forEach((r) => ctl.addRow(['f'].concat(r)));
@@ -3667,14 +3677,15 @@ if (store.last && store.last.player && store.players[store.last.player]) { cur =
   function cellVal(v) { if (v == null) return null; if (typeof v === 'object') { if (v instanceof Date) return null; if ('result' in v) return v.result == null || typeof v.result === 'object' ? null : v.result; if ('formula' in v || 'sharedFormula' in v) return undefined; if (v.richText) return v.richText.map((x) => x.text).join(''); if (v.text) return v.text; return null; } return v; }
   const fold = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
   async function importXlsx(file) {
-    if (!window.ExcelJS) { alert('A biblioteca de Excel não carregou.'); return; }
-    const wb = new ExcelJS.Workbook(); try { await wb.xlsx.load(await file.arrayBuffer()); } catch (e) { alert('Não consegui ler este arquivo. Salve como Pasta de Trabalho do Excel (.xlsx) e tente de novo.'); return; }
-    const ctl = wb.getWorksheet('_controle'); if (!ctl) { alert('Esta planilha não foi baixada pelo app: falta a aba de controle. Baixe a planilha do caso pelo botão "Baixar Excel".'); return; }
+    if (!window.ExcelJS) { note('A biblioteca de Excel não carregou.'); return; }
+    const wb = new ExcelJS.Workbook(); try { await wb.xlsx.load(await file.arrayBuffer()); } catch (e) { note('Não consegui ler este arquivo. Salve como Pasta de Trabalho do Excel (.xlsx) e tente de novo.'); return; }
+    const ctl = wb.getWorksheet('_controle'); if (!ctl) { note('Esta planilha não foi baixada pelo app: falta a aba de controle. Baixe a planilha do caso pelo botão "Baixar Excel".'); return; }
     let kind = 'eva', seed = 0; const map = [];
     ctl.eachRow((r) => { const v = r.values; if (v[1] === 'kind') kind = v[2]; else if (v[1] === 'seed') seed = +v[2]; else if (v[1] === 'f') map.push({ id: v[2], sh: v[3], addr: v[4], kind: v[5] }); });
-    if (!seed) { alert('A aba de controle desta planilha está incompleta.'); return; }
+    if (!seed) { note('A aba de controle desta planilha está incompleta.'); return; }
     const same = st && !st.done && st.kind === kind && st.c.seed === seed;
-    if (!same) { if (st && !st.done && !confirm(`A planilha é do caso ${seed}. Abrir esse caso no lugar do caso ${st.c.seed}, que está em andamento?`)) return; start(seed, st ? st.hints : true, loadOpen() && loadOpen().seed === seed && (loadOpen().kind || 'eva') === kind ? loadOpen() : null, kind); }
+    if (!same && st && !st.done && !importXlsx.ok) { note(`A planilha é do caso ${seed}. Abrir esse caso no lugar do caso ${st.c.seed}, que está em andamento?`, () => { importXlsx.ok = 1; importXlsx(file).finally(() => { importXlsx.ok = 0; }); }); return; }
+    if (!same) { start(seed, st ? st.hints : true, loadOpen() && loadOpen().seed === seed && (loadOpen().kind || 'eva') === kind ? loadOpen() : null, kind); }
     let got = 0, empty = 0, noCalc = 0; const txt = {};
     for (const m of map) { const ws = wb.getWorksheet(m.sh); if (!ws) continue; const raw = cellVal(ws.getCell(m.addr).value);
       if (m.kind === 'txt') { if (raw != null && String(raw).trim()) txt[m.id] = String(raw).trim(); continue; }

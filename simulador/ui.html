@@ -1417,7 +1417,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ================================================ JOGO: jogadores, saves, configurações, cronômetro, cenários
-const APPVER = '18/11 12:00';
+const APPVER = '18/11 12:10';
 const SKEY = 'simEnividia.store.v1';
 // N empresas no mercado: o tamanho do mercado acompanha o número de empresas (4 = jogo original)
 function setCompanies(p, n) { n = Math.max(2, Math.min(6, +n || 4)); p.nCompanies = n; delete p.marketScale; delete p.nRegions; return p; }
@@ -1964,7 +1964,7 @@ function exportReports(which) {
   page = oldPage;
   const name = `${ME().replace(/[^\wÀ-ú-]+/g, '_')}_p${c.period}_${c.mode === 'real' ? 'real' : c.mode === 'cur' ? 'projetado' : 'simulado'}_${which === 'visao' ? 'VISAO_GERAL' : 'TODOS'}.xls`;
   const b64 = XLSX.write(wb, { bookType: 'biff8', type: 'base64' });
-  if (NATIVE) { if (window.__NATIVE_SAVEFILE) toNative('savefile:' + name + '|' + b64); else alert('Para salvar a planilha pela janela nativa, recompile o app: dê dois cliques em "Compilar app nativo.command" e abra o app de novo.'); return; }
+  if (NATIVE) { if (window.__NATIVE_SAVEFILE) toNative('savefile:' + name + '|' + b64); else (window.uiNote || alert)('Falta um passo para salvar a planilha pela janela do app: o app precisa ser recompilado uma vez.\n\n1. Feche o Simulador.\n2. No Finder, abra a pasta Developer › Simulador Empresarial.\n3. Dê dois cliques em “Compilar app nativo.command” e espere o “Pronto!”.'); return; }
   const bin = atob(b64), arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([arr], { type: 'application/vnd.ms-excel' })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
