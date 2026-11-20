@@ -30,6 +30,7 @@ a{color:#1a4f9c}
 .sombtn{all:unset;cursor:pointer;margin:0 0 12px 12px;padding:6px 12px;border:2px solid #2b2433;border-radius:8px;font:600 13px system-ui,sans-serif;color:#2b2433;background:#fff;vertical-align:top}.sombtn[aria-pressed=false]{color:#888780;border-color:#b4b2a9}
 .look{display:grid;gap:10px;background:#fbfaf6;border:1px solid #d9d6cc;border-radius:10px;padding:12px 14px}.look b{font-size:13px}.lkrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;align-items:center}.lkc{width:30px;height:30px;border-radius:6px;border:3px solid #fff;outline:2px solid #d9d6cc;cursor:pointer;padding:0}.lkc.on{outline:3px solid #2b2433}.lkl{padding:0;border:3px solid transparent;border-radius:6px;cursor:pointer;background:none;line-height:0}.lkl img{width:28px;height:28px;image-rendering:pixelated}.lkl.on{border-color:#2b2433}
 .mural{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}.frame{background:#2b2433;border:6px solid #ba7517;box-shadow:inset 0 0 0 2px #fac775;padding:10px;color:#f1efe8;text-align:center;image-rendering:pixelated}.frame .fv{font:700 20px ui-monospace,Menlo,monospace;color:var(--fc)}.frame .ft{font-size:12.5px;margin-top:4px}.frame .fd{font-size:11px;color:#b4b2a9;margin-top:2px}
+.expw{background:#fbfaf6;border:1px solid #d9d6cc;border-radius:10px;padding:12px 14px}.exphd{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 16px;font-size:13.5px}.expbar{height:12px;background:#e8e3d6;border-radius:6px;overflow:hidden;margin:8px 0 10px;border:1px solid #d3cbb8}.expbar i{display:block;height:100%;background:repeating-linear-gradient(90deg,#639922 0 8px,#7fb83a 8px 16px)}.explist{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}.explist div{border:2px solid #d3d1c7;border-radius:8px;padding:6px 10px;color:#888780;background:#fff}.explist div.on{border-color:#639922;color:#27500a;background:#eaf3de}.explist b{display:block;font-size:13px}.explist span{font-size:11.5px}
 .scenetabs{display:inline-flex;gap:0;border:2px solid #2b2433;border-radius:8px;overflow:hidden;margin:0 0 12px}.scenetabs button{all:unset;cursor:pointer;padding:7px 16px;font:600 14px system-ui,sans-serif;color:#2b2433;background:#f1efe8}.scenetabs button.on{background:#2b2433;color:#fac775}.scenetabs.sm{margin:0}.scenetabs.sm button{padding:5px 12px;font-size:13px}.mvbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 12px}.mvdot{display:inline-block;width:11px;height:11px;border:1px solid #2c2c2a;margin-right:6px;vertical-align:-1px}
 .cityw{max-width:1100px;margin:0 auto}.cityinfo{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:10px 0;padding:10px 14px;background:#2b2433;color:#f1efe8;border-radius:8px;font:13.5px ui-monospace,Menlo,monospace}.cityinfo .btn{white-space:nowrap}
 .menu>button{all:unset;cursor:pointer;color:#fff;font-size:17px;line-height:1.08;padding:8px 12px;border-radius:6px;display:flex;align-items:center;gap:9px}
@@ -2380,7 +2381,7 @@ function cityData(c) {
     stock: { P: s.P.fim.q, W: s.W.fim.q, kitP: s.kitP.fim.q, kitW: s.kitW.fim.q, emb: s.emb.fim.q },
     buys: (r.purchases || []).length, reg,
     bank: { caixa: r.balance.ativo.caixa || 0, aplic: r.balance.ativo.aplicacoes || 0, debt: r.balance.passivo.emprestimos || 0 }, lv: playerLvl(), ach: cityAch(),
-    rev: r.dre.receitaLiquida || 0, buysQ: sum((r.purchases || []).map((x) => x.q || 0)), mood: sceneMood(c), overtime: +c.d.overtime || 0, flags: xpLog().filter((x) => x.kind === 'chal').length };
+    rev: r.dre.receitaLiquida || 0, buysQ: sum((r.purchases || []).map((x) => x.q || 0)), mood: sceneMood(c), exp: expInfo(c), overtime: +c.d.overtime || 0, flags: xpLog().filter((x) => x.kind === 'chal').length };
 }
 function pCidade(c) {
   if (c.mode === 'real') return `<div class="ttl"><h1>Visão da Empresa</h1><span>(Período: #${c.period} ${stLabel(c)})</span></div>${sceneTabs('cidade')}<div class="al">A cena é montada a partir do cálculo do simulador. Escolha o período em edição ou um período simulado no seletor <b>Períodos</b>.</div>`;
@@ -2389,14 +2390,14 @@ function pCidade(c) {
   const sold = sum(D.reg.map((x) => x.sold));
   return title(c, 'Visão da Empresa') + sceneTabs('cidade')
     + `<div class="cityw"><div style="position:relative;border-radius:10px;overflow:hidden;background:#72a933;border:1px solid #4b6d24">
-<canvas id="cityCv" width="300" height="186" style="display:block;width:100%;image-rendering:pixelated;image-rendering:crisp-edges"></canvas>
+<canvas id="cityCv" width="${D.exp.on.size ? 330 : 300}" height="${D.exp.on.size ? 208 : 186}" style="display:block;width:100%;image-rendering:pixelated;image-rendering:crisp-edges"></canvas>
 <div style="position:absolute;left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap">${pill(`P${D.period} ${esc(curLook().sign.toUpperCase())}`, '#fac775')}${pill(`RAA ${f2(D.raa)}%`, '#97c459')}${D.pos ? pill(`RANK ${D.pos}º`, '#85b7eb') : ''}${pill(`CAIXA $ ${f0(D.cash)}`, '#f1efe8')}${D.esp > 0 ? pill('EMPRÉSTIMO ESPECIAL', '#f09595') : ''}${D.strike ? pill('GREVE', '#f09595') : ''}${pill(D.mood.weather === 'sol' ? 'MERCADO AQUECIDO ☀' : D.mood.weather === 'chuva' ? 'MERCADO EM QUEDA ☂' : 'MERCADO ESTÁVEL ☁', D.mood.weather === 'sol' ? '#fac775' : D.mood.weather === 'chuva' ? '#85b7eb' : '#d3d1c7')}</div><div id="cityCap" hidden></div>${D.mood.news.length ? `<div class="ticker" data-go="portal" title="Abrir o Portal de Notícias"><span>NOTÍCIAS · ${D.mood.news.map(esc).join('   ◆   ')}   ◆   </span></div>` : ''}</div>
 ${c.mode === 'sim' ? `<p style="margin:10px 0 0"><button class="btn pri" data-replay="1">▶ Assistir o período #${D.period}</button> <span class="note" style="margin:0">Animação de 20 segundos: compras, produção, vendas e resultado.</span></p>` : ''}
 <div class="cityinfo"><span id="cityTxt">Clique num elemento da cena para ver os números do período. Galpão e máquinas, estoque, escritório, prédios das regiões e caminhões levam aos relatórios.</span><button class="btn" id="cityGo" hidden></button></div>
 <p class="note">Cada máquina, pilha de caixas, prédio e caminhão sai dos números do período #${D.period} ${c.mode === 'cur' ? '(projeção com as decisões em edição: mude uma decisão e a cena se atualiza)' : '(simulado)'}. Máquinas: ${f0(D.mach.P)} P e ${f0(D.mach.W)} W${D.pend.P + D.pend.W ? `, mais ${f0(D.pend.P + D.pend.W)} chegando` : ''} · operadores: ${f0(D.workers)} · vendas: ${f0(sold)} un. A altura de cada prédio de região é o market share médio nela; as luzes das máquinas acendem conforme a ocupação. O clima vem da demanda total do mercado em relação ao período anterior (sol: subiu 3% ou mais; chuva: caiu 3% ou mais). O céu escurece com o cronômetro do período (sem cronômetro, segue o relógio); com hora extra, o galpão fica aceso à noite. Notícias do período aparecem como objetos na cena e no letreiro.</p>
 <h3 style="margin:16px 0 4px">Conquistas na cena</h3><div class="achv">${D.ach.map((a) => `<span class="${a.on ? 'on' : ''}" title="${esc(a.d)}">${a.on ? '★' : '☆'} ${esc(a.t)}</span>`).join('')}</div>
 <p class="note" style="margin-top:0">Cada conquista vira um objeto na frente da fábrica ou ao lado dela. Passe o mouse sobre o selo para ver como conseguir. Na porta do escritório está você: o personagem muda de roupa conforme o seu nível, que soma o XP dos casos e das partidas (${esc(D.lv.title)}, nível ${D.lv.lvl}).</p>
-${c.mode === 'cur' ? mesaHTML(c) : ''}${lookHTML()}${muralHTML()}</div>`;
+${c.mode === 'cur' ? mesaHTML(c) : ''}${expHTML(D, c)}${lookHTML()}${muralHTML()}</div>`;
 }
 function mesaHTML(c) {
   const d = c.d, r = c.r, v = (p) => +get(d, p) || 0;
@@ -2414,7 +2415,7 @@ function mesaHTML(c) {
 let cityReplay = false;
 function startCity(D) {
   const cv = document.getElementById('cityCv'); if (!cv) return;
-  const main = cv.getContext('2d'), W = 300, H = 186, OX = 120, OY = 50; let g = main;
+  const main = cv.getContext('2d'), W = cv.width, H = cv.height, BIG = W > 300, OX = BIG ? 136 : 120, OY = BIG ? 68 : 50; let g = main;
   const txt = document.getElementById('cityTxt'), goB = document.getElementById('cityGo'), capEl = document.getElementById('cityCap'), RP = cityReplay; cityReplay = false; let capLast = ''; const LK = curLook(), RECS = records(), MD = moodOf(D.sat, D.strike);
   const P = (x, y, z) => [OX + (x - y) * 8, OY + (x + y) * 4 - z];
   const px = (x, y, c) => { g.fillStyle = c; g.fillRect(x | 0, y | 0, 1, 1); };
@@ -2442,8 +2443,8 @@ function startCity(D) {
   const bg = document.createElement('canvas'); bg.width = W; bg.height = H; g = bg.getContext('2d'); g.fillStyle = '#72a933'; g.fillRect(0, 0, W, H);
   for (let y = -26; y < 36; y++) for (let x = -26; x < 40; x++) {
     const c = P(x + 0.5, y + 0.5, 0); if (c[0] < -12 || c[0] > W + 12 || c[1] < -8 || c[1] > H + 8) continue;
-    const rd = ROAD(x, y), lot = LOT(x, y) && !rd, yd = YARD(x, y), t = [P(x, y, 0), P(x + 1, y, 0), P(x + 1, y + 1, 0), P(x, y + 1, 0)];
-    poly(t, rd ? '#5f5e5a' : yd ? ((x + y) % 2 ? '#bdb8aa' : '#b3ae9f') : lot ? ((x + y) % 2 ? '#86bf40' : '#7ab538') : ((x + y) % 2 ? '#72a933' : '#6a9e2f'));
+    const rd = ROAD(x, y), lot = LOT(x, y) && !rd, yd = YARD(x, y), ea = D.exp.areas.find((a) => x >= Math.floor(a[0]) && x < Math.ceil(a[2]) && y >= Math.floor(a[1]) && y < Math.ceil(a[3])), t = [P(x, y, 0), P(x + 1, y, 0), P(x + 1, y + 1, 0), P(x, y + 1, 0)];
+    poly(t, rd ? '#5f5e5a' : ea ? ((x + y) % 2 ? ea[4] : ea[5]) : yd ? ((x + y) % 2 ? '#bdb8aa' : '#b3ae9f') : lot ? ((x + y) % 2 ? '#86bf40' : '#7ab538') : ((x + y) % 2 ? '#72a933' : '#6a9e2f'));
     if (!rd && !yd && ((x * 7 + y * 3) % 5 === 0)) { px(c[0], c[1], '#a6d65a'); px(c[0] + 3, c[1] + 1, '#5a8d24'); }
     if (!rd && !lot && ((x * 5 + y * 11) % 13 === 0)) { px(c[0] - 2, c[1], '#f0997b'); px(c[0] + 2, c[1] - 1, '#fac775'); }
     if (rd && y === 11 && x % 2 === 0) rect(c[0] - 1, c[1], 3, 1, '#fac775');
@@ -2556,8 +2557,9 @@ function startCity(D) {
     [1.5, 5.5, 9.5, 15.5, 19.5].forEach((lx) => add(lx + 10.6, () => { const p = P(lx, 10.6, 0); rect(p[0], p[1] - 12, 1, 12, '#444441'); rect(p[0] - 1, p[1] - 13, 3, 1, '#2c2c2a'); rect(p[0], p[1] - 12, 1, 1, '#fac775'); }));
     // bandeirolas dos desafios cumpridos, na cerca do fundo
     for (let k = 0; k < Math.min(24, D.flags); k++) { const fx = 0.3 + k * 0.5; add(fx - 0.1, () => { const p = P(fx, -0.1, 4), cl = ['#e24b4a', '#fac775', '#378add', '#1d9e75', '#d4537e'][k % 5]; rect(p[0] - 1, p[1], 3, 1, cl); rect(p[0], p[1] + 1, 1, 1, cl); if (k < Math.min(24, D.flags) - 1) line(p, P(fx + 0.5, -0.1, 4), '#f1efe8'); }); }
+    drawExpansions({ P, rect, px, box, gable, line, poly, sWin, eWin }, D, t, add, zone);
     // árvores
-    TREES.forEach(([x, y, s]) => add(x + y + 0.2, () => tree(x, y, s)));
+    TREES.filter(([x, y]) => !D.exp.areas.some((a) => x >= a[0] - 0.8 && x < a[2] + 0.8 && y >= a[1] - 0.8 && y < a[3] + 0.8)).forEach(([x, y, s]) => add(x + y + 0.2, () => tree(x, y, s)));
     // caminhões de entrega (um por região com vendas)
     trucks.forEach((ri, n) => { const tx = rp < 0 ? ((t * 1.3 + n * (34 / Math.max(1, trucks.length))) % 34) - 10 : rp >= 2 ? 1 + (t - 9 - n * 0.9) * 3 : -99; if (rp >= 0 && (tx < -10 || tx > 26)) return; const ty = 11.15, c = regCols(ri), R2 = D.reg[ri];
       add(tx + ty + 1.4, () => { box(tx, ty, 1, 1.6, 0.7, 7, [c[0], c[1], c[2], '#2c2c2a']); box(tx + 1.6, ty, 1, 0.7, 0.7, 5, ['#f1efe8', '#d3d1c7', '#b4b2a9', '#2c2c2a']);
@@ -3039,6 +3041,63 @@ function records() {
 }
 function muralHTML() { const R = records(); return `<h3 style="margin:18px 0 4px">Mural de recordes</h3><p class="note" style="margin-top:0">Somam todas as suas partidas e casos. Cada recorde é um quadro na parede do escritório; quando você bate um, aparece um aviso e toca um som de vitória.</p>
   ${R.length ? `<div class="mural">${R.map((r) => `<div class="frame" style="--fc:${r.c}"><div class="fv">${esc(r.v)}</div><div class="ft">${esc(r.t)}</div><div class="fd">${esc(r.d || '')}</div></div>`).join('')}</div>` : '<p class="note">Feche períodos e resolva casos para encher o mural.</p>'}`; }
+// ------------------------------------------------ expansão da fábrica (marcos de lucro acumulado na partida)
+const EXPS = [
+  { k: 'park', v: 1e6, t: 'Estacionamento de caminhões', d: 'Pátio asfaltado atrás da fábrica, com a frota parada', a: [2, -5, 7, -1, '#6b6a66', '#62615d'] },
+  { k: 'galp2', v: 2.5e6, t: 'Segundo galpão', d: 'Anexo de produção com o telhado na cor da empresa', a: [8, -5, 12.6, -1, '#bdb8aa', '#b3ae9f'] },
+  { k: 'cd', v: 4e6, t: 'Centro de distribuição', d: 'Armazém com docas de carga e caminhão carregando', a: [14, -4.6, 19, -1, '#bdb8aa', '#b3ae9f'] },
+  { k: 'solar', v: 6e6, t: 'Usina solar', d: 'Painéis solares no canto do terreno', a: [-6, -5, -1, -1, '#a8a49a', '#9e9a90'] },
+  { k: 'lab', v: 8.5e6, t: 'Laboratório de P&D', d: 'Prédio de vidro para inovação e design', a: [-8, 3.5, -4.6, 7.5, '#bdb8aa', '#b3ae9f'] },
+  { k: 'heli', v: 12e6, t: 'Heliponto no escritório', d: 'Helicóptero da diretoria pousando no telhado', a: null }];
+function expAcc(p) { let acc = 0, peak = 0; (app.history || []).filter((h) => h.report.period <= p).sort((a, b) => a.report.period - b.report.period).forEach((h) => { acc += (h.report.dre.lucroLiquido || 0) * (window.__expBoost || 1); peak = Math.max(peak, acc); }); return { acc, peak }; }
+function expInfo(c) {
+  const lastClosed = c.mode === 'cur' ? Infinity : c.period, A = expAcc(lastClosed), on = EXPS.filter((e) => A.peak >= e.v), next = EXPS.find((e) => A.peak < e.v);
+  const proj = c.mode === 'cur' ? A.acc + (c.r.dre.lucroLiquido || 0) : null;
+  return { acc: A.acc, peak: A.peak, on: new Set(on.map((e) => e.k)), areas: on.filter((e) => e.a).map((e) => e.a), next, proj };
+}
+function expHTML(D, c) {
+  const X = D.exp, nx = X.next, prev = nx ? (EXPS[EXPS.indexOf(nx) - 1] || { v: 0 }).v : 0, pc = nx ? Math.max(0, Math.min(100, (X.peak - prev) / (nx.v - prev) * 100)) : 100;
+  return `<h3 style="margin:18px 0 4px">Expansão da fábrica</h3><p class="note" style="margin-top:0">O terreno cresce com o lucro acumulado nos períodos fechados desta partida (vale o maior valor já alcançado, então um prejuízo não derruba prédios). Cada expansão liberada também dá 25 XP.</p>
+  <div class="expw"><div class="exphd"><span>Lucro acumulado na partida: <b>$ ${f0(X.acc)}</b>${c.mode === 'cur' && X.proj != null ? ` · com a projeção deste período: <b>$ ${f0(X.proj)}</b>` : ''}</span>${nx ? `<span>Próxima: <b>${esc(nx.t)}</b> em $ ${f0(nx.v)} (faltam $ ${f0(Math.max(0, nx.v - X.peak))})</span>` : '<span><b>Todas as expansões liberadas!</b></span>'}</div>
+  <div class="expbar"><i style="width:${pc.toFixed(1)}%"></i></div>
+  <div class="explist">${EXPS.map((e) => `<div class="${X.on.has(e.k) ? 'on' : ''}"><b>${X.on.has(e.k) ? '★' : '☆'} ${esc(e.t)}</b><span>$ ${f0(e.v)} · ${esc(e.d)}</span></div>`).join('')}</div></div>`;
+}
+function expCheck(sv) {
+  if (!sv || !app.history.length) return []; const h = app.history[app.history.length - 1], now = expAcc(h.report.period).peak, before = expAcc(h.report.period - 1).peak;
+  const nw = EXPS.filter((e) => before < e.v && now >= e.v); nw.forEach((e) => addXP({ id: `exp:${sv.id}:${e.k}`, kind: 'exp', xp: 25, parts: [[`Expansão: ${e.t}`, 25]], label: `${sv.name} · expansão` }));
+  if (nw.length) setTimeout(() => { showToast(`Expansão liberada! ${nw.map((e) => e.t).join(' e ')} · +${25 * nw.length} XP. Veja na Visão da Empresa.`); SFX.fanfare(); }, 8500);
+  return nw;
+}
+function drawExpansions(K, D, t, add, zone) {
+  const { P, rect, px, box, gable, line, poly, sWin, eWin } = K, on = D.exp.on, LK = curLook();
+  if (on.has('park')) {
+    add(2 + -5 + 0.1, () => { for (let k = 0; k < 6; k++) line(P(2.4 + k * 0.8, -4.8, 0), P(2.4 + k * 0.8, -2.8, 0), '#f1efe8'); });
+    [[2.6, -4.6], [4.2, -4.6], [5.8, -4.6]].forEach(([x, y], i) => add(x + y + 2, () => { const c = CITY_RC[(i + 1) % CITY_RC.length]; box(x, y, 1, 0.7, 1.6, 7, [c[0], c[1], c[2], '#2c2c2a']); box(x, y + 1.6, 1, 0.7, 0.6, 5, ['#f1efe8', '#d3d1c7', '#b4b2a9', '#2c2c2a']); }));
+    add(-1.5, () => { zone([P(2, -5, 14), P(7, -5, 0), P(7, -1, 0), P(2, -1, 0)], 'Expansão: estacionamento de caminhões (liberado com $ 1 mi de lucro acumulado)', null, ''); });
+  }
+  if (on.has('galp2')) add(8 + -4.8 + 5, () => { const x = 8.3, y = -4.8, w = 4, d = 3.4, h = 18; box(x, y, 0, w, d, h, ['#e8e3d6', '#d3cbb8', '#a99f8a', '#4a3f35']);
+    for (let u = 0.6; u < w; u += 1.1) sWin(x, y, d, 0, u, 12, '#85b7eb'); for (let u = 0.5; u < d; u += 1) eWin(x, y, w, 0, u, 12, '#5c8fc4');
+    for (let i = 0; i < 2; i++) gable(x + i * 2, x + i * 2 + 2, y, d, h, 6, [LK.color, pxShade(LK.color, 0.7), pxShade(LK.color, 0.85), pxShade(LK.color, 0.5)]);
+    const dp = P(x + 1.4, y + d, 0); rect(dp[0], dp[1] - 8, 8, 8, '#5f5e5a'); for (let k = 1; k < 8; k += 2) rect(dp[0], dp[1] - 8 + k, 8, 1, '#888780');
+    zone([P(x, y, h + 10), P(x + w, y, h), P(x + w, y + d, 0), P(x, y + d, 0)], 'Expansão: segundo galpão (liberado com $ 2,5 mi de lucro acumulado)', null, ''); });
+  if (on.has('cd')) add(14 + -4.4 + 5, () => { const x = 14.2, y = -4.4, w = 4.6, d = 3, h = 14; box(x, y, 0, w, d, h, ['#d3d1c7', '#b4b2a9', '#888780', '#2c2c2a']);
+    box(x - 0.05, y - 0.05, h, w + 0.1, d + 0.1, 1, ['#5f5e5a', '#444441', '#2c2c2a', '#2c2c2a']);
+    for (let k = 0; k < 3; k++) { const a = P(x + 0.5 + k * 1.35, y + d, 0); rect(a[0], a[1] - 7, 7, 7, '#2c2c2a'); rect(a[0], a[1] - 7, 7, 1, '#fac775'); }
+    const sg = P(x + 2.7, y + d, h - 2); rect(sg[0] - 6, sg[1] - 4, 12, 4, '#185fa5'); rect(sg[0] - 5, sg[1] - 3, 10, 1, '#f1efe8');
+    const kk = (t * 0.3) % 1, ty = y + d + 0.2 + Math.abs(kk - 0.5) * 2; box(x + 1.8, ty, 1, 0.7, 1.6, 7, ['#97c459', '#639922', '#3b6d11', '#2c2c2a']);
+    zone([P(x, y, h + 8), P(x + w, y, h), P(x + w, y + d, 0), P(x, y + d, 0)], 'Expansão: centro de distribuição (liberado com $ 4 mi de lucro acumulado)', null, ''); });
+  if (on.has('solar')) for (let r = 0; r < 3; r++) for (let q = 0; q < 3; q++) { const x = -5.6 + q * 1.5, y = -4.6 + r * 1.2; add(x + y + 1, () => { const a = P(x, y, 3), b = P(x + 1.2, y, 3), c2 = P(x + 1.2, y + 0.7, 1), d2 = P(x, y + 0.7, 1); poly([a, b, c2, d2], '#185fa5'); line(a, b, '#85b7eb'); line(P(x + 0.6, y, 3), P(x + 0.6, y + 0.7, 1), '#0c447c'); const lg = P(x + 0.6, y + 0.7, 0); rect(lg[0], lg[1] - 2, 1, 2, '#5f5e5a');
+    if (Math.floor(t * 2 + q + r) % 5 === 0) px(a[0] + 4, a[1] + 1, '#fff');
+    if (r === 2 && q === 2) zone([P(-6, -5, 6), P(-1, -1, 0), P(-6, -1, 0), P(-1, -5, 0)], 'Expansão: usina solar (liberada com $ 6 mi de lucro acumulado)', null, ''); }); }
+  if (on.has('lab')) add(-7.6 + 4 + 3, () => { const x = -7.6, y = 4, w = 2.8, d = 3, h = 24; box(x, y, 0, w, d, h, ['#9fe1cb', '#5dcaa5', '#1d9e75', '#04342c']);
+    for (let v = 4; v < h; v += 4) { line(P(x, y + d, v), P(x + w, y + d, v), '#e1f5ee'); line(P(x + w, y, v), P(x + w, y + d, v), '#9fe1cb'); }
+    const an = P(x + 1.4, y + 1.5, h); line(an, [an[0], an[1] - 9], '#5f5e5a'); px(an[0], an[1] - 10, Math.floor(t * 3) % 2 ? '#e24b4a' : '#fac775');
+    zone([P(x, y, h + 12), P(x + w, y, h), P(x + w, y + d, 0), P(x, y + d, 0)], 'Expansão: laboratório de P&D (liberado com $ 8,5 mi de lucro acumulado)', null, ''); });
+  if (on.has('heli')) add(19.5, () => { const c = P(16.1, 2.3, 36); rect(c[0] - 4, c[1] - 1, 9, 3, '#5f5e5a'); rect(c[0] - 1, c[1] - 1, 1, 3, '#f1efe8'); rect(c[0] + 1, c[1] - 1, 1, 3, '#f1efe8'); rect(c[0], c[1], 1, 1, '#f1efe8');
+    const k = (t * 0.08) % 1, land = k < 0.5, z = land ? 0 : Math.min(40, (k - 0.5) * 160), hx = c[0] + (land ? 0 : (k - 0.5) * 120), hy = c[1] - 5 - z;
+    rect(hx - 3, hy, 7, 3, '#e24b4a'); rect(hx - 1, hy - 1, 3, 1, '#85b7eb'); rect(hx + 4, hy + 1, 4, 1, '#a32d2d'); const rot = Math.floor(t * 12) % 2; rect(hx - (rot ? 6 : 2), hy - 2, rot ? 13 : 5, 1, '#2c2c2a'); rect(hx - 2, hy + 3, 6, 1, '#2c2c2a');
+    zone([[c[0] - 8, c[1] - 12], [c[0] + 8, c[1] + 3]], 'Expansão: heliponto da diretoria (liberado com $ 12 mi de lucro acumulado)', null, ''); });
+}
 // ------------------------------------------------ render
 const PAGES = { visao: pVisao, compras: pCompras, vendas: pVendas, despesas: pDespesas, recursos: pRecursos, estoques: pEstoques, custosGerais: pCustosGerais, custosProduto: pCustosProduto, caixa: pCaixa, contas: pContas,
   dre: pDRE, balanco: pBalanco, politicas: pPoliticas, analise: pAnalise, decisoes: pDecisoes, marketShare: pMarketShare, mod: pMOD, ranking: pRanking, balancos: (c) => pMercadoReal(c, 'balancos'), rentab: (c) => pMercadoReal(c, 'rentab'),
@@ -3187,7 +3246,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ================================================ JOGO: jogadores, saves, configurações, cronômetro, cenários
-const APPVER = '20/11 19:30';
+const APPVER = '20/11 20:15';
 const SKEY = 'simEnividia.store.v1';
 // N empresas no mercado: o tamanho do mercado acompanha o número de empresas (4 = jogo original)
 function setCompanies(p, n) { n = Math.max(2, Math.min(6, +n || 4)); p.nCompanies = n; delete p.marketScale; delete p.nRegions; return p; }
@@ -3435,7 +3494,7 @@ function closePeriod(auto) {
     if (app.history.length >= sv.cfg.periods || app.state.period > end) { sv.ended = true; sv.finalRAA = live.report.kpi.raa; }
     else { applyScenario(app.state.period, sv); sv.timer = { left: minutesAt(sv, app.state.period) * 60, paused: false }; }
   }
-  try { const lh = app.history[app.history.length - 1]; awardPeriodXP(sv, lh.report, lh.dec); } catch (e) { console.error(e); }
+  try { const lh = app.history[app.history.length - 1]; awardPeriodXP(sv, lh.report, lh.dec); expCheck(sv); } catch (e) { console.error(e); }
   render(); updateGameHead(); persistNow(); scrollTo(0, 0); openPortal(true);
   if (sv && sv.ended) showEnd();
 }
