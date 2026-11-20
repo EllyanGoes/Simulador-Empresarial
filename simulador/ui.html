@@ -38,6 +38,7 @@ a{color:#1a4f9c}
 .d3ctl{display:grid;gap:6px;margin:8px 0}.d3row{display:grid;grid-template-columns:150px 1fr 120px;gap:10px;align-items:center;font-size:14px}.d3row input[type=number]{width:100%;box-sizing:border-box}.d3row input[type=range]{width:100%}
 .d3cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:10px 0}.d3card{background:#fff;border:1px solid #d9d6cc;border-radius:10px;padding:10px 12px;font-size:13px;display:flex;flex-direction:column;gap:4px}.d3card.bad{border:2px solid #e24b4a}.d3card>span{color:#5f5e5a;font-size:12.5px}.d3b{height:8px;background:#ece9e1;border-radius:4px;overflow:hidden}.d3b i{display:block;height:100%}
 .d3stp{display:grid;grid-template-columns:1fr 30px 70px 30px;gap:4px;align-items:center}.d3stp span{display:flex;flex-direction:column}.d3stp small{color:#888780}.d3stp em{font-style:normal;text-align:center;font-weight:600}.d3stp .btn{padding:2px 0;text-align:center}.d3pay{font-size:12.5px;color:#5f5e5a;display:flex;gap:6px;align-items:center;margin-top:4px}
+.d3sp{display:inline-flex;gap:4px;align-items:center}.d3sp .btn{padding:2px 8px}.d3t td{padding:6px 10px}.d3t td input{text-align:right}
 .d3kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}.d3kpi div{background:#f1efe8;border-radius:8px;padding:8px 12px}.d3kpi span{display:block;font-size:12px;color:#5f5e5a}.d3kpi b{font-size:17px}
 .scenetabs{display:inline-flex;gap:0;border:2px solid #2b2433;border-radius:8px;overflow:hidden;margin:0 0 12px}.scenetabs button{all:unset;cursor:pointer;padding:7px 16px;font:600 14px system-ui,sans-serif;color:#2b2433;background:#f1efe8}.scenetabs button.on{background:#2b2433;color:#fac775}.scenetabs.sm{margin:0}.scenetabs.sm button{padding:5px 12px;font-size:13px}.mvbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 12px}.mvdot{display:inline-block;width:11px;height:11px;border:1px solid #2c2c2a;margin-right:6px;vertical-align:-1px}
 .cityw{max-width:1100px;margin:0 auto}.cityinfo{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:10px 0;padding:10px 14px;background:#2b2433;color:#f1efe8;border-radius:8px;font:13.5px ui-monospace,Menlo,monospace}.cityinfo .btn{white-space:nowrap}
@@ -2038,7 +2039,7 @@ function drawExpansions(K, D, t, add, zone) {
 }
 // ------------------------------------------------ telas de decisão em pixel art 3D (Fabricação, Compra de Insumos, Finanças)
 let d3Tab = 'fab', D3 = null, d3Px = (() => { try { return +localStorage.getItem('simPx') || 3; } catch (e) { return 3; } })();
-const D3AREAS = { fab: 'Fabricação', ins: 'Compra de Insumos', fin: 'Finanças' };
+const D3AREAS = { mk: 'Marketing', fab: 'Fabricação', rh: 'Recursos Humanos', imob: 'Imobilizados', ins: 'Compra de Insumos', fin: 'Finanças', conc: 'Concorrentes' };
 function d3Data(c) {
   const r = c.r, d = c.d, p = r.production, m = p.mi, st = r.stock, plan = { P: +get(d, 'production.P') || 0, W: +get(d, 'production.W') || 0 };
   const avail = (k) => (st[k].ini.q || 0) + (st[k].compraIni.q || 0);
@@ -2053,6 +2054,47 @@ function d3Data(c) {
   const items = RU.items.map((k) => ({ k, n: RU.itemName[k], ini: st[k].ini.q || 0, now: st[k].compraIni.q || 0, fim: st[k].compraFim.q || 0, need: k === 'kitP' ? plan.P : k === 'kitW' ? plan.W : plan.P * 2 + plan.W }));
   const stt = app.state, recFree = Object.entries(stt.receivables || {}).filter(([k]) => +k > stt.period).reduce((a, [k, v]) => a + v - ((stt.anticipated || {})[k] || 0), 0);
   return { r, d, plan, res, real: p.prod, bott: res.filter((x) => x.use > x.cap + 0.5), items, sup, workers: c.after.workers || 0, cash: r.cashflow.final, esp: r.cashflow.especial || 0, juros: r.dre.despesasFinanceiras || 0, rec: r.dre.receitasFinanceiras || 0, recFree };
+}
+let d3Prod = 'P';
+const D3NEW = { mk: 1, rh: 1, imob: 1, conc: 1 };
+function d3Extra(c) {
+  const r = c.r, d = c.d, j = d3Prod, N = app.params.nCompanies || 4, sc = d.scenario[j] || { price: [], ads: [] }, p = r.production;
+  const regs = REG.map((nm, i) => { const x = r.sales[j].regions[i] || {}; return { nm, i, price: +((d.price[j] || [])[i]) || 0, ads: +((d.ads[j] || [])[i]) || 0, fc: +((d.forecast && d.forecast[j] || [])[i]) || 0, dem: x.demand || 0, sold: x.sold || 0, share: x.share || 0, market: x.market || 0, rp: +(sc.price || [])[i] || 0, ra: +(sc.ads || [])[i] || 0 }; });
+  const mach = Object.entries(RU.machineModels).map(([m, mm]) => ({ m, type: mm.type, prod: mm.prod, cv: mm.cv, price: (app.params.machinePrices || {})[m] || mm.price, buy: +((d.buyMachines || {})[m]) || 0 }));
+  const fleet = PR.map((ty) => { const gs = (c.before.machines || []).filter((g) => g.type === ty), q = sum(gs.map((g) => g.qty)); return { ty, q, wear: q ? sum(gs.map((g) => g.qty * g.wear)) / q : 0, sell: +((d.sellMachines || {})[ty]) || 0 }; });
+  return { j, N, regs, mach, fleet, w0: c.before.workers || 0, hire: +d.hire || 0, fire: +d.fire || 0, sat: p.sat, opIndex: p.opIndex, availH: p.availH, otH: p.otH || 0, hourCost: p.hourCost, sc, satR: +(d.scenario.satRivals) || 0 };
+}
+function d3Panel2(D, al, ui, ok, bad) {
+  const X = d3Extra(ctx()), j = X.j, nm = NAME[j], key = d3Tab + j;
+  const num = (p, st, w) => `<input type="number" min="0" step="${st}" data-d3k="${p}" value="${Number((+get(app.dec, p) || 0).toFixed(3))}" style="width:${w || 110}px" aria-label="${p}">`;
+  const stp = (p, st, w) => `<span class="d3sp"><button class="btn" data-d3step="${p}|${-st}" aria-label="Menos">−</button>${num(p, st, w || 80)}<button class="btn" data-d3step="${p}|${st}" aria-label="Mais">+</button></span>`;
+  const sel = (p, opts, t) => `<select data-d3k="${p}" ${t ? `data-t="${t}"` : ''}>${opts.map(([v, l]) => `<option value="${v}" ${String(get(app.dec, p)) === String(v) ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+  const prodT = `<div class="scenetabs sm" style="margin:0 0 8px">${PR.map((p) => `<button data-d3prod="${p}" class="${d3Prod === p ? 'on' : ''}">${NAME[p]}</button>`).join('')}</div>`;
+  if (ui.dataset.k !== key) { ui.dataset.k = key; let f = '';
+    if (d3Tab === 'mk') f = prodT + `<div class="d3cards"><div class="d3card"><b>Prazo de pagamento</b>${sel(`term.${j}`, payOpts().map((o) => [o[0], o[1]]))}</div><div class="d3card"><b>Inovação &amp; Design ($)</b>${num(`di.${j}`, 1000, 160)}</div></div>
+      <div class="scroll"><table class="d3t"><thead><tr><th>Região</th><th>Preço ($)</th><th>Propaganda (inserções)</th><th>Previsão de demanda</th></tr></thead><tbody>${X.regs.map((x) => `<tr><td>${x.nm}</td><td>${stp(`price.${j}.${x.i}`, 10, 90)}</td><td>${stp(`ads.${j}.${x.i}`, 1, 60)}</td><td>${num(`forecast.${j}.${x.i}`, 100, 110)}</td></tr>`).join('')}</tbody></table></div>
+      <div class="acts"><button class="btn" data-d3act="fcast">Usar a demanda projetada como previsão</button></div><p class="note">Mínimo: $ ${f0(RU.minPrice[j])}. Cada inserção custa $ ${f0(app.params.adCost || 4500)}; até 20 por região.</p>`;
+    if (d3Tab === 'rh') f = `<div class="d3cards"><div class="d3card"><b>Contratar</b>${stp('hire', 5)}</div><div class="d3card"><b>Demitir</b>${stp('fire', 5)}</div><div class="d3card"><b>Ritmo</b>${sel('overtime', [[0, 'Normal'], [1, '1 hora extra'], [2, '2 horas extras']], 'number')}</div><div class="d3card"><b>Férias coletivas</b>${sel('vacation', [['false', 'Não'], ['true', 'Sim']], 'bool')}</div>
+      <div class="d3card"><b>Preço/hora ($)</b>${stp('salary', 0.5, 80)}</div><div class="d3card"><b>Participação no lucro (fração)</b>${num('plr', 0.01, 110)}</div><div class="d3card"><b>Assistência médica</b>${sel('med', [['none', 'Sem auxílio'], ['basic', 'Básica'], ['full', 'Completa']])}</div><div class="d3card"><b>Alimentação</b>${sel('food', [['none', 'Sem auxílio'], ['rest', 'Na empresa'], ['voucher', 'Vale-alimentação']])}</div><div class="d3card"><b>Treinamento</b>${sel('training', [['none', 'Sem treinamento'], ['basic', 'Básico'], ['adv', 'Avançado']])}</div></div>`;
+    if (d3Tab === 'imob') f = `<div class="d3cards">${X.mach.map((m) => `<div class="d3card"><b>Máquina ${m.m.replace('-', ' ')}</b><span>$ ${f0(m.price)} · produtividade ${String(m.prod).replace('.', ',')} · motor ${m.cv} CV</span>${stp(`buyMachines.${m.m}`, 1, 60)}</div>`).join('')}${X.fleet.map((fl) => `<div class="d3card"><b>Vender máquinas ${fl.ty}</b><span>tem ${f0(fl.q)} · recebe 60% do custo</span>${stp(`sellMachines.${fl.ty}`, 1, 60)}</div>`).join('')}</div><p class="note">As compradas chegam no próximo período. Dá para financiar até 100% delas na aba Finanças.</p>`;
+    if (d3Tab === 'conc') f = prodT + `<div class="d3cards"><div class="d3card"><b>Inovação &amp; Design médio deles ($)</b>${num(`scenario.${j}.di`, 1000, 160)}</div><div class="d3card"><b>Prazo médio deles (dias)</b>${num(`scenario.${j}.term`, 15, 110)}</div><div class="d3card"><b>Satisfação da MOD deles</b>${num('scenario.satRivals', 0.01, 110)}</div></div>
+      <div class="scroll"><table class="d3t"><thead><tr><th>Região</th><th>Preço médio deles ($)</th><th>Propaganda média deles</th></tr></thead><tbody>${X.regs.map((x) => `<tr><td>${x.nm}</td><td>${stp(`scenario.${j}.price.${x.i}`, 10, 90)}</td><td>${stp(`scenario.${j}.ads.${x.i}`, 0.5, 60)}</td></tr>`).join('')}</tbody></table></div>
+      <p class="note">${(botRows() || []).length ? 'Com bots, a cada fechamento estas premissas passam a ser o que eles fizeram no último período. Ajuste para testar cenários na projeção.' : 'São premissas sobre a média dos concorrentes: servem para projetar o seu resultado.'}</p>`;
+    ui.innerHTML = `<div id="d3form">${f}</div><div id="d3dyn"></div>`;
+  } else ui.querySelectorAll('[data-d3k]').forEach((el) => { if (el === document.activeElement) return; const v = get(app.dec, el.dataset.d3k); el.value = el.tagName === 'SELECT' ? String(v) : Number((+v || 0).toFixed(3)); });
+  const dyn = $('d3dyn'), pc = (v) => f2(v * 100) + '%';
+  if (d3Tab === 'mk') { const out = X.regs.filter((x) => x.dem > x.sold + 0.5), low = X.regs.filter((x) => x.price < RU.minPrice[j]);
+    al.innerHTML = out.length ? bad(`${nm}: faltou produto em ${out.map((x) => x.nm).join(', ')} (demanda de ${f0(sum(out.map((x) => x.dem)))} un, vendas de ${f0(sum(out.map((x) => x.sold)))}). Reveja o preço ou a produção.`) : ok(`${nm}: toda a demanda projetada é atendida.`);
+    dyn.innerHTML = `<div class="d3cards">${X.regs.map((x) => `<div class="d3card ${x.dem > x.sold + 0.5 ? 'bad' : ''}"><b>${x.nm} · share ${pc(x.share)}</b><span>seu preço $ ${f0(x.price)} · rivais $ ${f0(x.rp)}</span><span>demanda ${f0(x.dem)} · vendas ${f0(x.sold)}${x.fc > 0 && Math.abs(x.fc - x.dem) > 0.15 * x.dem && x.dem ? ` · previsão ${f0(x.fc)} (erro ${f0(Math.abs(x.fc - x.dem) / x.dem * 100)}%)` : ''}</span></div>`).join('')}</div>`; }
+  if (d3Tab === 'rh') { const w1 = X.w0 + X.hire - X.fire;
+    al.innerHTML = X.sat < 0.6 ? bad(`Satisfação baixa (${n3(X.sat)}): risco de greve e de perda de produtividade. Reveja salário e benefícios.`) : X.sat < 0.75 ? bad(`Satisfação morna (${n3(X.sat)}). Benefícios e salário acima da média ajudam.`) : ok(`Equipe satisfeita (${n3(X.sat)}).`);
+    dyn.innerHTML = `<div class="d3cards"><div class="d3card"><b>Operários</b><span>${f0(X.w0)} no início ${X.hire ? `+ ${f0(X.hire)}` : ''}${X.fire ? ` − ${f0(X.fire)}` : ''} = ${f0(w1)}</span></div><div class="d3card"><b>Horas disponíveis</b><span>${f0(X.availH)} h${X.otH ? ` (inclui ${f0(X.otH)} h extras)` : ''}</span></div><div class="d3card"><b>Satisfação e produtividade</b><span>satisfação ${n3(X.sat)} · produtividade ${n3(X.opIndex)}</span></div><div class="d3card"><b>Custo da hora</b><span>$ ${f2(X.hourCost || 0)} com encargos</span></div></div>`; }
+  if (d3Tab === 'imob') { const capex = sum(X.mach.map((m) => m.buy * m.price));
+    al.innerHTML = capex ? ok(`Compra de $ ${f0(capex)} em máquinas; elas chegam no próximo período.`) : ok('Nenhuma compra de máquina neste período.');
+    dyn.innerHTML = `<div class="d3cards">${X.fleet.map((fl) => `<div class="d3card"><b>Frota ${fl.ty}</b><span>${f0(fl.q)} máquinas · desgaste médio ${f2(fl.wear * 100)}%${fl.sell ? ` · vendendo ${f0(fl.sell)}` : ''}</span></div>`).join('')}<div class="d3card"><b>Investimento</b><span>$ ${f0(capex)}</span></div></div>`; }
+  if (d3Tab === 'conc') { const me = X.regs, avgS = me.length ? sum(me.map((x) => x.share)) / me.length : 0;
+    al.innerHTML = ok(`${nm}: com estas premissas, o seu market share médio projetado é ${pc(avgS)}.`);
+    dyn.innerHTML = `<div class="d3cards">${me.map((x) => `<div class="d3card"><b>${x.nm}</b><span>seu preço $ ${f0(x.price)} vs $ ${f0(x.rp)} deles · propaganda ${f0(x.ads)} vs ${String(x.ra).replace('.', ',')}</span><span>seu share ${pc(x.share)}</span></div>`).join('')}</div>`; }
 }
 function pDecidir(c) {
   const tabs = `<div class="scenetabs">${Object.entries(D3AREAS).map(([k, l]) => `<button data-d3t="${k}" class="${d3Tab === k ? 'on' : ''}">${l}</button>`).join('')}</div>${somBtn()}`;
@@ -2070,6 +2112,7 @@ function d3Panel(D) {
   const al = $('d3alert'), ui = $('d3ui'), kp = $('d3kpi'); if (!ui) return; const pc = (v) => f0(v * 100) + '%';
   kp.innerHTML = `<div><span>Produção real</span><b>${f0(D.real.P)} P · ${f0(D.real.W)} W</b></div><div><span>Lucro projetado</span><b>$ ${f0(D.r.dre.lucroLiquido)}</b></div><div><span>Caixa final</span><b style="color:${D.cash < 0 ? '#a32d2d' : 'inherit'}">$ ${f0(D.cash)}</b></div><div><span>Empréstimo especial</span><b style="color:${D.esp > 0 ? '#a32d2d' : '#3b6d11'}">${D.esp > 0 ? '$ ' + f0(D.esp) : 'nenhum'}</b></div>`;
   const ok = (t) => `<div class="d3al ok">✓ ${t}</div>`, bad = (t) => `<div class="d3al bad">⚠ ${t}</div>`;
+  if (D3NEW[d3Tab]) { d3Panel2(D, al, ui, ok, bad); return; }
   if (d3Tab === 'fab') { const k = D.plan.P + D.plan.W ? (D.real.P + D.real.W) / (D.plan.P + D.plan.W) : 1;
     const lst = (a) => { a = a.map((n) => n.charAt(0).toLowerCase() + n.slice(1)); return a.length > 1 ? a.slice(0, -1).join(', ') + ' e ' + a[a.length - 1] : a[0]; };
     al.innerHTML = D.bott.length ? bad(`Gargalo em ${lst(D.bott.map((x) => x.n))}: a produção real fica em ${pc(k)} do planejado (${f0(D.real.P)} P e ${f0(D.real.W)} W).`) : ok('Os recursos dão conta do plano de produção.');
@@ -2113,7 +2156,7 @@ function d3Scene(D) {
   const tags = [], tag = (x, y, z, t, c) => tags.push([P(x, y, z), t, c || '']);
   const bg = document.createElement('canvas'); bg.width = W; bg.height = H; const gm = g;
   const pc = (v) => f0(v * 100) + '%';
-  const R = Object.fromEntries(D.res.map((x) => [x.k, x])), bad = new Set(D.bott.map((x) => x.k));
+  const R = Object.fromEntries(D.res.map((x) => [x.k, x])), bad = new Set(D.bott.map((x) => x.k)), X = D3NEW[d3Tab] ? d3Extra(ctx()) : null;
   function scene(t) {
     tags.length = 0;
     g.fillStyle = '#2b2433'; g.fillRect(0, 0, W, H); for (let i = 0; i < 30; i++) px((i * 53) % W, (i * 29) % 50, '#4a3f57');
@@ -2164,6 +2207,52 @@ function d3Scene(D) {
       for (let i = 0; i < 3; i++) { const wx = 2 + ((t * 0.25 + i * 0.33) % 1) * 13, wy = 11; add(wx + wy, () => person(wx, wy, '#5f5e5a', t, i + 40)); }
       tag(14, 3, 6, `despesas financeiras $ ${f0(D.juros)}`, '');
     }
+    if (d3Tab === 'mk' && X) {
+      for (let y = -1; y < 13; y++) for (let x = -2; x < 20; x++) { const road = y >= 8 && y < 10, walk = y >= 6 && y < 8; poly([P(x, y, 0), P(x + 1, y, 0), P(x + 1, y + 1, 0), P(x, y + 1, 0)], road ? '#5f5e5a' : walk ? ((x + y) % 2 ? '#d3d1c7' : '#c8c5ba') : ((x + y) % 2 ? '#72a933' : '#6a9e2f')); if (road && y === 8 && x % 2 === 0) { const a = P(x + 0.5, 9, 0); rect(a[0] - 1, a[1], 3, 1, '#fac775'); } }
+      X.regs.forEach((x, i) => { const sx = -1 + i * 3.8, sy = 2, c = CITY_RC[i % CITY_RC.length], out = x.dem > x.sold + 0.5;
+        add(sx + sy + 3, () => { box(sx, sy, 0, 3.2, 3, 14, ['#f1efe8', '#e8e3d6', '#c8c3b5', '#5f5e5a']); box(sx - 0.1, sy - 0.1, 14, 3.4, 3.2, 2, [c[1], c[2], c[2], '#2c2c2a']);
+          poly([P(sx, sy + 3, 9), P(sx + 3.2, sy + 3, 9), P(sx + 3.2, sy + 3.6, 7), P(sx, sy + 3.6, 7)], c[0]); for (let k = 0; k < 4; k++) line(P(sx + k * 0.8, sy + 3, 9), P(sx + k * 0.8, sy + 3.6, 7), '#f1efe8');
+          poly([P(sx + 0.3, sy + 3, 6), P(sx + 2.2, sy + 3, 6), P(sx + 2.2, sy + 3, 2), P(sx + 0.3, sy + 3, 2)], '#85b7eb'); const dr = P(sx + 2.7, sy + 3, 0); rect(dr[0] - 1, dr[1] - 5, 3, 5, '#412402');
+          const na = Math.min(20, Math.round(x.ads)); for (let k = 0; k < na; k++) { const b = P(sx + 0.3 + (k % 10) * 0.28, sy + 1.4, 16 + Math.floor(k / 10) * 3); rect(b[0], b[1] - 2, 2, 2, k % 2 ? '#d4537e' : '#fac775'); }
+          const nq = Math.min(10, Math.round(x.sold / 350)), nx = Math.min(6, Math.round((x.dem - x.sold) / 350)); for (let q = 0; q < nq; q++) person(sx + 2.6 - (q % 2) * 0.4, sy + 3.8 + q * 0.38, ['#534ab7', '#0f6e56', '#993556', '#185fa5'][q % 4], t, q + i * 9);
+          if (out) { for (let q = 0; q < nx; q++) person(sx + 0.6, sy + 4 + q * 0.38, '#888780', t, q + 50); const s = P(sx + 0.2, sy + 4, 0); rect(s[0], s[1] - 12, 1, 12, '#5f5e5a'); rect(s[0] - 3, s[1] - 16, 7, 5, Math.floor(t * 3) % 2 ? '#e24b4a' : '#a32d2d'); } });
+        tag(sx + 1.6, sy + 1.5, 26, `${x.nm} · $ ${f0(x.price)} · ${f2(x.share * 100)}%`, out ? 'bad' : ''); });
+      for (let i = 0; i < 3; i++) { const tx = ((t * 1.2 + i * 8) % 26) - 4; add(tx + 8.3 + 2, () => { box(tx, 8.3, 1, 1.6, 0.7, 6, ['#85b7eb', '#378add', '#185fa5', '#2c2c2a']); box(tx + 1.6, 8.3, 1, 0.6, 0.7, 4, ['#f1efe8', '#d3d1c7', '#b4b2a9', '#2c2c2a']); }); }
+    }
+    if (d3Tab === 'rh' && X) {
+      roomFloor('#a8743a', '#9a6a33'); walls('#e8e3d6', '#c8c3b5', true);
+      const w1 = Math.max(0, X.w0 - X.fire), nS = Math.min(48, w1), sad = X.sat < 0.6, mood = X.sat >= 0.9 ? 'h' : X.sat >= 0.75 ? 'n' : X.sat >= 0.6 ? 's' : 'a';
+      for (let i = 0; i < nS; i++) { const x = 1.5 + (i % 12) * 0.9, y = 3 + Math.floor(i / 12) * 1.2; add(x + y + 0.5, () => { person(x, y, i % 3 ? '#534ab7' : '#0f6e56', t, i, sad && i % 5 === 0); if (((t * 0.5 + i * 0.37) % 4) < 1) { const p = P(x, y, 0); if (mood === 'h') { rect(p[0], p[1] - 12, 1, 1, '#e24b4a'); rect(p[0] + 2, p[1] - 12, 1, 1, '#e24b4a'); rect(p[0], p[1] - 11, 3, 1, '#e24b4a'); px(p[0] + 1, p[1] - 10, '#e24b4a'); } else if (mood === 'a') { rect(p[0] - 1, p[1] - 12, 5, 2, '#5f5e5a'); } else if (mood === 's') { px(p[0], p[1] - 11, '#888780'); px(p[0] + 2, p[1] - 11, '#888780'); } } }); }
+      for (let i = 0; i < Math.min(10, Math.ceil(X.hire / 3)); i++) { const k = (t * 0.25 + i * 0.13) % 1, x = 17 - k * 3, y = 9 + (i % 2) * 0.5; add(x + y, () => person(x, y, '#3b6d11', t, i + 70)); }
+      for (let i = 0; i < Math.min(10, Math.ceil(X.fire / 3)); i++) { const k = (t * 0.25 + i * 0.17) % 1, x = 14 + k * 3, y = 10.5 + (i % 2) * 0.5; add(x + y, () => person(x, y, '#a32d2d', t, i + 90)); }
+      add(17.5 + 9, () => { box(17.4, 8.6, 0, 0.4, 2.4, 14, ['#854f0b', '#633806', '#412402']); });
+      { const th = P(15, 0, 6), hh = Math.round(Math.max(0, Math.min(1, (X.sat - 0.4) / 0.6)) * 18); rect(th[0] - 2, th[1] - 22, 5, 22, '#f1efe8'); rect(th[0] - 1, th[1] - 1 - hh, 3, hh, X.sat < 0.6 ? '#e24b4a' : X.sat < 0.75 ? '#ef9f27' : '#639922'); rect(th[0] - 2, th[1], 5, 3, X.sat < 0.6 ? '#e24b4a' : '#639922'); tag(15, 0, 32, `satisfação ${n3(X.sat)}`, X.sat < 0.6 ? 'bad' : X.sat < 0.75 ? '' : 'ok'); }
+      { const ck = P(4, 0, 22); for (let a = 0; a < 20; a++) { const an = a / 20 * Math.PI * 2; px(ck[0] + Math.cos(an) * 4, ck[1] + Math.sin(an) * 4, '#2c2c2a'); } line(ck, [ck[0], ck[1] - 3], '#2c2c2a'); line(ck, [ck[0] + 2 * Math.cos(t), ck[1] + 2 * Math.sin(t)], '#e24b4a'); const ot = +app.dec.overtime || 0; for (let k = 0; k < 2; k++) rect(ck[0] - 3 + k * 5, ck[1] + 7, 3, 2, k < ot ? '#e24b4a' : '#5f5e5a'); if (ot) tag(4, 0, 30, `${ot} hora${ot > 1 ? 's' : ''} extra${ot > 1 ? 's' : ''}`, ''); }
+      if (app.dec.food && app.dec.food !== 'none') add(13 + 3, () => { box(12.5, 2.5, 0, 3, 1.4, 4, ['#d3d1c7', '#b4b2a9', '#888780', '#5f5e5a']); for (let k = 0; k < 4; k++) { const p = P(12.9 + k * 0.7, 3.2, 4); rect(p[0] - 1, p[1] - 1, 3, 2, k % 2 ? '#ef9f27' : '#97c459'); } tag(14, 3.2, 12, app.dec.food === 'rest' ? 'refeitório' : 'vale-alimentação', 'ok'); });
+      if (app.dec.med && app.dec.med !== 'none') { const p = P(9, 0, 22), s = app.dec.med === 'full' ? 3 : 2; rect(p[0] - s * 2, p[1] - s * 2, s * 4 + 1, s * 4 + 1, '#f1efe8'); rect(p[0] - s * 2 + 1, p[1] - 1, s * 4 - 1, 3, '#e24b4a'); rect(p[0] - 1, p[1] - s * 2 + 1, 3, s * 4 - 1, '#e24b4a'); tag(9, 0, 32, app.dec.med === 'full' ? 'assistência completa' : 'assistência básica', 'ok'); }
+      if (app.dec.training && app.dec.training !== 'none') { poly([P(0, 6, 24), P(0, 9, 24), P(0, 9, 14), P(0, 6, 14)], '#f1efe8'); line(P(0, 6.5, 21), P(0, 8.5, 20), '#185fa5'); line(P(0, 6.5, 18), P(0, 8, 17), '#185fa5'); tag(0, 7.5, 28, `treinamento ${app.dec.training === 'adv' ? 'avançado' : 'básico'}`, 'ok'); }
+      if (app.dec.vacation === true || app.dec.vacation === 'true') add(16 + 2, () => { const p = P(16, 2, 0); rect(p[0], p[1] - 14, 1, 14, '#854f0b'); rect(p[0] - 6, p[1] - 16, 13, 3, '#3b6d11'); rect(p[0] - 4, p[1] - 18, 9, 2, '#639922'); tag(16, 2, 22, 'férias coletivas', 'ok'); });
+      if (+app.dec.plr > 0) add(12 + 7, () => { for (let k = 0; k < Math.min(6, Math.ceil(+app.dec.plr * 40)); k++) box(12 + (k % 3) * 0.5, 7, Math.floor(k / 3) * 1.5, 0.4, 0.4, 1.5, ['#fac775', '#ef9f27', '#ba7517']); tag(12.5, 7, 10, `PLR ${f2(+app.dec.plr * 100)}%`, ''); });
+      tag(6, 4, 14, `${f0(X.w0 + X.hire - X.fire)} operários${X.hire ? ` · +${f0(X.hire)}` : ''}${X.fire ? ` · −${f0(X.fire)}` : ''}`, '');
+    }
+    if (d3Tab === 'imob' && X) {
+      for (let y = -1; y < 13; y++) for (let x = -1; x < 19; x++) poly([P(x, y, 0), P(x + 1, y, 0), P(x + 1, y + 1, 0), P(x, y + 1, 0)], (x + y) % 2 ? '#bdb8aa' : '#b3ae9f');
+      X.mach.forEach((m, i) => { const x = 0.5 + i * 4.3, y = 1, isP = m.type === 'P', v2 = /V2/.test(m.m), col = isP ? ['#85b7eb', '#378add', '#185fa5', '#042c53'] : ['#9fe1cb', '#1d9e75', '#0f6e56', '#04342c'];
+        add(x + y + 3, () => { box(x - 0.2, y - 0.2, 0, 2.6, 2.4, 2, ['#f1efe8', '#d3d1c7', '#b4b2a9', '#5f5e5a']); box(x + 0.3, y + 0.3, 2, 1.6, 1.4, v2 ? 11 : 9, col); if (v2) { const a = P(x + 0.3, y + 1.7, 7), b = P(x + 1.9, y + 1.7, 7); line(a, b, '#fac775'); } box(x + 0.7, y + 0.6, v2 ? 13 : 11, 0.8, 0.8, 2, ['#d3d1c7', '#b4b2a9', '#888780', '#444441']); if (Math.floor(t * 2 + i) % 3 === 0) { const sp = P(x + 1.9, y + 0.3, 10); px(sp[0], sp[1], '#fff'); } });
+        tag(x + 1.1, y + 1, 22, `${m.m.replace('-', ' ')} · $ ${f0(m.price)}${m.buy ? ` · comprar ${f0(m.buy)}` : ''}`, m.buy ? 'ok' : ''); });
+      const tb = sum(X.mach.map((m) => m.buy)); if (tb) { const tx = 13 + Math.sin(t) * 0.1; add(tx + 9.5 + 3, () => { box(tx, 9.5, 1, 3.4, 1.4, 9, ['#fac775', '#ef9f27', '#ba7517', '#2c2c2a']); box(tx + 3.4, 9.5, 1, 1.1, 1.4, 7, ['#f1efe8', '#d3d1c7', '#b4b2a9', '#2c2c2a']); for (let k = 0; k < Math.min(6, tb); k++) crate(tx + 0.2 + (k % 3) * 1.05, 9.7, 10 + Math.floor(k / 3) * 5, 0.9, 1, 5, ['#85b7eb', '#378add', '#185fa5', '#042c53']); }); tag(15, 10, 26, `${f0(tb)} máquina${tb > 1 ? 's' : ''} chegando no próximo período`, 'ok'); }
+      X.fleet.forEach((fl, k) => { const n = Math.min(16, fl.q), rust = Math.min(1, fl.wear * 10); for (let i = 0; i < n; i++) { const x = 0.5 + (i % 8) * 1.3, y = 5.5 + k * 2 + Math.floor(i / 8) * 0.9; add(x + y + 1, () => { box(x, y, 0, 0.9, 0.7, 5, k ? ['#9fe1cb', '#1d9e75', '#0f6e56', '#04342c'] : ['#85b7eb', '#378add', '#185fa5', '#042c53']); for (let r2 = 0; r2 < Math.round(rust * 4); r2++) { const p = P(x + 0.2 + r2 * 0.15, y + 0.7, 1 + r2); px(p[0], p[1], '#854f0b'); } }); }
+        tag(5, 5.8 + k * 2, 10, `frota ${fl.ty}: ${f0(fl.q)} · desgaste ${f2(fl.wear * 100)}%`, ''); });
+      const ns = sum(X.fleet.map((f) => f.sell)); if (ns) add(16 + 6 + 1, () => { for (let k = 0; k < Math.min(8, ns); k++) box(15.5 + (k % 3) * 0.6, 6 + (k % 2) * 0.4, Math.floor(k / 3) * 3, 1, 0.7, 3, ['#a8743a', '#854f0b', '#633806', '#412402']); tag(16.3, 6.5, 14, `vendendo ${f0(ns)} (sucata 60%)`, 'bad'); });
+    }
+    if (d3Tab === 'conc' && X) {
+      roomFloor('#26215c', '#2e2870'); walls('#3c3489', '#26215c', false);
+      X.regs.forEach((x, i) => { const bx0 = 2 + i * 3.2, mx = Math.max(...X.regs.map((r) => Math.max(r.price, r.rp))) || 1, h1 = x.price / mx * 22, h2 = x.rp / mx * 22;
+        poly([P(bx0, 0, 4), P(bx0 + 0.9, 0, 4), P(bx0 + 0.9, 0, 4 + h1), P(bx0, 0, 4 + h1)], '#fac775'); poly([P(bx0 + 1.1, 0, 4), P(bx0 + 2, 0, 4), P(bx0 + 2, 0, 4 + h2), P(bx0 + 1.1, 0, 4 + h2)], '#e24b4a'); tag(bx0 + 1, 0, 30, `${x.nm} · você $ ${f0(x.price)} · eles $ ${f0(x.rp)}`, x.price > x.rp ? '' : 'ok'); });
+      add(8 + 5 + 2, () => { box(6, 4.5, 0, 6, 3, 5, ['#854f0b', '#633806', '#412402', '#2c2c2a']); for (let k = 0; k < 5; k++) { const p = P(6.6 + k * 1.1, 5.5, 5); rect(p[0] - 2, p[1] - 1, 5, 3, '#f1efe8'); px(p[0], p[1], '#185fa5'); } });
+      const F = firmsHist().filter((f) => !f.me), n = Math.max(1, Math.min(5, X.N - 1)); for (let k = 0; k < n; k++) { const x = 6.2 + k * (5.6 / Math.max(1, n - 1 || 1)), y = 8.2; add(x + y + 1, () => { const p = P(x, y, 0); drawMascot(g, p[0], p[1], k, MV_FC[k % MV_FC.length], t); }); tag(x, y, 18, F[k] ? F[k].name : `Concorrente ${k + 1}`, ''); }
+      tag(14, 10, 4, `satisfação da MOD deles ${n3(X.satR)}`, '');
+    }
     L.sort((a, b) => a[0] - b[0]).forEach(([, f]) => f());
   }
   ISO.draw = scene; ISO.tags = tags;
@@ -2176,8 +2265,8 @@ function d3Mount(c) {
 }
 
 document.addEventListener('input', (e) => { const el = e.target; if (!el.dataset || el.dataset.d3k == null || !el.closest('#d3ui')) return; e.stopImmediatePropagation(); const p = el.dataset.d3k;
-  const v = el.tagName === 'SELECT' ? (el.dataset.t === 'number' ? +el.value : el.value) : Math.max(0, +el.value || 0); d3Set(p, v); el.closest('#d3ui').querySelectorAll(`[data-d3k="${p}"]`).forEach((o) => { if (o !== el) o.value = v; }); d3Later(); }, true);
-document.addEventListener('change', (e) => { const el = e.target; if (!el.dataset || !el.closest || !el.closest('#d3ui')) return; if (el.dataset.d3pay) { app.dec.purchases.filter((x) => x.supplier === el.dataset.d3pay).forEach((x) => { x.pay = el.value; }); d3Later(); } else if (el.dataset.d3k && el.tagName === 'SELECT') { d3Set(el.dataset.d3k, el.dataset.t === 'number' ? +el.value : el.value); d3Later(); } }, true);
+  const v = el.tagName === 'SELECT' ? (el.dataset.t === 'number' ? +el.value : el.dataset.t === 'bool' ? el.value === 'true' : el.value) : Math.max(0, +el.value || 0); d3Set(p, v); el.closest('#d3ui').querySelectorAll(`[data-d3k="${p}"]`).forEach((o) => { if (o !== el) o.value = v; }); d3Later(); }, true);
+document.addEventListener('change', (e) => { const el = e.target; if (!el.dataset || !el.closest || !el.closest('#d3ui')) return; if (el.dataset.d3pay) { app.dec.purchases.filter((x) => x.supplier === el.dataset.d3pay).forEach((x) => { x.pay = el.value; }); d3Later(); } else if (el.dataset.d3k && el.tagName === 'SELECT') { d3Set(el.dataset.d3k, el.dataset.t === 'number' ? +el.value : el.dataset.t === 'bool' ? el.value === 'true' : el.value); d3Later(); } }, true);
 // ------------------------------------------------ render
 const PAGES = { visao: pVisao, compras: pCompras, vendas: pVendas, despesas: pDespesas, recursos: pRecursos, estoques: pEstoques, custosGerais: pCustosGerais, custosProduto: pCustosProduto, caixa: pCaixa, contas: pContas,
   dre: pDRE, balanco: pBalanco, politicas: pPoliticas, analise: pAnalise, decisoes: pDecisoes, marketShare: pMarketShare, mod: pMOD, ranking: pRanking, balancos: (c) => pMercadoReal(c, 'balancos'), rentab: (c) => pMercadoReal(c, 'rentab'),
@@ -2320,8 +2409,10 @@ document.addEventListener('input', (e) => {
 document.addEventListener('click', (e) => {
   const t = e.target;
   const ab = t.closest && t.closest('[data-area]'); if (ab) { const ar = ab.dataset.area; if (!ab.dataset.table && D3AREAS[ar] && ctx().mode === 'cur') { d3Tab = ar; page = 'decidir'; location.hash = page; closeMenus && closeMenus(); render(); scrollTo(0, 0); return; } openArea(ar); return; }
-  const d3b = t.closest && t.closest('[data-d3t],[data-d3px],[data-d3z],[data-d3act],[data-d3buy]');
+  const d3b = t.closest && t.closest('[data-d3t],[data-d3px],[data-d3z],[data-d3act],[data-d3buy],[data-d3prod],[data-d3step]');
   if (d3b) { const ds = d3b.dataset;
+    if (ds.d3prod) { d3Prod = ds.d3prod; render(); return; }
+    if (ds.d3step) { const [pth, dl] = ds.d3step.split('|'); const cur = +get(app.dec, pth) || 0; let v = Math.max(0, Math.round((cur + +dl) * 100) / 100); if (/^ads\./.test(pth)) v = Math.min(20, v); d3Set(pth, v); SFX.blip(); d3Refresh(); return; }
     if (ds.d3t) { d3Tab = ds.d3t; if (page !== 'decidir') { page = 'decidir'; location.hash = page; } render(); return; }
     if (ds.d3px) { d3Px = +ds.d3px; try { localStorage.setItem('simPx', d3Px); } catch (er) {} document.querySelectorAll('[data-d3px]').forEach((b) => b.classList.toggle('on', b === d3b)); d3Size(); return; }
     if (ds.d3z) { if (D3) D3.dist = Math.max(16, Math.min(54, D3.dist + 4 * +ds.d3z)); return; }
@@ -2329,6 +2420,7 @@ document.addEventListener('click', (e) => {
     if (ds.d3act) { const D = d3Data(ctx());
       if (ds.d3act === 'fit') { let k = 1; D.res.forEach((x) => { if (x.use > 0) k = Math.min(k, x.cap / x.use); }); d3Set('production.P', Math.floor(D.plan.P * k / 100) * 100); d3Set('production.W', Math.floor(D.plan.W * k / 50) * 50); }
       if (ds.d3act === 'fill') D.items.forEach((x) => { const f = x.need - x.ini - x.now; if (f > 0) d3Buy('Fasterix', x.k, Math.ceil(f / 1000) * 1000); });
+      if (ds.d3act === 'fcast') { const X = d3Extra(ctx()); X.regs.forEach((x) => d3Set(`forecast.${X.j}.${x.i}`, Math.round(x.dem))); }
       if (ds.d3act === 'cover' && D.esp > 0) d3Set('giro', (+app.dec.giro || 0) + Math.ceil(D.esp * 1.08 / 10000) * 10000);
       SFX.coin(); d3Refresh(); return; } }
   if (!t.closest || !t.closest('#dmBody')) { if (t.id === 'dlgDec') $('dlgDec').classList.remove('on'); return; }
@@ -2339,7 +2431,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ================================================ JOGO: jogadores, saves, configurações, cronômetro, cenários
-const APPVER = '20/11 22:30';
+const APPVER = '20/11 23:40';
 const SKEY = 'simEnividia.store.v1';
 // N empresas no mercado: o tamanho do mercado acompanha o número de empresas (4 = jogo original)
 function setCompanies(p, n) { n = Math.max(2, Math.min(6, +n || 4)); p.nCompanies = n; delete p.marketScale; delete p.nRegions; return p; }
