@@ -20,6 +20,8 @@ a{color:#1a4f9c}
 .brand{font-weight:800;font-size:19px;letter-spacing:-.3px;margin-right:18px;line-height:1.05}
 .brand small{display:block;font-weight:500;font-size:11px;opacity:.85;letter-spacing:0}
 .menu{position:relative}
+.navbtn{all:unset;cursor:pointer;color:#fff;font-size:17px;line-height:1.08;padding:8px 12px;border-radius:6px;display:flex;align-items:center;gap:9px}.navbtn:hover{background:var(--blue2)}
+.cityw{max-width:1100px;margin:0 auto}.cityinfo{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:10px 0;padding:10px 14px;background:#2b2433;color:#f1efe8;border-radius:8px;font:13.5px ui-monospace,Menlo,monospace}.cityinfo .btn{white-space:nowrap}
 .menu>button{all:unset;cursor:pointer;color:#fff;font-size:17px;line-height:1.08;padding:8px 12px;border-radius:6px;display:flex;align-items:center;gap:9px}
 .menu>button:hover,.menu>button[aria-expanded=true]{background:var(--blue2)}
 .menu>button span::after{content:" ▾";font-size:13px}
@@ -255,6 +257,7 @@ body{position:relative}
     <button data-go="marketShare">Market Share</button><button data-go="balancos">Balanços Patrimoniais das Empresas</button><button data-go="mod">Mercado MOD</button>
     <button data-go="rentab">Rentabilidade</button><button data-go="estrutura">Estrutura de Capital</button><button data-go="liquidez">Liquidez</button><button data-go="ranking">Ranking</button>
   </div></div>
+  <button class="navbtn" data-go="cidade" data-qt="Cena da sua empresa montada com os números do período"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M2 17l11-6 11 6-11 6z" fill="#7fb83a"/><path d="M6 15v-6l4-2v6zM10 13V7l5 2.5V15z" fill="#e8e3d6"/><path d="M6 9l2-4 2 2zM10 7l2.5-3.5L15 9.5z" fill="#d85a30"/><path d="M17 14V6l3 1.5v8z" fill="#85b7eb"/></svg><span>Visão da<br>Empresa</span></button>
   <div class="spacer"></div>
   <div class="game" id="gameInfo"></div><div class="timer" id="timer" style="display:none"></div>
   <div class="who" data-go="visao" data-qt="Clique para ir à página inicial da sua empresa (visão geral)" role="link" tabindex="0" style="cursor:pointer"><b>Enividia (R.#2)</b>Mercado externo: R.#5</div>
@@ -398,7 +401,7 @@ const title = (c, t) => `<div class="ttl"><h1>${t}</h1><span>(Período: #${c.per
 const SHEET = { visao: 'Visão Geral', compras: 'Compras', vendas: 'Vendas', despesas: 'Despesas e Receitas', recursos: 'Recursos da Produção', estoques: 'Estoque', custosGerais: 'Custos Gerais', custosProduto: 'Custo por Produto',
   portal: 'Portal de Notícias', politicas: 'Políticas e Metas', caixa: 'Caixa', contas: 'Contas a Receber e a Pagar', dre: 'Demonstração do Resultado', balanco: 'Balanço Patrimonial', decisoes: 'Decisões', analise: 'Análise Comparativa', marketShare: 'Market Share',
   balancos: 'Balanços Patrimoniais', mod: 'Mercado da Mão de Obra Direta', rentab: 'Rentabilidade', estrutura: 'Estrutura de Capital', liquidez: 'Liquidez', ranking: 'Ranking' };
-const TITLE = { visao: 'Visão Geral', compras: 'Compras', vendas: 'Vendas', despesas: 'Despesas e Receitas', recursos: 'Recursos da Produção', estoques: 'Estoque', custosGerais: 'Custos Gerais', custosProduto: 'Custo por Produto',
+const TITLE = { cidade: 'Visão da Empresa', visao: 'Visão Geral', compras: 'Compras', vendas: 'Vendas', despesas: 'Despesas e Receitas', recursos: 'Recursos da Produção', estoques: 'Estoque', custosGerais: 'Custos Gerais', custosProduto: 'Custo por Produto',
   caixa: 'Caixa', contas: 'Contas a Receber e a Pagar', dre: 'Demonstração do Resultado', balanco: 'Balanço Patrimonial', decisoes: 'Decisões Tomadas', politicas: 'Políticas e Metas', analise: 'Análise Comparativa', marketShare: 'Market Share',
   balancos: 'Balanços Patrimoniais das Empresas', mod: 'Mercado da Mão de Obra Direta', rentab: 'Rentabilidade', estrutura: 'Estrutura de Capital', liquidez: 'Liquidez', ranking: 'Ranking', parametros: 'Parâmetros do Modelo', portal: 'Portal de Notícias' };
 function rawSheet(name) {
@@ -1277,10 +1280,160 @@ function pParametros() {
     + '<p><button class="btn pri" id="bCal">Aplicar parâmetros</button> <button class="btn" id="bCalDef">Voltar aos padrões calibrados</button> <span id="calMsg" class="note"></span></p>';
 }
 
+// ------------------------------------------------ Visão da Empresa (cena em pixel art isométrico ligada aos dados do período)
+const CITY_RC = [['#85b7eb', '#378add', '#185fa5'], ['#f0997b', '#d85a30', '#993c1d'], ['#5dcaa5', '#1d9e75', '#0f6e56'], ['#afa9ec', '#7f77dd', '#534ab7'], ['#fac775', '#ef9f27', '#ba7517']];
+function cityData(c) {
+  const r = c.r, p = r.production, m = p.mi, a = c.after, s = r.stock, k = kpisOf(c);
+  let pos = 0;
+  try { const br0 = botRows(); const rk = (br0 ? br0.filter((x) => x.h).map((x) => x.h.raa * 100) : realNames() ? (app.base.ranking || []).filter((x) => x.name !== 'Enividia').map((x) => x.raa) : []).concat([r.kpi.raa * 100]).sort((x, y) => y - x); pos = rk.indexOf(r.kpi.raa * 100) + 1; } catch (e) { pos = 0; }
+  const reg = REG.map((nm, i) => {
+    const g = PR.map((j) => r.sales[j].regions[i] || {});
+    return { nm, sold: sum(g.map((x) => x.sold || 0)), dem: sum(g.map((x) => x.demand || 0)), share: sum(g.map((x) => x.share || 0)) / PR.length, byP: PR.map((j, n) => `${NAME[j]} ${f0(g[n].sold || 0)}`).join(' · ') };
+  });
+  const pend = { P: 0, W: 0 }; (a.machinesPending || []).forEach((g) => { pend[g.type] = (pend[g.type] || 0) + g.qty; });
+  const wear = (ty) => { const gs = (a.machines || []).filter((g) => g.type === ty), q = sum(gs.map((g) => g.qty)); return q ? sum(gs.map((g) => g.qty * g.wear)) / q * 100 : 0; };
+  const occ = (ty) => m[ty].hoursAv ? m[ty].used / m[ty].hoursAv : 0;
+  return { period: c.period, mode: c.mode, company: ME(), raa: k.raa, cash: k.cash, esp: k.esp, res: k.res, pos,
+    mach: { P: m.P.qty, W: m.W.qty }, occ: { P: occ('P'), W: occ('W') }, wear: { P: wear('P'), W: wear('W') }, pend,
+    workers: a.workers || 0, sat: p.sat, opIdle: Math.max(0, p.availH - p.opUsed), opOcc: p.availH ? p.opUsed / p.availH : 0, strike: (p.strikeH || 0) > 0,
+    prod: { P: p.prod.P || 0, W: p.prod.W || 0 },
+    stock: { P: s.P.fim.q, W: s.W.fim.q, kitP: s.kitP.fim.q, kitW: s.kitW.fim.q, emb: s.emb.fim.q },
+    buys: (r.purchases || []).length, reg };
+}
+function pCidade(c) {
+  if (c.mode === 'real') return `<div class="ttl"><h1>Visão da Empresa</h1><span>(Período: #${c.period} ${stLabel(c)})</span></div><div class="al">A cena é montada a partir do cálculo do simulador. Escolha o período em edição ou um período simulado no seletor <b>Períodos</b>.</div>`;
+  const D = cityData(c);
+  const pill = (t, col) => `<span style="background:#2b2433e6;color:${col};border:2px solid ${col};padding:2px 8px;font:12px ui-monospace,Menlo,monospace">${t}</span>`;
+  const sold = sum(D.reg.map((x) => x.sold));
+  return title(c, 'Visão da Empresa')
+    + `<div class="cityw"><div style="position:relative;border-radius:10px;overflow:hidden;background:#72a933;border:1px solid #4b6d24">
+<canvas id="cityCv" width="300" height="186" style="display:block;width:100%;image-rendering:pixelated;image-rendering:crisp-edges"></canvas>
+<div style="position:absolute;left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap">${pill(`P${D.period} ${esc(D.company.toUpperCase())}`, '#fac775')}${pill(`RAA ${f2(D.raa)}%`, '#97c459')}${D.pos ? pill(`RANK ${D.pos}º`, '#85b7eb') : ''}${pill(`CAIXA $ ${f0(D.cash)}`, '#f1efe8')}${D.esp > 0 ? pill('EMPRÉSTIMO ESPECIAL', '#f09595') : ''}${D.strike ? pill('GREVE', '#f09595') : ''}</div></div>
+<div class="cityinfo"><span id="cityTxt">Clique num elemento da cena para ver os números do período. Galpão e máquinas, estoque, escritório, prédios das regiões e caminhões levam aos relatórios.</span><button class="btn" id="cityGo" hidden></button></div>
+<p class="note">Cada máquina, pilha de caixas, prédio e caminhão sai dos números do período #${D.period} ${c.mode === 'cur' ? '(projeção com as decisões em edição: mude uma decisão e a cena se atualiza)' : '(simulado)'}. Máquinas: ${f0(D.mach.P)} P e ${f0(D.mach.W)} W${D.pend.P + D.pend.W ? `, mais ${f0(D.pend.P + D.pend.W)} chegando` : ''} · operadores: ${f0(D.workers)} · vendas: ${f0(sold)} un. A altura de cada prédio de região é o market share médio nela; as luzes das máquinas acendem conforme a ocupação.</p></div>`;
+}
+function startCity(D) {
+  const cv = document.getElementById('cityCv'); if (!cv) return;
+  const main = cv.getContext('2d'), W = 300, H = 186, OX = 120, OY = 50; let g = main;
+  const txt = document.getElementById('cityTxt'), goB = document.getElementById('cityGo');
+  const P = (x, y, z) => [OX + (x - y) * 8, OY + (x + y) * 4 - z];
+  const px = (x, y, c) => { g.fillStyle = c; g.fillRect(x | 0, y | 0, 1, 1); };
+  const rect = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), w, h); };
+  function poly(pts, c) { let y0 = Infinity, y1 = -Infinity; pts.forEach((p) => { y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }); g.fillStyle = c;
+    for (let y = Math.ceil(y0); y <= Math.floor(y1); y++) { let a = Infinity, b = -Infinity; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; if ((p[1] <= y && q[1] >= y) || (q[1] <= y && p[1] >= y)) { if (p[1] === q[1]) { a = Math.min(a, p[0], q[0]); b = Math.max(b, p[0], q[0]); } else { const x = p[0] + (y - p[1]) * (q[0] - p[0]) / (q[1] - p[1]); a = Math.min(a, x); b = Math.max(b, x); } } }
+      if (a <= b) g.fillRect(Math.round(a), y, Math.round(b) - Math.round(a) + 1, 1); } }
+  function line(p, q, c) { let x0 = Math.round(p[0]), y0 = Math.round(p[1]); const x1 = Math.round(q[0]), y1 = Math.round(q[1]), dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1; let e = dx + dy; g.fillStyle = c;
+    for (let n = 0; n < 500; n++) { g.fillRect(x0, y0, 1, 1); if (x0 === x1 && y0 === y1) break; const e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx; } if (e2 <= dx) { e += dx; y0 += sy; } } }
+  function box(x, y, z, w, d, h, c) { const t = [P(x, y, z + h), P(x + w, y, z + h), P(x + w, y + d, z + h), P(x, y + d, z + h)], s = [P(x, y + d, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x, y + d, z + h)], e = [P(x + w, y, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x + w, y, z + h)];
+    poly(s, c[1]); poly(e, c[2]); poly(t, c[0]); if (c[3]) [[t[0], t[1]], [t[1], t[2]], [t[2], t[3]], [t[3], t[0]], [s[0], s[1]], [s[0], s[3]], [e[0], e[1]], [e[0], e[3]], [s[1], s[2]]].forEach(([a, b]) => line(a, b, c[3])); }
+  function gable(x0, x1, y, d, z, r, c) { const xm = (x0 + x1) / 2; poly([P(x0, y, z), P(xm, y, z + r), P(xm, y + d, z + r), P(x0, y + d, z)], c[0]); poly([P(xm, y, z + r), P(x1, y, z), P(x1, y + d, z), P(xm, y + d, z + r)], c[1]); poly([P(x0, y + d, z), P(xm, y + d, z + r), P(x1, y + d, z)], c[2]);
+    for (let k = 1; k < 4; k++) { const yy = y + d * k / 4; line(P(x0, yy, z), P(xm, yy, z + r), c[3]); } line(P(xm, y, z + r), P(xm, y + d, z + r), c[3]); line(P(x0, y + d, z), P(xm, y + d, z + r), c[3]); line(P(xm, y + d, z + r), P(x1, y + d, z), c[3]); }
+  const sWin = (x, y, d, z, u, v, c) => { const p = P(x + u, y + d, z + v); rect(p[0], p[1] - 3, 2, 3, c); };
+  const eWin = (x, y, w, z, u, v, c) => { const p = P(x + w, y + u, z + v); rect(p[0], p[1] - 3, 2, 3, c); };
+  function tree(x, y, s) { const b = P(x, y, 0), cx = b[0], cy = b[1]; rect(cx - 1, cy - 6 * s, 2, 6 * s, '#6b3f1d');
+    const blob = (ox, oy, r, c) => { for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (i * i + j * j <= r * r + 1) px(cx + ox + i, cy + oy + j, c); };
+    blob(0, -9 * s, 5 * s, '#27500a'); blob(-1, -10 * s, 4 * s, '#3b6d11'); blob(-2, -12 * s, 2 * s, '#639922'); px(cx - 3, cy - 13 * s, '#97c459'); }
+  const crate = (x, y, z, c) => { box(x, y, z, 0.8, 0.8, 6, c); const p = P(x + 0.4, y + 0.8, z + 3); px(p[0], p[1], '#412402'); };
+  const zones = [];
+  const zone = (pts, t, go, lbl) => { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; pts.forEach((p) => { x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]); x1 = Math.max(x1, p[0]); y1 = Math.max(y1, p[1]); }); zones.push([x0, y0, x1, y1, t, go, lbl]); };
+  const pct = (v) => f2(v * 100) + '%';
+  // ---------- chão (desenhado uma vez)
+  const LOT = (x, y) => x >= 0 && x < 20 && y >= 0 && y < 10, ROAD = (x, y) => y === 11 || (x === 13 && y < 11), YARD = (x, y) => x >= 1 && x < 9 && y >= 5 && y < 10;
+  const bg = document.createElement('canvas'); bg.width = W; bg.height = H; g = bg.getContext('2d'); g.fillStyle = '#72a933'; g.fillRect(0, 0, W, H);
+  for (let y = -26; y < 36; y++) for (let x = -26; x < 40; x++) {
+    const c = P(x + 0.5, y + 0.5, 0); if (c[0] < -12 || c[0] > W + 12 || c[1] < -8 || c[1] > H + 8) continue;
+    const rd = ROAD(x, y), lot = LOT(x, y) && !rd, yd = YARD(x, y), t = [P(x, y, 0), P(x + 1, y, 0), P(x + 1, y + 1, 0), P(x, y + 1, 0)];
+    poly(t, rd ? '#5f5e5a' : yd ? ((x + y) % 2 ? '#bdb8aa' : '#b3ae9f') : lot ? ((x + y) % 2 ? '#86bf40' : '#7ab538') : ((x + y) % 2 ? '#72a933' : '#6a9e2f'));
+    if (!rd && !yd && ((x * 7 + y * 3) % 5 === 0)) { px(c[0], c[1], '#a6d65a'); px(c[0] + 3, c[1] + 1, '#5a8d24'); }
+    if (!rd && !lot && ((x * 5 + y * 11) % 13 === 0)) { px(c[0] - 2, c[1], '#f0997b'); px(c[0] + 2, c[1] - 1, '#fac775'); }
+    if (rd && y === 11 && x % 2 === 0) rect(c[0] - 1, c[1], 3, 1, '#fac775');
+    if (rd && x === 13 && y !== 11 && y % 2 === 0) rect(c[0], c[1], 1, 1, '#fac775');
+  }
+  line(P(-26, 11, 0), P(40, 11, 0), '#b4b2a9'); line(P(-26, 12, 0), P(40, 12, 0), '#b4b2a9'); line(P(13, -26, 0), P(13, 11, 0), '#b4b2a9'); line(P(14, -26, 0), P(14, 11, 0), '#b4b2a9');
+  g = main;
+  // ---------- elementos fixos da cena a partir dos dados
+  const MAXM = 28, mList = [];
+  const nP = D.mach.P, nW = D.mach.W, tot = nP + nW, scale = tot > MAXM ? MAXM / tot : 1;
+  const shownP = Math.round(nP * scale), shownW = Math.min(MAXM - shownP, Math.round(nW * scale));
+  for (let i = 0; i < shownP; i++) mList.push('P'); for (let i = 0; i < shownW; i++) mList.push('W');
+  const onP = Math.round(shownP * D.occ.P), onW = Math.round(shownW * D.occ.W);
+  const mTxt = (ty) => `Máquinas ${ty}: ${f0(D.mach[ty])} · ocupação ${pct(D.occ[ty])} · desgaste acumulado ${f2(D.wear[ty])}% · produção de ${ty === 'P' ? 'smartphones' : 'smartwatches'} ${f0(D.prod[ty])} un${D.pend[ty] ? ` · ${f0(D.pend[ty])} chegando no próximo período` : ''}${scale < 1 ? ` (cena mostra ${MAXM} de ${f0(tot)})` : ''}`;
+  const lvl = (q) => q > 0 ? Math.max(1, Math.min(6, Math.round(Math.log10(q + 1) * 1.6))) : 0;
+  const STK = [['P', 'Smartphones prontos', ['#85b7eb', '#378add', '#185fa5', '#042c53'], 9.0, 1.2], ['W', 'Smartwatches prontos', ['#9fe1cb', '#1d9e75', '#0f6e56', '#04342c'], 10.5, 1.2],
+    ['kitP', 'Kits de smartphone', ['#ef9f27', '#ba7517', '#854f0b', '#412402'], 9.0, 2.7], ['kitW', 'Kits de smartwatch', ['#fac775', '#ef9f27', '#ba7517', '#412402'], 10.5, 2.7], ['emb', 'Embalagens e acessórios', ['#f1efe8', '#d3d1c7', '#b4b2a9', '#5f5e5a'], 9.0, 4.2]];
+  const stkTxt = `Estoque final · smartphones ${f0(D.stock.P)} · smartwatches ${f0(D.stock.W)} · kits P ${f0(D.stock.kitP)} · kits W ${f0(D.stock.kitW)} · embalagens ${f0(D.stock.emb)}`;
+  const nWk = D.workers > 0 ? Math.max(1, Math.min(14, Math.round(D.workers / 4))) : 0;
+  const regTxt = (R2, i) => `${R2.nm} · market share médio ${pct(R2.share)} · vendas ${f0(R2.sold)} un (${R2.byP}) · demanda da empresa ${f0(R2.dem)} un`;
+  const TP = [[14.6, 5.0], [16.5, 5.0], [18.4, 5.0], [15.5, 7.6], [17.4, 7.6]];
+  const trucks = []; D.reg.forEach((R2, i) => { if (R2.sold > 0) { trucks.push(i); if (R2.sold > 3000) trucks.push(i); } });
+  const smoke = Math.max(0, Math.min(8, Math.round((D.prod.P + D.prod.W) / 600)));
+  const TREES = [[0.4, 10.6, 1], [2.2, 13.2, 1.1], [5.3, 13.6, 1], [8.4, 13.1, 1.2], [11.2, 13.4, 1], [15.5, 13.2, 1.1], [19.5, 13.5, 1], [22, 12.6, 1], [0.4, 0.4, 0.9], [7.8, 0.4, 1], [12.2, 0.6, 0.9], [19.4, 0.5, 1], [12.3, 9.3, 0.9], [19.5, 9.2, 0.9],
+    [22, 3, 1.1], [23, 7, 1], [21.5, -1.5, 1], [-2.5, 1, 1], [-3, 8, 1.1], [-2, 5, 0.9], [4, -2.5, 1.1], [9, -3, 1], [17, -2.4, 1], [-1.5, 13, 1], [25, 10, 1], [-4, 3.5, 1]];
+  const regCols = (i) => CITY_RC[i % CITY_RC.length];
+  function draw(t) {
+    g.drawImage(bg, 0, 0); zones.length = 0;
+    const L = [], add = (k, f) => L.push([k, f]);
+    const post = (x, y) => { const p = P(x, y, 0); rect(p[0], p[1] - 5, 1, 5, '#854f0b'); };
+    for (let x = 0; x <= 20; x++) if (x !== 13 && x !== 14) add(x - 0.2, () => { post(x, -0.1); if (x < 20 && x !== 12) line(P(x, -0.1, 3), P(x + 1, -0.1, 3), '#ba7517'); });
+    for (let y = 0; y < 10; y++) { add(y - 0.2, () => { post(-0.1, y); line(P(-0.1, y, 3), P(-0.1, y + 1, 3), '#ba7517'); }); add(20.1 + y, () => { post(20.1, y); line(P(20.1, y, 3), P(20.1, y + 1, 3), '#ba7517'); }); }
+    // chaminé + galpão
+    add(2, () => { box(1.6, 1.4, 22, 0.7, 0.7, 26, ['#b4b2a9', '#888780', '#5f5e5a', '#2c2c2a']); const q = P(1.95, 1.75, 48); rect(q[0] - 1, q[1], 4, 2, '#d85a30'); });
+    add(6, () => { const x = 1, y = 1, w = 6, d = 3.6, h = 22; box(x, y, 0, w, d, h, ['#e8e3d6', '#d3cbb8', '#a99f8a', '#4a3f35']);
+      for (let u = 0.6; u < w; u += 1.2) sWin(x, y, d, 0, u, 15, D.opOcc > 0.05 ? '#fac775' : '#85b7eb'); for (let u = 0.5; u < d; u += 1) eWin(x, y, w, 0, u, 15, '#5c8fc4');
+      const dp = P(x + 2.4, y + d, 0); rect(dp[0], dp[1] - 10, 10, 10, '#5f5e5a'); for (let k = 1; k < 10; k += 2) rect(dp[0], dp[1] - 10 + k, 10, 1, '#888780');
+      for (let i = 0; i < 3; i++) gable(x + i * 2, x + i * 2 + 2, y, d, h, 7, ['#d85a30', '#993c1d', '#b84a24', '#712b13']);
+      const sg = P(x + 4.6, y + d, 0); rect(sg[0], sg[1] - 19, 13, 5, '#fac775'); rect(sg[0] + 1, sg[1] - 18, 11, 3, '#854f0b');
+      zone([P(1, 1, 40), P(7, 1, 22), P(7, 4.6, 0), P(1, 4.6, 0)], `Galpão · ${f0(D.workers)} operadores · ocupação da mão de obra ${pct(D.opOcc)} · ${f0(D.opIdle)} h ociosas · satisfação ${n3(D.sat)}${D.strike ? ' · houve greve/paralisação' : ''}`, 'recursos', 'Recursos da Produção'); });
+    // máquinas no pátio
+    mList.forEach((ty, i) => { const col = i % 7, row = Math.floor(i / 7), mx = 1.3 + col * 1.05, my = 5.9 + row * 1.0; const isP = ty === 'P', idx = isP ? i : i - shownP, on = idx < (isP ? onP : onW);
+      add(mx + my + 0.8, () => { box(mx, my, 0, 0.8, 0.7, 6, isP ? ['#85b7eb', '#378add', '#185fa5', '#042c53'] : ['#9fe1cb', '#1d9e75', '#0f6e56', '#04342c']);
+        box(mx + 0.2, my + 0.15, 6, 0.4, 0.4, 2, ['#d3d1c7', '#b4b2a9', '#888780', '#444441']); const gp = P(mx + 0.8, my + 0.35, 3);
+        rect(gp[0], gp[1] - 1, 2, 2, on ? (Math.floor(t * 5 + i) % 2 ? '#fac775' : '#ef9f27') : '#444441');
+        zone([P(mx, my, 9), P(mx + 0.8, my + 0.7, 0), P(mx, my + 0.7, 0), P(mx + 0.8, my, 0)], mTxt(ty), 'recursos', 'Recursos da Produção'); }); });
+    // operadores
+    for (let i = 0; i < nWk; i++) { const wx = D.strike ? 2.2 + i * 0.4 : 1.3 + ((t * 0.35 + i * 0.83) % 7.4), wy = D.strike ? 5.15 : 5.2 + (i % 2) * 0.25;
+      add(wx + wy + 0.5, () => { const p = P(wx, wy, 0), s = Math.floor(t * 6 + i) % 2; rect(p[0], p[1] - 4, 2, 3, i % 2 ? '#0f6e56' : '#534ab7'); rect(p[0], p[1] - 6, 2, 2, '#f0c79a'); rect(p[0] - 1, p[1] - 7, 4, 1, '#fac775');
+        if (D.strike) { rect(p[0], p[1] - 12, 1, 5, '#854f0b'); rect(p[0] - 2, p[1] - 15, 5, 3, '#e24b4a'); } else px(p[0] + (s ? 0 : 1), p[1] - 1, '#2c2c2a'); }); }
+    // estoque
+    STK.forEach(([k, nm, colr, x, y]) => { const n = lvl(D.stock[k]); add(x + y + 0.8, () => { box(x - 0.05, y - 0.05, 0, 0.9, 0.9, 1, ['#a8743a', '#854f0b', '#633806', '#412402']); for (let j = 0; j < n; j++) crate(x, y, 1 + j * 6, colr); }); });
+    if (D.pend.P + D.pend.W) add(10.5 + 4.2 + 0.8, () => { box(10.4, 4.1, 0, 1.1, 1.0, 9, ['#f1efe8', '#d3d1c7', '#b4b2a9', '#5f5e5a']); const q = P(10.95, 5.1, 5); rect(q[0] - 2, q[1] - 1, 5, 2, '#e24b4a');
+      zone([P(10.4, 4.1, 12), P(11.5, 5.1, 0), P(10.4, 5.1, 0), P(11.5, 4.1, 0)], `Máquinas compradas chegando no próximo período · P ${f0(D.pend.P)} · W ${f0(D.pend.W)}`, 'compras', 'Compras'); });
+    add(15.4, () => zone([P(8.9, 1.1, 42), P(11.4, 1.1, 0), P(11.4, 5.1, 0), P(8.9, 5.1, 0)], stkTxt, 'estoques', 'Estoque'));
+    // escritório
+    add(17, () => { const x = 14.6, y = 1, w = 3, d = 2.6, h = 34; box(x, y, 0, w, d, h, ['#d3d1c7', '#b4b2a9', '#888780', '#2c2c2a']);
+      for (let v = 6; v < h - 4; v += 7) { for (let u = 0.4; u < w; u += 0.8) sWin(x, y, d, 0, u, v, (u * v | 0) % 3 ? '#85b7eb' : '#fac775'); for (let u = 0.4; u < d; u += 0.8) eWin(x, y, w, 0, u, v, '#5c8fc4'); }
+      box(x - 0.1, y - 0.1, h, w + 0.2, d + 0.2, 2, ['#5f5e5a', '#444441', '#2c2c2a', '#2c2c2a']); const fl = P(x + 1.5, y + 1.3, h + 2); line(fl, [fl[0], fl[1] - 9], '#2c2c2a'); rect(fl[0] + 1, fl[1] - 9, 6, 4, D.res >= 0 ? '#639922' : '#e24b4a');
+      if (D.esp > 0) { const b2 = P(x + 3, y, h + 8); rect(b2[0], b2[1] - 9, 9, 9, '#f1efe8'); rect(b2[0] + 4, b2[1] - 7, 1, 4, '#e24b4a'); rect(b2[0] + 4, b2[1] - 2, 1, 1, '#e24b4a'); }
+      zone([P(x, y, h + 14), P(x + w, y, h), P(x + w, y + d, 0), P(x, y + d, 0)], `Escritório · caixa final $ ${f0(D.cash)} · resultado do período $ ${f0(D.res)} · RAA ${f2(D.raa)}%${D.pos ? ` · ${D.pos}º no ranking` : ''}${D.esp > 0 ? ` · empréstimo especial $ ${f0(D.esp)}` : ''}`, 'visao', 'Visão Geral'); });
+    // prédios das regiões
+    D.reg.slice(0, TP.length).forEach((R2, i) => { const [x, y] = TP[i], c = regCols(i), h = Math.max(4, Math.round(6 + R2.share * 70));
+      add(x + y + 1.2, () => { box(x - 0.2, y - 0.2, 0, 1.6, 1.6, 2, ['#d3d1c7', '#b4b2a9', '#888780', '#5f5e5a']); box(x, y, 2, 1.2, 1.2, h, [c[0], c[1], c[2], '#2c2c2a']);
+        for (let v = 6; v < h; v += 5) { sWin(x, y, 1.2, 2, 0.3, v, '#e6f1fb'); eWin(x, y, 1.2, 2, 0.4, v, '#b5d4f4'); }
+        const tp = P(x + 0.6, y + 0.6, h + 4); rect(tp[0] - 3, tp[1] - 6, 7, 6, '#2b2433'); g.fillStyle = '#f1efe8'; g.font = '5px monospace'; g.fillText(String(i + 1), tp[0] - 1, tp[1] - 1);
+        zone([P(x, y, h + 10), P(x + 1.2, y + 1.2, 0), P(x, y + 1.2, 0), P(x + 1.2, y, 0)], regTxt(R2, i), 'marketShare', 'Market Share'); }); });
+    // árvores
+    TREES.forEach(([x, y, s]) => add(x + y + 0.2, () => tree(x, y, s)));
+    // caminhões de entrega (um por região com vendas)
+    trucks.forEach((ri, n) => { const tx = ((t * 1.3 + n * (34 / Math.max(1, trucks.length))) % 34) - 10, ty = 11.15, c = regCols(ri), R2 = D.reg[ri];
+      add(tx + ty + 1.4, () => { box(tx, ty, 1, 1.6, 0.7, 7, [c[0], c[1], c[2], '#2c2c2a']); box(tx + 1.6, ty, 1, 0.7, 0.7, 5, ['#f1efe8', '#d3d1c7', '#b4b2a9', '#2c2c2a']);
+        const w1 = P(tx + 0.3, ty + 0.7, 0), w2 = P(tx + 1.9, ty + 0.7, 0); rect(w1[0], w1[1] - 2, 3, 3, '#2c2c2a'); rect(w2[0], w2[1] - 2, 3, 3, '#2c2c2a');
+        zone([P(tx, ty, 8), P(tx + 2.3, ty + 0.7, 0), P(tx, ty + 0.7, 0)], `Caminhão para ${R2.nm} · ${f0(R2.sold)} un vendidas (${R2.byP})`, 'vendas', 'Vendas'); }); });
+    // caminhão de fornecedor (compras de insumos)
+    if (D.buys) { const ty2 = ((t * 1.0) % 20) - 9; add(13.2 + ty2 + 1.2, () => { box(13.15, ty2, 1, 0.7, 1.6, 7, ['#fac775', '#ef9f27', '#ba7517', '#2c2c2a']); box(13.15, ty2 + 1.6, 1, 0.7, 0.7, 5, ['#f1efe8', '#d3d1c7', '#b4b2a9', '#2c2c2a']);
+      zone([P(13.15, ty2, 8), P(13.85, ty2 + 2.3, 0), P(13.15, ty2 + 2.3, 0)], `Fornecedor entregando insumos · ${D.buys} compra(s) no período`, 'compras', 'Compras'); }); }
+    L.sort((a, b) => a[0] - b[0]).forEach(([, f]) => f());
+    for (let i = 0; i < smoke; i++) { const k = (t * 0.5 + i / smoke) % 1, c = P(1.95 + k * 1.5, 1.75 - k * 0.6, 48 + k * 26), r = 1 + Math.floor(k * 3); rect(c[0] - r, c[1] - r, r * 2 + 1, r * 2, k < 0.5 ? '#d3d1c7' : '#888780'); }
+  }
+  const hit = (e) => { const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H; return zones.slice().reverse().find((z) => x >= z[0] && x <= z[2] && y >= z[1] && y <= z[3]); };
+  cv.addEventListener('mousemove', (e) => { cv.style.cursor = hit(e) ? 'pointer' : 'default'; });
+  cv.addEventListener('click', (e) => { const z = hit(e); if (!z) return; txt.textContent = z[4]; goB.hidden = false; goB.dataset.go = z[5]; goB.textContent = `Abrir ${z[6]} →`; });
+  const t0 = performance.now();
+  (function loop(n) { if (!cv.isConnected) return; draw((n - t0) / 1000); requestAnimationFrame(loop); })(t0);
+}
 // ------------------------------------------------ render
 const PAGES = { visao: pVisao, compras: pCompras, vendas: pVendas, despesas: pDespesas, recursos: pRecursos, estoques: pEstoques, custosGerais: pCustosGerais, custosProduto: pCustosProduto, caixa: pCaixa, contas: pContas,
   dre: pDRE, balanco: pBalanco, politicas: pPoliticas, analise: pAnalise, decisoes: pDecisoes, marketShare: pMarketShare, mod: pMOD, ranking: pRanking, balancos: (c) => pMercadoReal(c, 'balancos'), rentab: (c) => pMercadoReal(c, 'rentab'),
-  estrutura: (c) => pMercadoReal(c, 'estrutura'), liquidez: (c) => pMercadoReal(c, 'liquidez'), parametros: pParametros, portal: pPortal };
+  estrutura: (c) => pMercadoReal(c, 'estrutura'), liquidez: (c) => pMercadoReal(c, 'liquidez'), parametros: pParametros, portal: pPortal, cidade: pCidade };
 function gameLocked() { const sv = typeof curSave === 'function' ? curSave() : null; return !!(sv && !sv.ended); }
 // disposição de cada relatório como no original: gráficos à direita da tabela, abaixo dela, ou tabela estreita
 const LAYOUT = { caixa: 's50', recursos: 's50', despesas: 's50', mod: 's50', custosGerais: 's65', dre: 'below', balanco: 'narrow', politicas: 'narrow' };
@@ -1307,10 +1460,12 @@ function render() {
   let body;
   if (page === 'parametros') body = `<div class="ttl"><h1>${TITLE[page]}</h1></div>` + pParametros();
   else if (page === 'portal') body = `<div class="ttl"><h1>Portal de Notícias</h1><span>Notícias e informações do jogo, por período</span></div>` + pPortal();
+  else if (page === 'cidade') body = pCidade(c);
   else if (c.mode === 'real' && page === 'visao') body = pVisao(c);
   else if (c.mode === 'real') body = title(c, TITLE[page]) + layoutPage(page, chartsFor(page, c), rawSheet(SHEET[page] || 'Visão Geral'));
   else body = (page === 'visao' ? '' : title(c, TITLE[page])) + (page === 'visao' ? chartsFor(page, c) + PAGES[page](c) : layoutPage(page, chartsFor(page, c), PAGES[page](c))).replace('<!--ANCHART-->', page === 'analise' ? `<div class="charts">${anChart(c)}</div>` : '');
   $('view').innerHTML = body; applyFmt(); applyTips(); fitLegends();
+  if (page === 'cidade' && c.mode !== 'real') { try { startCity(cityData(c)); } catch (e) { console.error(e); } }
   $('sideNote').innerHTML = `Ponto de partida: fim do período #${app.base.period} real.<br>Modelo calibrado com os períodos #1–#5.<br><span style="font-size:11px">Versão ${typeof APPVER !== 'undefined' ? APPVER : ''}${NATIVE ? ' · janela nativa' : ''}</span>`;
   { const sv = typeof curSave === 'function' ? curSave() : null; $('bConfirm').textContent = sv && sv.ended ? 'Partida encerrada' : `Fechar período #${app.state.period} e avançar`; $('bConfirm').disabled = !!(sv && sv.ended); $('bConfirm').style.display = viewKey === 'cur' ? '' : 'none'; }
   save();
@@ -1417,7 +1572,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ================================================ JOGO: jogadores, saves, configurações, cronômetro, cenários
-const APPVER = '20/11 13:20';
+const APPVER = '20/11 14:10';
 const SKEY = 'simEnividia.store.v1';
 // N empresas no mercado: o tamanho do mercado acompanha o número de empresas (4 = jogo original)
 function setCompanies(p, n) { n = Math.max(2, Math.min(6, +n || 4)); p.nCompanies = n; delete p.marketScale; delete p.nRegions; return p; }
