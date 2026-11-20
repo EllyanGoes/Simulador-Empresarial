@@ -25,6 +25,8 @@ a{color:#1a4f9c}
 .mvbub{position:absolute;inset:0;pointer-events:none}.mvbub div{position:absolute;transform:translate(-50%,-100%);background:#fff;border:2px solid #2b2433;border-radius:6px;padding:2px 6px;font:600 11px ui-monospace,Menlo,monospace;white-space:nowrap;box-shadow:0 2px 0 #2b2433}.mvbub div::after{content:"";position:absolute;left:50%;bottom:-6px;border:4px solid transparent;border-top-color:#2b2433;transform:translateX(-50%)}
 .mesa{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin:12px 0}.mcard{background:#fff;border:1px solid #d9d6cc;border-radius:10px;padding:12px}.mcard h4{margin:0 0 8px;font-size:15px}.mesa h4{margin:0 0 8px;font-size:14px}.msrow{display:grid;grid-template-columns:1fr 30px 90px 30px;gap:4px;align-items:center;margin:4px 0;font-size:13px}.msrow input,.msrow select{width:100%;box-sizing:border-box}.msrow .btn{padding:2px 0;text-align:center}.mesa .proj2{grid-column:1/-1;background:#2b2433;color:#f1efe8;border-radius:8px;padding:10px 14px;font:13px ui-monospace,Menlo,monospace}.achv{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.achv span{border:2px solid #b4b2a9;border-radius:8px;padding:4px 10px;font-size:12.5px;color:#888780;background:#f6f4ee}.achv span.on{border-color:#ba7517;color:#412402;background:#fdf3cf;font-weight:600}
 #cityCap{position:absolute;left:50%;top:44px;transform:translateX(-50%);background:#2b2433ee;color:#fac775;border:2px solid #fac775;padding:6px 14px;font:700 13px ui-monospace,Menlo,monospace;border-radius:6px;white-space:nowrap}
+.ticker{position:absolute;left:0;right:0;bottom:0;background:#2b2433e6;color:#fac775;font:600 12px ui-monospace,Menlo,monospace;white-space:nowrap;overflow:hidden;padding:4px 0;cursor:pointer}.ticker span{display:inline-block;padding-left:100%;animation:tick 40s linear infinite}@keyframes tick{to{transform:translateX(-100%)}}
+.chal{border:1px solid #d9d6cc;border-radius:10px;padding:10px 14px;margin:10px 0 4px;background:#fbfaf6}.chalh{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;margin-bottom:6px}.chalh span{font-size:12px;color:#666b70}.chi{display:grid;grid-template-columns:18px 1fr auto;gap:8px;font-size:13.5px;padding:3px 0}.chi b{color:#7a4d00}.chi.on{color:#3b6d11}.chi.on span:nth-child(2){text-decoration:line-through}
 .scenetabs{display:inline-flex;gap:0;border:2px solid #2b2433;border-radius:8px;overflow:hidden;margin:0 0 12px}.scenetabs button{all:unset;cursor:pointer;padding:7px 16px;font:600 14px system-ui,sans-serif;color:#2b2433;background:#f1efe8}.scenetabs button.on{background:#2b2433;color:#fac775}.scenetabs.sm{margin:0}.scenetabs.sm button{padding:5px 12px;font-size:13px}.mvbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 12px}.mvdot{display:inline-block;width:11px;height:11px;border:1px solid #2c2c2a;margin-right:6px;vertical-align:-1px}
 .cityw{max-width:1100px;margin:0 auto}.cityinfo{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:10px 0;padding:10px 14px;background:#2b2433;color:#f1efe8;border-radius:8px;font:13.5px ui-monospace,Menlo,monospace}.cityinfo .btn{white-space:nowrap}
 .menu>button{all:unset;cursor:pointer;color:#fff;font-size:17px;line-height:1.08;padding:8px 12px;border-radius:6px;display:flex;align-items:center;gap:9px}
@@ -2375,7 +2377,7 @@ function cityData(c) {
     stock: { P: s.P.fim.q, W: s.W.fim.q, kitP: s.kitP.fim.q, kitW: s.kitW.fim.q, emb: s.emb.fim.q },
     buys: (r.purchases || []).length, reg,
     bank: { caixa: r.balance.ativo.caixa || 0, aplic: r.balance.ativo.aplicacoes || 0, debt: r.balance.passivo.emprestimos || 0 }, lv: playerLvl(), ach: cityAch(),
-    rev: r.dre.receitaLiquida || 0, buysQ: sum((r.purchases || []).map((x) => x.q || 0)) };
+    rev: r.dre.receitaLiquida || 0, buysQ: sum((r.purchases || []).map((x) => x.q || 0)), mood: sceneMood(c), overtime: +c.d.overtime || 0, flags: xpLog().filter((x) => x.kind === 'chal').length };
 }
 function pCidade(c) {
   if (c.mode === 'real') return `<div class="ttl"><h1>Visão da Empresa</h1><span>(Período: #${c.period} ${stLabel(c)})</span></div>${sceneTabs('cidade')}<div class="al">A cena é montada a partir do cálculo do simulador. Escolha o período em edição ou um período simulado no seletor <b>Períodos</b>.</div>`;
@@ -2385,10 +2387,10 @@ function pCidade(c) {
   return title(c, 'Visão da Empresa') + sceneTabs('cidade')
     + `<div class="cityw"><div style="position:relative;border-radius:10px;overflow:hidden;background:#72a933;border:1px solid #4b6d24">
 <canvas id="cityCv" width="300" height="186" style="display:block;width:100%;image-rendering:pixelated;image-rendering:crisp-edges"></canvas>
-<div style="position:absolute;left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap">${pill(`P${D.period} ${esc(D.company.toUpperCase())}`, '#fac775')}${pill(`RAA ${f2(D.raa)}%`, '#97c459')}${D.pos ? pill(`RANK ${D.pos}º`, '#85b7eb') : ''}${pill(`CAIXA $ ${f0(D.cash)}`, '#f1efe8')}${D.esp > 0 ? pill('EMPRÉSTIMO ESPECIAL', '#f09595') : ''}${D.strike ? pill('GREVE', '#f09595') : ''}</div><div id="cityCap" hidden></div></div>
+<div style="position:absolute;left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap">${pill(`P${D.period} ${esc(D.company.toUpperCase())}`, '#fac775')}${pill(`RAA ${f2(D.raa)}%`, '#97c459')}${D.pos ? pill(`RANK ${D.pos}º`, '#85b7eb') : ''}${pill(`CAIXA $ ${f0(D.cash)}`, '#f1efe8')}${D.esp > 0 ? pill('EMPRÉSTIMO ESPECIAL', '#f09595') : ''}${D.strike ? pill('GREVE', '#f09595') : ''}${pill(D.mood.weather === 'sol' ? 'MERCADO AQUECIDO ☀' : D.mood.weather === 'chuva' ? 'MERCADO EM QUEDA ☂' : 'MERCADO ESTÁVEL ☁', D.mood.weather === 'sol' ? '#fac775' : D.mood.weather === 'chuva' ? '#85b7eb' : '#d3d1c7')}</div><div id="cityCap" hidden></div>${D.mood.news.length ? `<div class="ticker" data-go="portal" title="Abrir o Portal de Notícias"><span>NOTÍCIAS · ${D.mood.news.map(esc).join('   ◆   ')}   ◆   </span></div>` : ''}</div>
 ${c.mode === 'sim' ? `<p style="margin:10px 0 0"><button class="btn pri" data-replay="1">▶ Assistir o período #${D.period}</button> <span class="note" style="margin:0">Animação de 20 segundos: compras, produção, vendas e resultado.</span></p>` : ''}
 <div class="cityinfo"><span id="cityTxt">Clique num elemento da cena para ver os números do período. Galpão e máquinas, estoque, escritório, prédios das regiões e caminhões levam aos relatórios.</span><button class="btn" id="cityGo" hidden></button></div>
-<p class="note">Cada máquina, pilha de caixas, prédio e caminhão sai dos números do período #${D.period} ${c.mode === 'cur' ? '(projeção com as decisões em edição: mude uma decisão e a cena se atualiza)' : '(simulado)'}. Máquinas: ${f0(D.mach.P)} P e ${f0(D.mach.W)} W${D.pend.P + D.pend.W ? `, mais ${f0(D.pend.P + D.pend.W)} chegando` : ''} · operadores: ${f0(D.workers)} · vendas: ${f0(sold)} un. A altura de cada prédio de região é o market share médio nela; as luzes das máquinas acendem conforme a ocupação.</p>
+<p class="note">Cada máquina, pilha de caixas, prédio e caminhão sai dos números do período #${D.period} ${c.mode === 'cur' ? '(projeção com as decisões em edição: mude uma decisão e a cena se atualiza)' : '(simulado)'}. Máquinas: ${f0(D.mach.P)} P e ${f0(D.mach.W)} W${D.pend.P + D.pend.W ? `, mais ${f0(D.pend.P + D.pend.W)} chegando` : ''} · operadores: ${f0(D.workers)} · vendas: ${f0(sold)} un. A altura de cada prédio de região é o market share médio nela; as luzes das máquinas acendem conforme a ocupação. O clima vem da demanda total do mercado em relação ao período anterior (sol: subiu 3% ou mais; chuva: caiu 3% ou mais). O céu escurece com o cronômetro do período (sem cronômetro, segue o relógio); com hora extra, o galpão fica aceso à noite. Notícias do período aparecem como objetos na cena e no letreiro.</p>
 <h3 style="margin:16px 0 4px">Conquistas na cena</h3><div class="achv">${D.ach.map((a) => `<span class="${a.on ? 'on' : ''}" title="${esc(a.d)}">${a.on ? '★' : '☆'} ${esc(a.t)}</span>`).join('')}</div>
 <p class="note" style="margin-top:0">Cada conquista vira um objeto na frente da fábrica ou ao lado dela. Passe o mouse sobre o selo para ver como conseguir. Na porta do escritório está você: o personagem muda de roupa conforme o seu nível nos Casos de Finanças (${esc(D.lv.title)}, nível ${D.lv.lvl}).</p>
 ${c.mode === 'cur' ? mesaHTML(c) : ''}</div>`;
@@ -2535,6 +2537,17 @@ function startCity(D) {
     if (A.full.on) add(8.6 + 10.5, () => { const p = P(8.6, 10.5, 0); rect(p[0], p[1] - 18, 1, 18, '#5f5e5a'); const wv = Math.floor(t * 4) % 2; rect(p[0] + 1, p[1] - 18 + wv, 7, 5, '#e24b4a'); px(p[0] + 4, p[1] - 16 + wv, '#fac775'); px(p[0] + 3, p[1] - 16 + wv, '#fac775'); px(p[0] + 5, p[1] - 16 + wv, '#fac775'); px(p[0] + 4, p[1] - 17 + wv, '#fac775'); zone([[p[0] - 2, p[1] - 19], [p[0] + 9, p[1]]], 'Conquista: bandeira estrela (toda a demanda atendida num período)', 'vendas', 'Vendas'); });
     if (A.lvl5.on) add(10.6 + 10.3 + 0.5, () => { ped(10.6, 10.3); const p = P(10.9, 10.55, 3); rect(p[0] - 1, p[1] - 11, 3, 3, '#fac775'); rect(p[0] - 2, p[1] - 8, 5, 5, '#ef9f27'); rect(p[0] - 1, p[1] - 3, 1, 3, '#ba7517'); rect(p[0] + 1, p[1] - 3, 1, 3, '#ba7517'); zone([[p[0] - 3, p[1] - 12], [p[0] + 3, p[1] + 4]], 'Conquista: estátua dourada (nível 5 nos Casos de Finanças)', null, ''); });
     for (let k = 0; k < Math.min(8, A.perf.n || 0); k++) { const fx = -1.8 - (k % 2) * 1.6, fy = 1 + Math.floor(k / 2) * 2.1; add(fx + fy + 0.2, () => { tree(fx, fy, 1); const b0 = P(fx, fy, 0); [[-3, -11], [2, -9], [-1, -14], [3, -13]].forEach(([dx, dy]) => rect(b0[0] + dx, b0[1] + dy, 2, 2, '#ef9f27')); zone([[b0[0] - 6, b0[1] - 16], [b0[0] + 6, b0[1]]], `Pomar dos casos: ${A.perf.n} caso(s) gabaritado(s) nos Casos de Finanças`, null, ''); }); }
+    // eventos das notícias
+    const EV = D.mood.ev, evZ = (pts, n) => zone(pts, `Notícia: ${n.title}`, 'portal', 'Portal de Notícias');
+    if (EV.propag) add(5 + 12.4, () => { const a = P(5, 12.4, 0), b2 = P(6.2, 12.4, 0); rect(a[0], a[1] - 12, 1, 12, '#5f5e5a'); rect(b2[0], b2[1] - 12, 1, 12, '#5f5e5a'); const p = P(5.6, 12.4, 12); rect(p[0] - 9, p[1] - 9, 19, 10, '#2c2c2a'); rect(p[0] - 8, p[1] - 8, 17, 8, Math.floor(t * 2) % 2 ? '#d4537e' : '#7f77dd'); rect(p[0] - 6, p[1] - 6, 5, 4, '#fac775'); rect(p[0], p[1] - 6, 7, 1, '#f1efe8'); rect(p[0], p[1] - 4, 5, 1, '#f1efe8'); evZ([[p[0] - 10, p[1] - 10], [p[0] + 10, a[1]]], EV.propag); });
+    if (EV.juros) add(11 + 6.1 + 2.3, () => { const p = P(11, 6.6, 27); const on = Math.floor(t * 2) % 2; rect(p[0] - 4, p[1] - 6, 9, 7, '#2c2c2a'); rect(p[0] - 3, p[1] - 5, 2, 2, on ? '#e24b4a' : '#a32d2d'); rect(p[0] + 2, p[1] - 2, 2, 2, on ? '#e24b4a' : '#a32d2d'); for (let k = 0; k < 5; k++) rect(p[0] + 2 - k, p[1] - 5 + k, 1, 1, on ? '#e24b4a' : '#a32d2d'); evZ([[p[0] - 5, p[1] - 7], [p[0] + 5, p[1] + 1]], EV.juros); });
+    if (EV.fornec) add(12.2 + 10.2 + 1.4, () => { box(12.1, 10.1, 1, 0.7, 1.4, 6, ['#fac775', '#ef9f27', '#ba7517', '#2c2c2a']); const p = P(12.45, 10.6, 14); rect(p[0] - 3, p[1] - 8, 7, 8, '#f1efe8'); rect(p[0], p[1] - 7, 1, 4, '#e24b4a'); rect(p[0], p[1] - 2, 1, 1, '#e24b4a'); evZ([[p[0] - 6, p[1] - 9], [p[0] + 8, p[1] + 14]], EV.fornec); });
+    if (EV.salario) add(7.5, () => { const a = P(1.6, 4.65, 17), b2 = P(4.2, 4.65, 17); line(a, b2, '#5f5e5a'); const m2 = P(2.9, 4.65, 17); rect(m2[0] - 9, m2[1] - 3, 19, 6, '#e24b4a'); rect(m2[0] - 7, m2[1] - 1, 15, 1, '#f1efe8'); evZ([[m2[0] - 10, m2[1] - 4], [m2[0] + 10, m2[1] + 4]], EV.salario); });
+    if (EV.imposto) add(13.6 + 4.3, () => { const p = P(13.6, 4.3, 0); rect(p[0], p[1] - 9, 1, 9, '#5f5e5a'); rect(p[0] - 4, p[1] - 14, 9, 6, '#f1efe8'); rect(p[0] - 3, p[1] - 13, 7, 1, '#185fa5'); rect(p[0] - 3, p[1] - 11, 5, 1, '#185fa5'); evZ([[p[0] - 5, p[1] - 15], [p[0] + 5, p[1]]], EV.imposto); });
+    // postes de luz
+    [1.5, 5.5, 9.5, 15.5, 19.5].forEach((lx) => add(lx + 10.6, () => { const p = P(lx, 10.6, 0); rect(p[0], p[1] - 12, 1, 12, '#444441'); rect(p[0] - 1, p[1] - 13, 3, 1, '#2c2c2a'); rect(p[0], p[1] - 12, 1, 1, '#fac775'); }));
+    // bandeirolas dos desafios cumpridos, na cerca do fundo
+    for (let k = 0; k < Math.min(24, D.flags); k++) { const fx = 0.3 + k * 0.5; add(fx - 0.1, () => { const p = P(fx, -0.1, 4), cl = ['#e24b4a', '#fac775', '#378add', '#1d9e75', '#d4537e'][k % 5]; rect(p[0] - 1, p[1], 3, 1, cl); rect(p[0], p[1] + 1, 1, 1, cl); if (k < Math.min(24, D.flags) - 1) line(p, P(fx + 0.5, -0.1, 4), '#f1efe8'); }); }
     // árvores
     TREES.forEach(([x, y, s]) => add(x + y + 0.2, () => tree(x, y, s)));
     // caminhões de entrega (um por região com vendas)
@@ -2547,6 +2560,13 @@ function startCity(D) {
       zone([P(13.15, ty2, 8), P(13.85, ty2 + 2.3, 0), P(13.15, ty2 + 2.3, 0)], `Fornecedor entregando insumos · ${D.buys} compra(s) no período`, 'compras', 'Compras'); }); }
     L.sort((a, b) => a[0] - b[0]).forEach(([, f]) => f());
     const smk = rp < 0 ? smoke : rp === 1 ? 8 : 1; for (let i = 0; i < smk; i++) { const k = (t * 0.5 + i / smk) % 1, c = P(1.95 + k * 1.5, 1.75 - k * 0.6, 48 + k * 26), r = 1 + Math.floor(k * 3); rect(c[0] - r, c[1] - r, r * 2 + 1, r * 2, k < 0.5 ? '#d3d1c7' : '#888780'); }
+    const nt = nightAmt(dayPhase());
+    pixWeather(g, W, H, t, nt > 0.5 && D.mood.weather === 'sol' ? 'lua' : D.mood.weather);
+    if (nt > 0.01) { g.fillStyle = `rgba(14,18,52,${(0.6 * nt).toFixed(3)})`; g.fillRect(0, 0, W, H); g.globalAlpha = nt;
+      { const x = 14.6, y = 1, w = 3, d = 2.6, h = 34; for (let v = 6; v < h - 4; v += 7) { for (let u = 0.4; u < w; u += 0.8) if (((u * 10 + v) | 0) % 3) sWin(x, y, d, 0, u, v, '#fac775'); for (let u = 0.4; u < d; u += 0.8) if (((u * 10 + v) | 0) % 2) eWin(x, y, w, 0, u, v, '#f0b429'); } }
+      if (D.overtime > 0 || rp === 1) { for (let u = 0.6; u < 6; u += 1.2) sWin(1, 1, 3.6, 0, u, 15, '#fac775'); for (let u = 0.5; u < 3.6; u += 1) eWin(1, 1, 6, 0, u, 15, '#f0b429'); }
+      [1.5, 5.5, 9.5, 15.5, 19.5].forEach((lx) => { const p = P(lx, 10.6, 12); g.fillStyle = 'rgba(250,199,117,0.35)'; for (let r2 = 6; r2 > 0; r2 -= 2) { g.fillRect(p[0] - r2, p[1] - 1 + (6 - r2), r2 * 2 + 1, 2); } rect(p[0], p[1], 1, 1, '#fff3c4'); });
+      g.globalAlpha = 1; if (nt > 0.5 && D.mood.weather === 'sol') pixWeather(g, W, H, t, 'lua'); }
   }
   const hit = (e) => { const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H; return zones.slice().reverse().find((z) => x >= z[0] && x <= z[2] && y >= z[1] && y <= z[3]); };
   cv.addEventListener('mousemove', (e) => { cv.style.cursor = hit(e) ? 'pointer' : 'default'; });
@@ -2642,7 +2662,7 @@ function startMarket(M, cc) {
     : [[-3, 2, 1], [-3, 10, 1.1], [3, -3, 1], [11, -3, 1], [19, -2, 1.1], [6.5, 15, 1], [14, 15.5, 1], [-1, 16, 1], [21, 12, 1], [20, 1.5, 1], [14.5, 2, 0.9], [14.5, 11, 0.9], [22.6, 7, 1]];
   const tot = (R2) => `${R2.nm} · demanda total ${f0(R2.market)} un · vendas ${f0(R2.sold)} un · ${R2.firms.length} empresas · líder: ${esc((R2.firms.slice().sort((a, b) => b.share - a.share)[0] || {}).name || '–')}`;
   const storeTxt = (R2, f) => `${esc(f.name)}${f.me ? ' (você)' : ''} em ${R2.nm} · market share ${f2(f.share * 100)}% · preço ${mvPrice(f.price, M.prods)} · vendas ${f0(f.sold)} un${f.me && f.dem > f.sold + 0.5 ? ` · faltou produto para ${f0(f.dem - f.sold)} un` : ''}`;
-  let TALK = [];
+  let TALK = []; const MOOD = (() => { try { return cc ? sceneMood(cc) : null; } catch (e) { return null; } })();
   try { TALK = (cc ? botTalk(M, cc) : []).map((m) => { const o = ORG[m.reg]; if (!o) return null; const R2 = M.regions[m.reg], n = R2.firms.findIndex((f) => f.name === m.name); if (n < 0 || n >= SLOT.length) return null;
     const fm = R2.firms[n]; return Object.assign(m, { x: o[0] + SLOT[n][0] - 0.25, y: o[1] + SLOT[n][1] + 1.75, col: fm.color }); }).filter(Boolean); } catch (e) { TALK = []; }
   { const bb = document.getElementById('mktBub'); if (bb) { const cnt = {}; bb.innerHTML = TALK.map((m) => { const p = P(m.x, m.y, 16), n = cnt[m.reg] = (cnt[m.reg] || 0) + 1; return `<div style="left:${(p[0] / W * 100).toFixed(2)}%;top:${(p[1] / H * 100).toFixed(2)}%;transform:translate(-50%, calc(-100% - ${(n - 1) * 26}px))">${esc(m.msg)}</div>`; }).join(''); } }
@@ -2672,6 +2692,7 @@ function startMarket(M, cc) {
     TALK.forEach((m) => add(m.x + m.y + 0.5, () => { const p = P(m.x, m.y, 0); drawMascot(g, p[0], p[1], m.k, m.col, t); zones.push([p[0] - 4, p[1] - 14, p[0] + 4, p[1], `${esc(m.name)}: “${m.msg}”`, zoom ? { go: 'marketShare' } : { reg: m.reg }]); }));
     TREES.forEach(([x, y, s]) => add(x + y + 0.2, () => tree(x, y, s)));
     L.sort((a, b) => a[0] - b[0]).forEach(([, f]) => f());
+    if (MOOD) pixWeather(g, W, H, t, MOOD.weather);
   }
   const hit = (e) => { const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H; const inP = (pts) => { let o = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const a = pts[i], b = pts[j]; if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) o = !o; } return o; }; const zs = zones.filter((z) => z[6] ? inP(z[6]) : x >= z[0] && x <= z[2] && y >= z[1] && y <= z[3]); return zs.length ? zs[zs.length - 1] : null; };
   cv.addEventListener('mousemove', (e) => { cv.style.cursor = hit(e) ? 'pointer' : 'default'; });
@@ -2886,6 +2907,64 @@ function drawMascot(g, x, y, k, col, t) {
   else if (k % 3 === 1) { R(-3, -8 - bob, 7, 5, col); R(-3, -10 - bob, 2, 2, col); R(2, -10 - bob, 2, 2, col); R(-2, -7 - bob, 1, 1, '#2c2c2a'); R(1, -7 - bob, 1, 1, '#2c2c2a'); R(-2, -3, 5, 3, col); R(3, -4, 2, 1, col); }
   else { R(-3, -8 - bob, 7, 7, col); R(-2, -7 - bob, 2, 2, '#f1efe8'); R(1, -7 - bob, 2, 2, '#f1efe8'); R(-1, -6 - bob, 1, 1, '#2c2c2a'); R(2, -6 - bob, 1, 1, '#2c2c2a'); R(0, -4 - bob, 1, 1, '#ef9f27'); R(-2, -1, 1, 1, '#ef9f27'); R(2, -1, 1, 1, '#ef9f27'); }
 }
+// ------------------------------------------------ XP do simulador, desafios da semana, clima, notícias e dia/noite
+function xpLog() { try { const p = store.players[cur.player]; if (!p) return []; return p.xp || (p.xp = []); } catch (e) { return []; } }
+window.XPExtra = () => sum(xpLog().map((x) => x.xp || 0));
+function weekKey(ts) { const d = new Date(ts || Date.now()); const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day); const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1)); return `${t.getUTCFullYear()}-S${String(Math.ceil(((t - y0) / 86400000 + 1) / 7)).padStart(2, '0')}`; }
+function rankAt(report) { const bots = botRows() || []; const o = bots.map((x) => x.b.hist.find((y) => y.period === report.period)).filter(Boolean); if (!o.length) return 0; return 1 + o.filter((y) => y.raa > report.kpi.raa).length; }
+function addXP(e) { const L = xpLog(); if (L.some((x) => x.id === e.id)) return null; e.at = e.at || Date.now(); L.push(e); if (L.length > 400) L.splice(0, L.length - 400); return e; }
+function awardPeriodXP(sv, report, dec) {
+  if (!sv) return null; const parts = [['Período fechado', 10]], pos = rankAt(report);
+  if (pos) parts.push([`${pos}º no ranking`, pos === 1 ? 20 : pos === 2 ? 12 : pos === 3 ? 8 : 5]);
+  try { let e = 0, n = 0; PR.forEach((j) => report.sales[j].regions.forEach((x, i) => { const f = +((dec.forecast || {})[j] || [])[i]; if (x.demand > 0 && f > 0) { e += Math.abs(f - x.demand) / x.demand; n++; } })); if (n && e / n <= 0.15) parts.push(['Previsão de demanda com erro até 15%', 5]); } catch (err) {}
+  if (!(report.cashflow.especial > 0)) parts.push(['Sem empréstimo especial', 5]);
+  const full = PR.reduce((s, j) => s + report.sales[j].regions.filter((x) => x.demand > 0 && (x.sold || 0) >= x.demand - 0.5).length, 0) / PR.length;
+  const ent = addXP({ id: `sim:${sv.id}:${report.period}`, kind: 'period', xp: sum(parts.map((p) => p[1])), parts, label: `${sv.name} · período #${report.period}`, margin: report.kpi.margem, esp: report.cashflow.especial || 0, pos, raa: report.kpi.raa, full });
+  let endE = null;
+  if (sv.ended) { const ep = [['Partida concluída', 30]]; if (pos === 1) ep.push(['Terminou em 1º', 50]); else if (pos === 2) ep.push(['Terminou em 2º', 30]); else if (pos === 3) ep.push(['Terminou em 3º', 15]); if (sv.cfg.difficulty === 'dificil' && sv.bots) ep.push(['Bots no nível difícil', 20]);
+    endE = addXP({ id: `end:${sv.id}`, kind: 'end', xp: sum(ep.map((p) => p[1])), parts: ep, label: `${sv.name} · fim de partida` }); }
+  const ch = checkChallenges(); const all = [ent, endE, ...ch].filter(Boolean);
+  if (all.length) showToast(`+${f0(sum(all.map((x) => x.xp)))} XP · ` + all.map((x) => x.parts.map((p) => `${p[0]} +${p[1]}`).join(', ')).join(' · '));
+  return all;
+}
+const CHAL = [
+  { id: 'margem8', t: 'Feche um período com margem líquida de 8% ou mais', xp: 40, ok: (C) => C.per.some((p) => p.margin >= 0.08) },
+  { id: 'semesp2', t: 'Feche 2 períodos sem empréstimo especial', xp: 40, ok: (C) => C.per.filter((p) => !(p.esp > 0)).length >= 2 },
+  { id: 'top2', t: 'Termine um período em 1º ou 2º no ranking', xp: 40, ok: (C) => C.per.some((p) => p.pos && p.pos <= 2) },
+  { id: 'raa15', t: 'Chegue a um RAA de 15% ou mais', xp: 40, ok: (C) => C.per.some((p) => p.raa >= 0.15) },
+  { id: 'reg3', t: 'Atenda toda a demanda em 3 regiões num mesmo período', xp: 30, ok: (C) => C.per.some((p) => p.full >= 3) },
+  { id: 'per3', t: 'Feche 3 períodos de simulação', xp: 30, ok: (C) => C.per.length >= 3 },
+  { id: 'semdica', t: 'Resolva um caso de finanças sem usar dica', xp: 30, ok: (C) => C.cases.some((x) => (x.xpParts || []).some((p) => /Sem usar dicas/.test(p[0]))) },
+  { id: 'caso80', t: 'Tire 60 pontos ou mais (80%) num caso', xp: 30, ok: (C) => C.cases.some((x) => (x.score || 0) >= 60) },
+  { id: 'fcase', t: 'Conclua um caso de fluxo de caixa (VPL e TIR)', xp: 30, ok: (C) => C.cases.some((x) => x.kind === 'fc' || x.kind === 'fcr') },
+  { id: 'evacase', t: 'Conclua um caso de modelo dinâmico e EVA', xp: 30, ok: (C) => C.cases.some((x) => x.kind === 'eva' || !x.kind) }];
+function weekChallenges(wk) { const k = wk || weekKey(), n = sum([...k].map((ch) => ch.charCodeAt(0))); const simI = [0, 1, 2, 3, 4, 5], caseI = [6, 7, 8, 9];
+  return [CHAL[simI[n % 6]], CHAL[simI[(n + 3) % 6] === simI[n % 6] ? simI[(n + 1) % 6] : simI[(n + 3) % 6]], CHAL[caseI[n % 4]]]; }
+function chalCtx(wk) { const inW = (x) => x.at && weekKey(x.at) === wk; return { per: xpLog().filter((x) => x.kind === 'period' && inW(x)), cases: ((((store.players[cur.player] || {}).fin || {}).hist) || []).filter(inW) }; }
+function checkChallenges() { try { const wk = weekKey(), C = chalCtx(wk), out = []; weekChallenges(wk).forEach((ch) => { if (ch.ok(C)) { const e = addXP({ id: `chal:${wk}:${ch.id}`, kind: 'chal', xp: ch.xp, parts: [[`Desafio: ${ch.t}`, ch.xp]], label: `Desafio da semana ${wk}` }); if (e) out.push(e); } }); return out; } catch (e) { return []; } }
+function chalHTML() { const wk = weekKey(), L = xpLog(), done = (id) => L.some((x) => x.id === `chal:${wk}:${id}`), tot = L.filter((x) => x.kind === 'chal').length;
+  return `<div class="chal"><div class="chalh"><b>Desafios da semana</b><span>${wk.replace('-S', ' · semana ')} · ${tot} desafio(s) cumprido(s) no total, cada um vira uma bandeirola na cerca da fábrica</span></div>${weekChallenges(wk).map((ch) => `<div class="chi ${done(ch.id) ? 'on' : ''}"><span>${done(ch.id) ? '✓' : '○'}</span><span>${esc(ch.t)}</span><b>+${ch.xp} XP</b></div>`).join('')}</div>`; }
+// ---------- clima e eventos a partir do mercado e das notícias
+function sceneMood(c) {
+  const mk = (r) => r ? sum(PR.map((j) => sum(r.sales[j].regions.map((x) => x.market || 0)))) : 0;
+  let prev = null; if (c.mode === 'cur') prev = app.history.length ? app.history[app.history.length - 1].report : null; else { const i = app.history.findIndex((h) => h.report.period === c.period); prev = i > 0 ? app.history[i - 1].report : null; }
+  const a = mk(c.r), b = mk(prev), ch = b ? a / b - 1 : 0, weather = !b ? 'nuvens' : ch >= 0.03 ? 'sol' : ch <= -0.03 ? 'chuva' : 'nuvens';
+  let news = []; try { const N = getNews(), ks = Object.keys(N).map(Number).filter((k) => k <= c.period).sort((x, y) => y - x); news = ks.length ? (N[ks[0]].news || []) : []; } catch (e) { news = []; }
+  const all = news.map((n) => `${n.title} ${n.text || ''}`).join(' '), has = (re) => news.find((n) => re.test(`${n.title} ${n.text || ''}`));
+  const ev = { juros: has(/juro|selic|copom|banco central/i), fornec: has(/fornecedor|componente|insumo|frete/i), salario: has(/reajuste|sal[áa]rio|sindicat|greve/i), propag: has(/propaganda/i), imposto: has(/\bipi\b|al[íi]quota|imposto/i), cambio: has(/c[âa]mbio|d[óo]lar|export/i) };
+  return { weather, ch, news: news.map((n) => n.title).filter(Boolean), ev, any: !!all };
+}
+function dayPhase() { if (window.__forceNight != null) return { f: +window.__forceNight, src: 'timer' }; const sv = typeof curSave === 'function' ? curSave() : null; try { if (sv && !sv.ended) { const m = minutesAt(sv, app.state.period); if (m && sv.timer) return { f: Math.max(0, Math.min(1, 1 - sv.timer.left / (m * 60))), src: 'timer' }; } } catch (e) {}
+  const d = new Date(), h = d.getHours() + d.getMinutes() / 60; return { f: ((h - 6 + 24) % 24) / 24 * (12 / 13) + 0, src: 'clock', h }; }
+function nightAmt(p) { if (p.src === 'clock') { const h = p.h; return h >= 20 || h < 5 ? 1 : h >= 18 ? (h - 18) / 2 : h < 7 ? (7 - h) / 2 : 0; } const f = p.f; return f < 0.55 ? 0 : f < 0.75 ? (f - 0.55) / 0.2 : 1; }
+function pixWeather(g, W, H, t, kind) {
+  if (kind === 'chuva') { g.fillStyle = 'rgba(40,50,80,0.18)'; g.fillRect(0, 0, W, H); g.fillStyle = '#b5d4f4aa'; for (let i = 0; i < 70; i++) { const x = (i * 37 + t * 40) % (W + 20) - 10, y = (i * 53 + t * 140) % (H + 20) - 10; g.fillRect(Math.round(x), Math.round(y), 1, 3); }
+    for (let i = 0; i < 3; i++) { const cx = ((t * 6 + i * 120) % (W + 80)) - 40, cy = 10 + i * 9; g.fillStyle = 'rgba(95,94,90,0.55)'; g.fillRect(Math.round(cx), cy, 34, 6); g.fillRect(Math.round(cx) + 6, cy - 4, 20, 4); } }
+  else if (kind === 'lua') { const sx = W - 22, sy = 18; g.fillStyle = '#f1efe8'; g.fillRect(sx - 4, sy - 5, 9, 11); g.fillRect(sx - 5, sy - 4, 11, 9); g.fillStyle = 'rgba(14,18,52,0.9)'; g.fillRect(sx, sy - 5, 6, 8); for (let i = 0; i < 14; i++) { g.fillStyle = Math.floor(t * 2 + i) % 3 ? '#f1efe8' : '#fac775'; g.fillRect((i * 67) % W, (i * 23) % 50, 1, 1); } }
+  else if (kind === 'sol') { g.fillStyle = 'rgba(250,199,117,0.08)'; g.fillRect(0, 0, W, H); const sx = W - 22, sy = 18; g.fillStyle = '#fac775'; g.fillRect(sx - 5, sy - 5, 11, 11); g.fillStyle = '#fff3c4'; g.fillRect(sx - 3, sy - 3, 7, 7);
+    for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + t * 0.3; g.fillStyle = '#fac775'; g.fillRect(Math.round(sx + Math.cos(a) * 10), Math.round(sy + Math.sin(a) * 10), 2, 2); } }
+  else { for (let i = 0; i < 3; i++) { const cx = ((t * 5 + i * 130) % (W + 80)) - 40, cy = 12 + i * 11; g.fillStyle = 'rgba(241,239,232,0.75)'; g.fillRect(Math.round(cx), cy, 30, 5); g.fillRect(Math.round(cx) + 6, cy - 3, 16, 3); } }
+}
 // ------------------------------------------------ render
 const PAGES = { visao: pVisao, compras: pCompras, vendas: pVendas, despesas: pDespesas, recursos: pRecursos, estoques: pEstoques, custosGerais: pCustosGerais, custosProduto: pCustosProduto, caixa: pCaixa, contas: pContas,
   dre: pDRE, balanco: pBalanco, politicas: pPoliticas, analise: pAnalise, decisoes: pDecisoes, marketShare: pMarketShare, mod: pMOD, ranking: pRanking, balancos: (c) => pMercadoReal(c, 'balancos'), rentab: (c) => pMercadoReal(c, 'rentab'),
@@ -3034,7 +3113,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ================================================ JOGO: jogadores, saves, configurações, cronômetro, cenários
-const APPVER = '20/11 16:30';
+const APPVER = '20/11 18:10';
 const SKEY = 'simEnividia.store.v1';
 // N empresas no mercado: o tamanho do mercado acompanha o número de empresas (4 = jogo original)
 function setCompanies(p, n) { n = Math.max(2, Math.min(6, +n || 4)); p.nCompanies = n; delete p.marketScale; delete p.nRegions; return p; }
@@ -3121,14 +3200,14 @@ function showHome(step) {
   // lista de saves
   const sv = Object.values(store.players[cur.player].saves).sort((a, b) => (b.updated || 0) - (a.updated || 0));
   const fin = store.players[cur.player].fin || {}, fh = fin.hist || [], fo = fin.open, fclock = (x) => `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`;
-  H.innerHTML = head(`Jogador: ${esc(cur.player)}`) + `<div class="hsec"><h2>Simulação Empresarial</h2><button class="btn pri" id="bNewGame">Novo jogo</button></div>
+  { const nw = checkChallenges(); if (nw.length) { persistNow(); setTimeout(() => showToast(`+${f0(sum(nw.map((x) => x.xp)))} XP · ` + nw.map((x) => x.parts[0][0]).join(' · ')), 300); } }
+  H.innerHTML = head(`Jogador: ${esc(cur.player)}`) + `${window.FinXP ? (() => { const X = window.FinXP(fh); return `<div style="display:flex;gap:14px;align-items:center;margin-top:6px"><img src="${pixAvatarURL(X.info.lvl, 4)}" alt="Seu personagem: ${esc(X.info.title)}" title="Seu personagem: ${esc(X.info.title)} (muda a cada nível)" style="width:45px;height:66px;image-rendering:pixelated;flex:none;background:#2b2433;border-radius:8px;padding:6px"><div style="flex:1">${X.html}<div style="font-size:12px;color:#666b70;margin:-4px 0 0">XP dos casos (${f0(sum(fh.map((x) => x.xp != null ? x.xp : Math.round(x.score || 0))))}) + partidas e desafios (${f0(window.XPExtra ? window.XPExtra() : 0)})</div></div></div>`; })() : ''}${chalHTML()}<div class="hsec"><h2>Simulação Empresarial</h2><button class="btn pri" id="bNewGame">Novo jogo</button></div>
     ${sv.length ? `<div class="slist">${sv.map((x) => { const end = x.startPeriod + x.cfg.periods - 1, done = (x.app && x.app.history ? x.app.history.length : 0);
       return `<div class="slot${x.ended ? ' ended' : ''}"><div><b>${esc(x.name)}</b>${x.ended ? '<span class="tag">encerrado</span>' : ''}<span class="tag">${x.cfg.scenario === 'random' ? 'aleatório' : 'roteiro real'}</span>${x.cfg.rules === 'manual' ? '<span class="tag">regras do manual</span>' : ''}<span class="tag">${x.cfg.companies || 4} empresas</span>${x.bots ? `<span class="tag">contra bots · ${window.SimBots.LEVELS[x.cfg.difficulty].label}</span>` : ''}
         <div class="meta">Período ${x.ended ? end : (x.period || x.startPeriod)} · ${done} de ${x.cfg.periods} jogados · ${x.cfg.perMin && new Set(x.cfg.perMin).size > 1 ? 'tempo variável' : x.cfg.minutes ? x.cfg.minutes + ' min/período' : 'sem limite'} · RAA ${x.ended && x.finalRAA != null ? f2(x.finalRAA * 100) + '%' : x.raa != null ? f2(x.raa * 100) + '% (projetado)' : '–'}<br>Salvo em ${ago(x.updated)}</div></div>
         <div class="acts"><button class="btn pri" data-open="${x.id}">${x.ended ? 'Ver' : 'Continuar'}</button><button class="btn" data-ren="${x.id}">Renomear</button><button class="btn" data-del="${x.id}" style="color:#d0021b;border-color:#d0021b">Excluir</button></div></div>`; }).join('')}</div>`
     : '<p class="note">Nenhum jogo salvo ainda.</p>'}
     <div class="hsec"><h2>Casos de Finanças</h2><button class="btn pri" id="bCases">${fo ? 'Abrir casos' : 'Novo caso'}</button></div>
-    ${window.FinXP ? (() => { const X = window.FinXP(fh); return `<div style="display:flex;gap:14px;align-items:center"><img src="${pixAvatarURL(X.info.lvl, 4)}" alt="Seu personagem: ${esc(X.info.title)}" title="Seu personagem: ${esc(X.info.title)} (muda a cada nível)" style="width:45px;height:66px;image-rendering:pixelated;flex:none;background:#2b2433;border-radius:8px;padding:6px"><div style="flex:1">${X.html}</div></div>`; })() : ''}
     ${fo || fh.length ? `<div class="slist">${fo ? `<div class="slot"><div><b>Caso ${fo.seed}</b><span class="tag" style="background:#fdf3cf;color:#7a5a00">em andamento</span><span class="tag">${fo.kind === 'fc' ? 'Fluxo de caixa · Simples' : fo.kind === 'fcr' ? 'Fluxo de caixa · Lucro Real' : 'Modelo dinâmico e EVA'}</span>
         <div class="meta">${Object.keys(fo.okSet || {}).length} de ${fo.n || 42} campos certos · tempo ${fclock(fo.sec || 0)}<br>Salvo em ${new Date(fo.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</div></div>
         <div class="acts"><button class="btn pri" id="bCaseResume">Continuar</button><button class="btn" id="bCaseDrop" style="color:#d0021b;border-color:#d0021b">Descartar</button></div></div>` : ''}
@@ -3282,6 +3361,7 @@ function closePeriod(auto) {
     if (app.history.length >= sv.cfg.periods || app.state.period > end) { sv.ended = true; sv.finalRAA = live.report.kpi.raa; }
     else { applyScenario(app.state.period, sv); sv.timer = { left: minutesAt(sv, app.state.period) * 60, paused: false }; }
   }
+  try { const lh = app.history[app.history.length - 1]; awardPeriodXP(sv, lh.report, lh.dec); } catch (e) { console.error(e); }
   render(); updateGameHead(); persistNow(); scrollTo(0, 0); openPortal(true);
   if (sv && sv.ended) showEnd();
 }
@@ -3905,7 +3985,7 @@ if (store.last && store.last.player && store.players[store.last.player]) { cur =
   // ---------- gamificação: XP e níveis ----------
   const RANKS = ['Estagiário', 'Assistente Financeiro', 'Analista Júnior', 'Analista Pleno', 'Analista Sênior', 'Coordenador Financeiro', 'Gerente Financeiro', 'Controller', 'Diretor Financeiro (CFO)', 'Conselheiro de Administração'];
   const xpOf = (x) => x.xp != null ? x.xp : Math.round(x.score || 0);
-  function xpInfo(h) { const tot = (h || []).reduce((s, x) => s + xpOf(x), 0); let lvl = 1, base = 0, need = 100;
+  function xpInfo(h) { const tot = (h || []).reduce((s, x) => s + xpOf(x), 0) + (window.XPExtra ? +window.XPExtra() || 0 : 0); let lvl = 1, base = 0, need = 100;
     while (tot >= base + need) { base += need; lvl++; need = 100 + 50 * (lvl - 1); }
     return { tot, lvl, cur: tot - base, need, pct: Math.min(100, (tot - base) / need * 100), title: RANKS[Math.min(lvl, RANKS.length) - 1] }; }
   function xpGain() { const sc = score(), hintsUsed = Object.keys(st.hint).length, parts = [['Nota do caso', Math.round(sc)]];

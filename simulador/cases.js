@@ -221,7 +221,7 @@
   // ---------- gamificação: XP e níveis ----------
   const RANKS = ['Estagiário', 'Assistente Financeiro', 'Analista Júnior', 'Analista Pleno', 'Analista Sênior', 'Coordenador Financeiro', 'Gerente Financeiro', 'Controller', 'Diretor Financeiro (CFO)', 'Conselheiro de Administração'];
   const xpOf = (x) => x.xp != null ? x.xp : Math.round(x.score || 0);
-  function xpInfo(h) { const tot = (h || []).reduce((s, x) => s + xpOf(x), 0); let lvl = 1, base = 0, need = 100;
+  function xpInfo(h) { const tot = (h || []).reduce((s, x) => s + xpOf(x), 0) + (window.XPExtra ? +window.XPExtra() || 0 : 0); let lvl = 1, base = 0, need = 100;
     while (tot >= base + need) { base += need; lvl++; need = 100 + 50 * (lvl - 1); }
     return { tot, lvl, cur: tot - base, need, pct: Math.min(100, (tot - base) / need * 100), title: RANKS[Math.min(lvl, RANKS.length) - 1] }; }
   function xpGain() { const sc = score(), hintsUsed = Object.keys(st.hint).length, parts = [['Nota do caso', Math.round(sc)]];
