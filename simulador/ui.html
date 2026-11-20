@@ -27,6 +27,9 @@ a{color:#1a4f9c}
 #cityCap{position:absolute;left:50%;top:44px;transform:translateX(-50%);background:#2b2433ee;color:#fac775;border:2px solid #fac775;padding:6px 14px;font:700 13px ui-monospace,Menlo,monospace;border-radius:6px;white-space:nowrap}
 .ticker{position:absolute;left:0;right:0;bottom:0;background:#2b2433e6;color:#fac775;font:600 12px ui-monospace,Menlo,monospace;white-space:nowrap;overflow:hidden;padding:4px 0;cursor:pointer}.ticker span{display:inline-block;padding-left:100%;animation:tick 40s linear infinite}@keyframes tick{to{transform:translateX(-100%)}}
 .chal{border:1px solid #d9d6cc;border-radius:10px;padding:10px 14px;margin:10px 0 4px;background:#fbfaf6}.chalh{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;margin-bottom:6px}.chalh span{font-size:12px;color:#666b70}.chi{display:grid;grid-template-columns:18px 1fr auto;gap:8px;font-size:13.5px;padding:3px 0}.chi b{color:#7a4d00}.chi.on{color:#3b6d11}.chi.on span:nth-child(2){text-decoration:line-through}
+.sombtn{all:unset;cursor:pointer;margin:0 0 12px 12px;padding:6px 12px;border:2px solid #2b2433;border-radius:8px;font:600 13px system-ui,sans-serif;color:#2b2433;background:#fff;vertical-align:top}.sombtn[aria-pressed=false]{color:#888780;border-color:#b4b2a9}
+.look{display:grid;gap:10px;background:#fbfaf6;border:1px solid #d9d6cc;border-radius:10px;padding:12px 14px}.look b{font-size:13px}.lkrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;align-items:center}.lkc{width:30px;height:30px;border-radius:6px;border:3px solid #fff;outline:2px solid #d9d6cc;cursor:pointer;padding:0}.lkc.on{outline:3px solid #2b2433}.lkl{padding:0;border:3px solid transparent;border-radius:6px;cursor:pointer;background:none;line-height:0}.lkl img{width:28px;height:28px;image-rendering:pixelated}.lkl.on{border-color:#2b2433}
+.mural{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}.frame{background:#2b2433;border:6px solid #ba7517;box-shadow:inset 0 0 0 2px #fac775;padding:10px;color:#f1efe8;text-align:center;image-rendering:pixelated}.frame .fv{font:700 20px ui-monospace,Menlo,monospace;color:var(--fc)}.frame .ft{font-size:12.5px;margin-top:4px}.frame .fd{font-size:11px;color:#b4b2a9;margin-top:2px}
 .scenetabs{display:inline-flex;gap:0;border:2px solid #2b2433;border-radius:8px;overflow:hidden;margin:0 0 12px}.scenetabs button{all:unset;cursor:pointer;padding:7px 16px;font:600 14px system-ui,sans-serif;color:#2b2433;background:#f1efe8}.scenetabs button.on{background:#2b2433;color:#fac775}.scenetabs.sm{margin:0}.scenetabs.sm button{padding:5px 12px;font-size:13px}.mvbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 12px}.mvdot{display:inline-block;width:11px;height:11px;border:1px solid #2c2c2a;margin-right:6px;vertical-align:-1px}
 .cityw{max-width:1100px;margin:0 auto}.cityinfo{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:10px 0;padding:10px 14px;background:#2b2433;color:#f1efe8;border-radius:8px;font:13.5px ui-monospace,Menlo,monospace}.cityinfo .btn{white-space:nowrap}
 .menu>button{all:unset;cursor:pointer;color:#fff;font-size:17px;line-height:1.08;padding:8px 12px;border-radius:6px;display:flex;align-items:center;gap:9px}
@@ -751,7 +754,7 @@ const RAT = "Rentabilidade do Ativo Acumulado (%). Indica: o percentual de Lucro
 const BOTCOL = ['#ff0000', '#4363d8', '#f032e6', '#ff9900', '#0099c6'];
 function firmsHist() {
   const rows = botRows() || [];
-  return [{ name: ME(), me: true, color: '#63e563', hist: app.history.map((h) => window.SimBots.summary(h.report, h.dec)) }].concat(rows.map((x, i) => ({ name: x.b.name, color: BOTCOL[i], hist: x.b.hist, b: x.b })));
+  return [{ name: ME(), me: true, color: curLook().custom ? curLook().color : '#63e563', hist: app.history.map((h) => window.SimBots.summary(h.report, h.dec)) }].concat(rows.map((x, i) => ({ name: x.b.name, color: BOTCOL[i], hist: x.b.hist, b: x.b })));
 }
 const avgA = (a) => (a && a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0);
 function botCharts(pg, c) {
@@ -1317,13 +1320,13 @@ function pCidade(c) {
   return title(c, 'Visão da Empresa') + sceneTabs('cidade')
     + `<div class="cityw"><div style="position:relative;border-radius:10px;overflow:hidden;background:#72a933;border:1px solid #4b6d24">
 <canvas id="cityCv" width="300" height="186" style="display:block;width:100%;image-rendering:pixelated;image-rendering:crisp-edges"></canvas>
-<div style="position:absolute;left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap">${pill(`P${D.period} ${esc(D.company.toUpperCase())}`, '#fac775')}${pill(`RAA ${f2(D.raa)}%`, '#97c459')}${D.pos ? pill(`RANK ${D.pos}º`, '#85b7eb') : ''}${pill(`CAIXA $ ${f0(D.cash)}`, '#f1efe8')}${D.esp > 0 ? pill('EMPRÉSTIMO ESPECIAL', '#f09595') : ''}${D.strike ? pill('GREVE', '#f09595') : ''}${pill(D.mood.weather === 'sol' ? 'MERCADO AQUECIDO ☀' : D.mood.weather === 'chuva' ? 'MERCADO EM QUEDA ☂' : 'MERCADO ESTÁVEL ☁', D.mood.weather === 'sol' ? '#fac775' : D.mood.weather === 'chuva' ? '#85b7eb' : '#d3d1c7')}</div><div id="cityCap" hidden></div>${D.mood.news.length ? `<div class="ticker" data-go="portal" title="Abrir o Portal de Notícias"><span>NOTÍCIAS · ${D.mood.news.map(esc).join('   ◆   ')}   ◆   </span></div>` : ''}</div>
+<div style="position:absolute;left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap">${pill(`P${D.period} ${esc(curLook().sign.toUpperCase())}`, '#fac775')}${pill(`RAA ${f2(D.raa)}%`, '#97c459')}${D.pos ? pill(`RANK ${D.pos}º`, '#85b7eb') : ''}${pill(`CAIXA $ ${f0(D.cash)}`, '#f1efe8')}${D.esp > 0 ? pill('EMPRÉSTIMO ESPECIAL', '#f09595') : ''}${D.strike ? pill('GREVE', '#f09595') : ''}${pill(D.mood.weather === 'sol' ? 'MERCADO AQUECIDO ☀' : D.mood.weather === 'chuva' ? 'MERCADO EM QUEDA ☂' : 'MERCADO ESTÁVEL ☁', D.mood.weather === 'sol' ? '#fac775' : D.mood.weather === 'chuva' ? '#85b7eb' : '#d3d1c7')}</div><div id="cityCap" hidden></div>${D.mood.news.length ? `<div class="ticker" data-go="portal" title="Abrir o Portal de Notícias"><span>NOTÍCIAS · ${D.mood.news.map(esc).join('   ◆   ')}   ◆   </span></div>` : ''}</div>
 ${c.mode === 'sim' ? `<p style="margin:10px 0 0"><button class="btn pri" data-replay="1">▶ Assistir o período #${D.period}</button> <span class="note" style="margin:0">Animação de 20 segundos: compras, produção, vendas e resultado.</span></p>` : ''}
 <div class="cityinfo"><span id="cityTxt">Clique num elemento da cena para ver os números do período. Galpão e máquinas, estoque, escritório, prédios das regiões e caminhões levam aos relatórios.</span><button class="btn" id="cityGo" hidden></button></div>
 <p class="note">Cada máquina, pilha de caixas, prédio e caminhão sai dos números do período #${D.period} ${c.mode === 'cur' ? '(projeção com as decisões em edição: mude uma decisão e a cena se atualiza)' : '(simulado)'}. Máquinas: ${f0(D.mach.P)} P e ${f0(D.mach.W)} W${D.pend.P + D.pend.W ? `, mais ${f0(D.pend.P + D.pend.W)} chegando` : ''} · operadores: ${f0(D.workers)} · vendas: ${f0(sold)} un. A altura de cada prédio de região é o market share médio nela; as luzes das máquinas acendem conforme a ocupação. O clima vem da demanda total do mercado em relação ao período anterior (sol: subiu 3% ou mais; chuva: caiu 3% ou mais). O céu escurece com o cronômetro do período (sem cronômetro, segue o relógio); com hora extra, o galpão fica aceso à noite. Notícias do período aparecem como objetos na cena e no letreiro.</p>
 <h3 style="margin:16px 0 4px">Conquistas na cena</h3><div class="achv">${D.ach.map((a) => `<span class="${a.on ? 'on' : ''}" title="${esc(a.d)}">${a.on ? '★' : '☆'} ${esc(a.t)}</span>`).join('')}</div>
-<p class="note" style="margin-top:0">Cada conquista vira um objeto na frente da fábrica ou ao lado dela. Passe o mouse sobre o selo para ver como conseguir. Na porta do escritório está você: o personagem muda de roupa conforme o seu nível nos Casos de Finanças (${esc(D.lv.title)}, nível ${D.lv.lvl}).</p>
-${c.mode === 'cur' ? mesaHTML(c) : ''}</div>`;
+<p class="note" style="margin-top:0">Cada conquista vira um objeto na frente da fábrica ou ao lado dela. Passe o mouse sobre o selo para ver como conseguir. Na porta do escritório está você: o personagem muda de roupa conforme o seu nível, que soma o XP dos casos e das partidas (${esc(D.lv.title)}, nível ${D.lv.lvl}).</p>
+${c.mode === 'cur' ? mesaHTML(c) : ''}${lookHTML()}${muralHTML()}</div>`;
 }
 function mesaHTML(c) {
   const d = c.d, r = c.r, v = (p) => +get(d, p) || 0;
@@ -1342,7 +1345,7 @@ let cityReplay = false;
 function startCity(D) {
   const cv = document.getElementById('cityCv'); if (!cv) return;
   const main = cv.getContext('2d'), W = 300, H = 186, OX = 120, OY = 50; let g = main;
-  const txt = document.getElementById('cityTxt'), goB = document.getElementById('cityGo'), capEl = document.getElementById('cityCap'), RP = cityReplay; cityReplay = false; let capLast = '';
+  const txt = document.getElementById('cityTxt'), goB = document.getElementById('cityGo'), capEl = document.getElementById('cityCap'), RP = cityReplay; cityReplay = false; let capLast = ''; const LK = curLook(), RECS = records(), MD = moodOf(D.sat, D.strike);
   const P = (x, y, z) => [OX + (x - y) * 8, OY + (x + y) * 4 - z];
   const px = (x, y, c) => { g.fillStyle = c; g.fillRect(x | 0, y | 0, 1, 1); };
   const rect = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), w, h); };
@@ -1402,7 +1405,7 @@ function startCity(D) {
     const rp = RP ? (t < 4 ? 0 : t < 9 ? 1 : t < 15 ? 2 : t < 21 ? 3 : 4) : -1;
     if (RP && capEl) { const soldT = sum(D.reg.map((x) => x.sold)), k1 = Math.min(1, Math.max(0, (t - 4) / 4)), k2 = Math.min(1, Math.max(0, (t - 9) / 5));
       const cp = rp === 0 ? (D.buys ? `1/4 · Fornecedor entregando insumos (${f0(D.buysQ)} un compradas)` : '1/4 · Sem compras de insumos neste período') : rp === 1 ? `2/4 · Produção: ${f0(D.prod.P * k1)} smartphones · ${f0(D.prod.W * k1)} smartwatches` : rp === 2 ? `3/4 · Vendas saindo para as regiões: ${f0(soldT * k2)} un` : rp === 3 ? `4/4 · Resultado: lucro $ ${f0(D.res)} · RAA ${f2(D.raa)}% · caixa $ ${f0(D.cash)}` : 'Fim do período. Clique em Assistir para ver de novo.';
-      if (cp !== capLast) { capEl.hidden = false; capEl.textContent = cp; capLast = cp; } }
+      if (cp !== capLast) { capEl.hidden = false; capEl.textContent = cp; capLast = cp; if (rp === 0 && D.buys) SFX.truck(); if (rp === 1) SFX.blip(); if (rp === 2) SFX.truck(); if (rp === 3) (D.res > 0 ? SFX.coin() : SFX.sad()); } }
     const L = [], add = (k, f) => L.push([k, f]);
     const post = (x, y) => { const p = P(x, y, 0); rect(p[0], p[1] - 5, 1, 5, '#854f0b'); };
     for (let x = 0; x <= 20; x++) if (x !== 13 && x !== 14) add(x - 0.2, () => { post(x, -0.1); if (x < 20 && x !== 12) line(P(x, -0.1, 3), P(x + 1, -0.1, 3), '#ba7517'); });
@@ -1412,8 +1415,8 @@ function startCity(D) {
     add(6, () => { const x = 1, y = 1, w = 6, d = 3.6, h = 22; box(x, y, 0, w, d, h, ['#e8e3d6', '#d3cbb8', '#a99f8a', '#4a3f35']);
       for (let u = 0.6; u < w; u += 1.2) sWin(x, y, d, 0, u, 15, D.opOcc > 0.05 ? '#fac775' : '#85b7eb'); for (let u = 0.5; u < d; u += 1) eWin(x, y, w, 0, u, 15, '#5c8fc4');
       const dp = P(x + 2.4, y + d, 0); rect(dp[0], dp[1] - 10, 10, 10, '#5f5e5a'); for (let k = 1; k < 10; k += 2) rect(dp[0], dp[1] - 10 + k, 10, 1, '#888780');
-      for (let i = 0; i < 3; i++) gable(x + i * 2, x + i * 2 + 2, y, d, h, 7, ['#d85a30', '#993c1d', '#b84a24', '#712b13']);
-      const sg = P(x + 4.6, y + d, 0); rect(sg[0], sg[1] - 19, 13, 5, '#fac775'); rect(sg[0] + 1, sg[1] - 18, 11, 3, '#854f0b');
+      for (let i = 0; i < 3; i++) gable(x + i * 2, x + i * 2 + 2, y, d, h, 7, [LK.color, pxShade(LK.color, 0.7), pxShade(LK.color, 0.85), pxShade(LK.color, 0.5)]);
+      const sg = P(x + 4.6, y + d, 0); rect(sg[0] - 1, sg[1] - 21, 15, 7, '#2b2433'); { const lp = LOGOS[LK.logo % LOGOS.length][1]; for (let k = 0; k < 25; k++) if (lp[k] === '1') px(sg[0] + k % 5, sg[1] - 20 + Math.floor(k / 5), LK.color); } rect(sg[0] + 6, sg[1] - 19, 6, 1, '#f1efe8'); rect(sg[0] + 6, sg[1] - 17, 4, 1, '#f1efe8');
       zone([P(1, 1, 40), P(7, 1, 22), P(7, 4.6, 0), P(1, 4.6, 0)], `Galpão · ${f0(D.workers)} operadores · ocupação da mão de obra ${pct(D.opOcc)} · ${f0(D.opIdle)} h ociosas · satisfação ${n3(D.sat)}${D.strike ? ' · houve greve/paralisação' : ''}`, 'recursos', 'Recursos da Produção'); });
     // máquinas no pátio
     mList.forEach((ty, i) => { const col = i % 7, row = Math.floor(i / 7), mx = 1.3 + col * 1.05, my = 5.9 + row * 1.0; const isP = ty === 'P', idx = isP ? i : i - shownP, on = idx < (isP ? onP : onW);
@@ -1424,7 +1427,10 @@ function startCity(D) {
     // operadores
     for (let i = 0; i < nWk; i++) { const wx = D.strike ? 2.2 + i * 0.4 : 1.3 + ((t * 0.35 + i * 0.83) % 7.4), wy = D.strike ? 5.15 : 5.2 + (i % 2) * 0.25;
       add(wx + wy + 0.5, () => { const p = P(wx, wy, 0), s = Math.floor(t * 6 + i) % 2; rect(p[0], p[1] - 4, 2, 3, i % 2 ? '#0f6e56' : '#534ab7'); rect(p[0], p[1] - 6, 2, 2, '#f0c79a'); rect(p[0] - 1, p[1] - 7, 4, 1, '#fac775');
-        if (D.strike) { rect(p[0], p[1] - 12, 1, 5, '#854f0b'); rect(p[0] - 2, p[1] - 15, 5, 3, '#e24b4a'); } else px(p[0] + (s ? 0 : 1), p[1] - 1, '#2c2c2a'); }); }
+        if (D.strike) { rect(p[0], p[1] - 12, 1, 5, '#854f0b'); rect(p[0] - 2, p[1] - 15, 5, 3, '#e24b4a'); } else { px(p[0] + (s ? 0 : 1), p[1] - 1, '#2c2c2a'); drawMood(rect, px, p[0], p[1], MD.k, t, i); }
+        zone([[p[0] - 3, p[1] - 15], [p[0] + 4, p[1] + 1]], `${workerName(i)}, operador(a) · humor: ${MD.t} (satisfação da equipe ${n3(D.sat)})`, 'mod', 'Mercado MOD'); }); }
+    add(7.3 + 4.95 + 0.5, () => { const p = P(7.3, 4.95, 0); rect(p[0], p[1] - 4, 2, 3, '#444441'); rect(p[0], p[1] - 4, 1, 2, '#e24b4a'); rect(p[0], p[1] - 6, 2, 2, '#f0c79a'); rect(p[0] - 1, p[1] - 7, 4, 1, '#412402'); rect(p[0] + 2, p[1] - 4, 2, 3, '#f1efe8'); rect(p[0], p[1] - 1, 2, 1, '#2c2c2a'); drawMood(rect, px, p[0], p[1], MD.k, t, 99);
+      zone([[p[0] - 3, p[1] - 15], [p[0] + 5, p[1] + 1]], `Gerente de produção Ruth · cuida de ${f0(D.workers)} operadores · ocupação da equipe ${pct(D.opOcc)} · ${f0(D.opIdle)} h ociosas · humor da equipe: ${MD.t}`, 'recursos', 'Recursos da Produção'); });
     // estoque
     STK.forEach(([k, nm, colr, x, y]) => { const n = lvl(D.stock[k]); add(x + y + 0.8, () => { box(x - 0.05, y - 0.05, 0, 0.9, 0.9, 1, ['#a8743a', '#854f0b', '#633806', '#412402']); for (let j = 0; j < n; j++) crate(x, y, 1 + j * 6, colr); }); });
     if (D.pend.P + D.pend.W) add(10.5 + 4.2 + 0.8, () => { box(10.4, 4.1, 0, 1.1, 1.0, 9, ['#f1efe8', '#d3d1c7', '#b4b2a9', '#5f5e5a']); const q = P(10.95, 5.1, 5); rect(q[0] - 2, q[1] - 1, 5, 2, '#e24b4a');
@@ -1435,7 +1441,9 @@ function startCity(D) {
       for (let v = 6; v < h - 4; v += 7) { for (let u = 0.4; u < w; u += 0.8) sWin(x, y, d, 0, u, v, (u * v | 0) % 3 ? '#85b7eb' : '#fac775'); for (let u = 0.4; u < d; u += 0.8) eWin(x, y, w, 0, u, v, '#5c8fc4'); }
       box(x - 0.1, y - 0.1, h, w + 0.2, d + 0.2, 2, ['#5f5e5a', '#444441', '#2c2c2a', '#2c2c2a']); const fl = P(x + 1.5, y + 1.3, h + 2); line(fl, [fl[0], fl[1] - 9], '#2c2c2a'); rect(fl[0] + 1, fl[1] - 9, 6, 4, D.res >= 0 ? '#639922' : '#e24b4a');
       if (D.esp > 0) { const b2 = P(x + 3, y, h + 8); rect(b2[0], b2[1] - 9, 9, 9, '#f1efe8'); rect(b2[0] + 4, b2[1] - 7, 1, 4, '#e24b4a'); rect(b2[0] + 4, b2[1] - 2, 1, 1, '#e24b4a'); }
-      zone([P(x, y, h + 14), P(x + w, y, h), P(x + w, y + d, 0), P(x, y + d, 0)], `Escritório · caixa final $ ${f0(D.cash)} · resultado do período $ ${f0(D.res)} · RAA ${f2(D.raa)}%${D.pos ? ` · ${D.pos}º no ranking` : ''}${D.esp > 0 ? ` · empréstimo especial $ ${f0(D.esp)}` : ''}`, 'visao', 'Visão Geral'); });
+      RECS.slice(0, 6).forEach((r, k) => { const fp = P(x + 0.35 + k * 0.45, y + d, 1); rect(fp[0], fp[1] - 5, 3, 3, '#ba7517'); px(fp[0] + 1, fp[1] - 4, r.c); });
+      zone([P(x, y, h + 14), P(x + w, y, h), P(x + w, y + d, 0), P(x, y + d, 0)], `Escritório · caixa final $ ${f0(D.cash)} · resultado do período $ ${f0(D.res)} · RAA ${f2(D.raa)}%${D.pos ? ` · ${D.pos}º no ranking` : ''}${D.esp > 0 ? ` · empréstimo especial $ ${f0(D.esp)}` : ''}`, 'visao', 'Visão Geral');
+      if (RECS.length) { const a1 = P(14.6, 3.6, 6), a2 = P(17.6, 3.6, 0); zone([[a1[0], a1[1]], [a2[0], a2[1]]], 'Mural de recordes · ' + RECS.map((r) => `${r.t}: ${r.v}`).join(' · '), null, ''); } });
     // prédios das regiões
     D.reg.slice(0, TP.length).forEach((R2, i) => { const [x, y] = TP[i], c = regCols(i), h = Math.max(4, Math.round(6 + R2.share * 70));
       add(x + y + 1.2, () => { box(x - 0.2, y - 0.2, 0, 1.6, 1.6, 2, ['#d3d1c7', '#b4b2a9', '#888780', '#5f5e5a']); box(x, y, 2, 1.2, 1.2, h, [c[0], c[1], c[2], '#2c2c2a']);
@@ -1457,7 +1465,7 @@ function startCity(D) {
     // você (avatar conforme o nível) na porta do escritório
     { const ax = 15.2 + Math.sin(t * 0.8) * 0.5, ay = 3.95, o = AV_OUT[Math.max(0, Math.min(AV_OUT.length, D.lv.lvl) - 1)];
       add(ax + ay + 0.6, () => { const p = P(ax, ay, 0); rect(p[0] - 1, p[1] - 10, 3, 1, o.hair); rect(p[0] - 1, p[1] - 9, 3, 2, '#f0c79a'); rect(p[0] - 1, p[1] - 7, 3, 3, o.jacket || o.shirt); rect(p[0], p[1] - 7, 1, 2, o.tie || o.shirt); rect(p[0] - 1, p[1] - 4, 3, 3, o.pants); px(p[0] - 1 + (Math.floor(t * 4) % 2) * 2, p[1] - 1, '#2c2c2a');
-        rect(p[0] - 2, p[1] - 15, 5, 4, '#fac775'); px(p[0], p[1] - 12, '#fac775'); zone([[p[0] - 3, p[1] - 16], [p[0] + 4, p[1]]], `Você: ${D.lv.title} (nível ${D.lv.lvl} nos Casos de Finanças). A roupa muda a cada nível.`, null, ''); }); }
+        rect(p[0] - 2, p[1] - 15, 5, 4, '#fac775'); px(p[0], p[1] - 12, '#fac775'); zone([[p[0] - 3, p[1] - 16], [p[0] + 4, p[1]]], `Você: ${D.lv.title} (nível ${D.lv.lvl}, somando casos e partidas). A roupa muda a cada nível.`, null, ''); }); }
     // conquistas
     const A = Object.fromEntries(D.ach.map((a) => [a.k, a]));
     const ped = (x, y) => box(x, y, 0, 0.6, 0.5, 3, ['#d3d1c7', '#b4b2a9', '#888780', '#5f5e5a']);
@@ -1465,7 +1473,7 @@ function startCity(D) {
     if (A.noesp.on) add(4.4 + 10.4 + 0.5, () => { const p = P(4.7, 10.5, 0); rect(p[0], p[1] - 7, 1, 7, '#5f5e5a'); rect(p[0] - 4, p[1] - 12, 9, 6, '#3b6d11'); rect(p[0] - 3, p[1] - 11, 7, 4, '#639922'); rect(p[0], p[1] - 11, 1, 4, '#f1efe8'); rect(p[0] - 1, p[1] - 10, 3, 1, '#f1efe8'); rect(p[0] - 1, p[1] - 8, 3, 1, '#f1efe8'); zone([[p[0] - 5, p[1] - 13], [p[0] + 5, p[1]]], 'Conquista: caixa saudável (3+ períodos sem empréstimo especial)', 'caixa', 'Caixa'); });
     if (A.prof.on) add(6.2 + 10.2 + 0.7, () => { box(6.2, 10.2, 0, 1, 0.7, 2, ['#85b7eb', '#b4b2a9', '#888780', '#5f5e5a']); const p = P(6.7, 10.55, 2); rect(p[0], p[1] - 6, 1, 6, '#b4b2a9'); for (let k = 0; k < 4; k++) { const f = (t * 1.5 + k / 4) % 1; px(p[0] + (k % 2 ? 1 : -1) * Math.round(f * 4), p[1] - 6 + Math.round(f * f * 7), '#e6f1fb'); } zone([[p[0] - 6, p[1] - 8], [p[0] + 6, p[1] + 4]], 'Conquista: fonte do lucro (lucro em todos os períodos fechados)', 'dre', 'Demonstração do Resultado'); });
     if (A.full.on) add(8.6 + 10.5, () => { const p = P(8.6, 10.5, 0); rect(p[0], p[1] - 18, 1, 18, '#5f5e5a'); const wv = Math.floor(t * 4) % 2; rect(p[0] + 1, p[1] - 18 + wv, 7, 5, '#e24b4a'); px(p[0] + 4, p[1] - 16 + wv, '#fac775'); px(p[0] + 3, p[1] - 16 + wv, '#fac775'); px(p[0] + 5, p[1] - 16 + wv, '#fac775'); px(p[0] + 4, p[1] - 17 + wv, '#fac775'); zone([[p[0] - 2, p[1] - 19], [p[0] + 9, p[1]]], 'Conquista: bandeira estrela (toda a demanda atendida num período)', 'vendas', 'Vendas'); });
-    if (A.lvl5.on) add(10.6 + 10.3 + 0.5, () => { ped(10.6, 10.3); const p = P(10.9, 10.55, 3); rect(p[0] - 1, p[1] - 11, 3, 3, '#fac775'); rect(p[0] - 2, p[1] - 8, 5, 5, '#ef9f27'); rect(p[0] - 1, p[1] - 3, 1, 3, '#ba7517'); rect(p[0] + 1, p[1] - 3, 1, 3, '#ba7517'); zone([[p[0] - 3, p[1] - 12], [p[0] + 3, p[1] + 4]], 'Conquista: estátua dourada (nível 5 nos Casos de Finanças)', null, ''); });
+    if (A.lvl5.on) add(10.6 + 10.3 + 0.5, () => { ped(10.6, 10.3); const p = P(10.9, 10.55, 3); rect(p[0] - 1, p[1] - 11, 3, 3, '#fac775'); rect(p[0] - 2, p[1] - 8, 5, 5, '#ef9f27'); rect(p[0] - 1, p[1] - 3, 1, 3, '#ba7517'); rect(p[0] + 1, p[1] - 3, 1, 3, '#ba7517'); zone([[p[0] - 3, p[1] - 12], [p[0] + 3, p[1] + 4]], 'Conquista: estátua dourada (chegou ao nível 5)', null, ''); });
     for (let k = 0; k < Math.min(8, A.perf.n || 0); k++) { const fx = -1.8 - (k % 2) * 1.6, fy = 1 + Math.floor(k / 2) * 2.1; add(fx + fy + 0.2, () => { tree(fx, fy, 1); const b0 = P(fx, fy, 0); [[-3, -11], [2, -9], [-1, -14], [3, -13]].forEach(([dx, dy]) => rect(b0[0] + dx, b0[1] + dy, 2, 2, '#ef9f27')); zone([[b0[0] - 6, b0[1] - 16], [b0[0] + 6, b0[1]]], `Pomar dos casos: ${A.perf.n} caso(s) gabaritado(s) nos Casos de Finanças`, null, ''); }); }
     // eventos das notícias
     const EV = D.mood.ev, evZ = (pts, n) => zone(pts, `Notícia: ${n.title}`, 'portal', 'Portal de Notícias');
@@ -1498,9 +1506,9 @@ function startCity(D) {
       [1.5, 5.5, 9.5, 15.5, 19.5].forEach((lx) => { const p = P(lx, 10.6, 12); g.fillStyle = 'rgba(250,199,117,0.35)'; for (let r2 = 6; r2 > 0; r2 -= 2) { g.fillRect(p[0] - r2, p[1] - 1 + (6 - r2), r2 * 2 + 1, 2); } rect(p[0], p[1], 1, 1, '#fff3c4'); });
       g.globalAlpha = 1; if (nt > 0.5 && D.mood.weather === 'sol') pixWeather(g, W, H, t, 'lua'); }
   }
-  const hit = (e) => { const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H; return zones.slice().reverse().find((z) => x >= z[0] && x <= z[2] && y >= z[1] && y <= z[3]); };
+  const hit = (e) => { const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H; const m = zones.filter((z) => x >= z[0] && x <= z[2] && y >= z[1] && y <= z[3]); if (!m.length) return null; const ar = (z) => (z[2] - z[0]) * (z[3] - z[1]); return m.reduce((b, z) => (ar(z) < ar(b) ? z : b)); };
   cv.addEventListener('mousemove', (e) => { cv.style.cursor = hit(e) ? 'pointer' : 'default'; });
-  cv.addEventListener('click', (e) => { const z = hit(e); if (!z) return; txt.textContent = z[4]; if (!z[5]) { goB.hidden = true; return; } goB.hidden = false; goB.dataset.go = z[5]; goB.textContent = `Abrir ${z[6]} →`; });
+  cv.addEventListener('click', (e) => { const z = hit(e); if (!z) return; txt.textContent = z[4]; SFX.blip(); if (!z[5]) { goB.hidden = true; return; } goB.hidden = false; goB.dataset.go = z[5]; goB.textContent = `Abrir ${z[6]} →`; });
   const t0 = performance.now();
   (function loop(n) { if (!cv.isConnected) return; draw((n - t0) / 1000); requestAnimationFrame(loop); })(t0);
 }
@@ -1508,19 +1516,19 @@ function startCity(D) {
 let mvProd = 'P', mvReg = null;
 const MV_FC = ['#e24b4a', '#378add', '#d4537e', '#ef9f27', '#1d9e75'];
 const MV_GREY = ['#b4b2a9', '#888780', '#d3d1c7', '#5f5e5a', '#a99f8a'];
-const sceneTabs = (on) => `<div class="scenetabs">${[['cidade', 'Empresa'], ['mercadoVisao', 'Mercado e regiões'], ['mundoVisao', 'Mapa-múndi'], ['financasVisao', 'Ciclo e valor']].map(([k, l]) => `<button data-go="${k}" class="${on === k ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+const sceneTabs = (on) => `<div class="scenetabs">${[['cidade', 'Empresa'], ['mercadoVisao', 'Mercado e regiões'], ['mundoVisao', 'Mapa-múndi'], ['financasVisao', 'Ciclo e valor']].map(([k, l]) => `<button data-go="${k}" class="${on === k ? 'on' : ''}">${l}</button>`).join('')}</div>${somBtn()}`;
 function mktData(c) {
   const N = app.params.nCompanies || 4, prods = mvProd === 'A' ? PR : [mvProd], nR = REG.length;
   const F = firmsHist(), rows = F.map((f) => ({ f, y: f.hist.find((h) => h.period === c.period) }));
   const full = c.mode !== 'cur' && rows.length > 1 && rows.every((x) => x.y && x.y.demR);
   let firms;
   if (full) {
-    firms = rows.map(({ f, y }, k) => ({ name: f.name, me: !!f.me, color: f.me ? '#fac775' : MV_FC[(k - 1) % MV_FC.length],
+    firms = rows.map(({ f, y }, k) => ({ name: f.name, me: !!f.me, color: f.me ? curLook().color : MV_FC[(k - 1) % MV_FC.length],
       sold: Array.from({ length: nR }, (_, i) => sum(prods.map((j) => y.salR[j][i] || 0))), dem: Array.from({ length: nR }, (_, i) => sum(prods.map((j) => y.demR[j][i] || 0))),
       price: Array.from({ length: nR }, (_, i) => prods.map((j) => y.price[j][i])) }));
   } else {
     const r = c.r, mk = (i) => sum(prods.map((j) => r.sales[j].regions[i].market || 0));
-    const me = { name: ME(), me: true, color: '#fac775', sold: Array.from({ length: nR }, (_, i) => sum(prods.map((j) => r.sales[j].regions[i].sold || 0))),
+    const me = { name: ME(), me: true, color: curLook().color, sold: Array.from({ length: nR }, (_, i) => sum(prods.map((j) => r.sales[j].regions[i].sold || 0))),
       dem: Array.from({ length: nR }, (_, i) => sum(prods.map((j) => r.sales[j].regions[i].demand || 0))), price: Array.from({ length: nR }, (_, i) => prods.map((j) => c.d.price[j][i])) };
     const myShr = (i) => { const m = mk(i); return m ? sum(prods.map((j) => (r.sales[j].regions[i].share || 0) * (r.sales[j].regions[i].market || 0))) / m : 0; };
     const last = rows.filter((x) => !x.f.me).map((x) => ({ f: x.f, h: x.f.hist[x.f.hist.length - 1] }));
@@ -1548,7 +1556,7 @@ function pMercadoVisao(c) {
   return head + ctr + `<div class="cityw"${R2 ? ' style="max-width:860px"' : ''}><div style="position:relative;border-radius:10px;overflow:hidden;background:#72a933;border:1px solid #4b6d24">
 <canvas id="mktCv" width="${R2 ? 170 : 320}" height="${R2 ? 124 : 196}" style="display:block;width:100%;image-rendering:pixelated;image-rendering:crisp-edges"></canvas><div class="mvbub" id="mktBub"></div></div>
 <div class="cityinfo"><span id="mktTxt">${R2 ? `${R2.nm}: cada loja é uma empresa. A altura do prédio é o market share, as pessoas entrando são os clientes e uma fila cinza com placa vermelha é demanda que a sua empresa não atendeu.` : 'Cada bairro é uma região. A altura das lojas é o market share de cada empresa e a quantidade de pessoas na rua acompanha a demanda total da região.'}</span><button class="btn" id="mktGo" hidden></button></div>
-${legend}<p class="note">${M.src === 'real' ? `Período #${M.period} simulado: dados de todas as empresas.` : `Projeção do período #${M.period}: a sua loja usa as decisões em edição; os concorrentes repartem o restante do mercado ${(botRows() || []).length ? 'na proporção das vendas deles no último período, com os preços praticados nele (antes do primeiro fechamento, em partes iguais)' : 'igualmente, com os preços das premissas'}.`} Loja dourada com bandeira = ${esc(ME())}.</p></div>`;
+${legend}<p class="note">${M.src === 'real' ? `Período #${M.period} simulado: dados de todas as empresas.` : `Projeção do período #${M.period}: a sua loja usa as decisões em edição; os concorrentes repartem o restante do mercado ${(botRows() || []).length ? 'na proporção das vendas deles no último período, com os preços praticados nele (antes do primeiro fechamento, em partes iguais)' : 'igualmente, com os preços das premissas'}.`} A sua loja (${esc(ME())}) é a da bandeira vermelha, na cor da sua empresa.</p></div>`;
 }
 function startMarket(M, cc) {
   const cv = document.getElementById('mktCv'); if (!cv) return;
@@ -1668,7 +1676,7 @@ function cityAch() {
   const perf = fin.filter((x) => (x.score || 0) >= 74.99).length;
   return [{ k: 'lead', on: lead, t: 'Troféu de líder', d: 'Ficar em 1º no ranking em algum período fechado' }, { k: 'noesp', on: noEsp, t: 'Placa caixa saudável', d: 'Fechar 3 ou mais períodos sem empréstimo especial' },
     { k: 'prof', on: prof, t: 'Fonte do lucro', d: 'Lucro em todos os períodos fechados (mínimo 3)' }, { k: 'full', on: full, t: 'Bandeira estrela', d: 'Atender toda a demanda em todas as regiões num período' },
-    { k: 'perf', on: perf > 0, n: perf, t: `Pomar dos casos${perf ? ` (${perf})` : ''}`, d: 'Uma árvore com frutos para cada caso de finanças gabaritado' }, { k: 'lvl5', on: L.lvl >= 5, t: 'Estátua dourada', d: 'Chegar ao nível 5 nos Casos de Finanças' }];
+    { k: 'perf', on: perf > 0, n: perf, t: `Pomar dos casos${perf ? ` (${perf})` : ''}`, d: 'Uma árvore com frutos para cada caso de finanças gabaritado' }, { k: 'lvl5', on: L.lvl >= 5, t: 'Estátua dourada', d: 'Chegar ao nível 5 (XP de casos, partidas e desafios)' }];
 }
 // ---------- ciclo financeiro e EVA (2D, usados no simulador e nos resumos dos casos)
 const PixFin = (() => {
@@ -1844,17 +1852,20 @@ function weekKey(ts) { const d = new Date(ts || Date.now()); const t = new Date(
 function rankAt(report) { const bots = botRows() || []; const o = bots.map((x) => x.b.hist.find((y) => y.period === report.period)).filter(Boolean); if (!o.length) return 0; return 1 + o.filter((y) => y.raa > report.kpi.raa).length; }
 function addXP(e) { const L = xpLog(); if (L.some((x) => x.id === e.id)) return null; e.at = e.at || Date.now(); L.push(e); if (L.length > 400) L.splice(0, L.length - 400); return e; }
 function awardPeriodXP(sv, report, dec) {
-  if (!sv) return null; const parts = [['Período fechado', 10]], pos = rankAt(report);
+  if (!sv) return null; const parts = [['Período fechado', 10]], pos = rankAt(report), rb = Object.fromEntries(records().map((r) => [r.k, r.val])), lv0 = playerLvl().lvl;
   if (pos) parts.push([`${pos}º no ranking`, pos === 1 ? 20 : pos === 2 ? 12 : pos === 3 ? 8 : 5]);
   try { let e = 0, n = 0; PR.forEach((j) => report.sales[j].regions.forEach((x, i) => { const f = +((dec.forecast || {})[j] || [])[i]; if (x.demand > 0 && f > 0) { e += Math.abs(f - x.demand) / x.demand; n++; } })); if (n && e / n <= 0.15) parts.push(['Previsão de demanda com erro até 15%', 5]); } catch (err) {}
   if (!(report.cashflow.especial > 0)) parts.push(['Sem empréstimo especial', 5]);
   const full = PR.reduce((s, j) => s + report.sales[j].regions.filter((x) => x.demand > 0 && (x.sold || 0) >= x.demand - 0.5).length, 0) / PR.length;
-  const ent = addXP({ id: `sim:${sv.id}:${report.period}`, kind: 'period', xp: sum(parts.map((p) => p[1])), parts, label: `${sv.name} · período #${report.period}`, margin: report.kpi.margem, esp: report.cashflow.especial || 0, pos, raa: report.kpi.raa, full });
+  const ent = addXP({ id: `sim:${sv.id}:${report.period}`, kind: 'period', xp: sum(parts.map((p) => p[1])), parts, label: `${sv.name} · período #${report.period}`, net: report.dre.lucroLiquido, sold: sum(PR.map((j) => report.sales[j].qty || 0)), margin: report.kpi.margem, esp: report.cashflow.especial || 0, pos, raa: report.kpi.raa, full });
   let endE = null;
   if (sv.ended) { const ep = [['Partida concluída', 30]]; if (pos === 1) ep.push(['Terminou em 1º', 50]); else if (pos === 2) ep.push(['Terminou em 2º', 30]); else if (pos === 3) ep.push(['Terminou em 3º', 15]); if (sv.cfg.difficulty === 'dificil' && sv.bots) ep.push(['Bots no nível difícil', 20]);
     endE = addXP({ id: `end:${sv.id}`, kind: 'end', xp: sum(ep.map((p) => p[1])), parts: ep, label: `${sv.name} · fim de partida` }); }
   const ch = checkChallenges(); const all = [ent, endE, ...ch].filter(Boolean);
   if (all.length) showToast(`+${f0(sum(all.map((x) => x.xp)))} XP · ` + all.map((x) => x.parts.map((p) => `${p[0]} +${p[1]}`).join(', ')).join(' · '));
+  const nr = records().filter((r) => ['raa', 'margem', 'lucro', 'vendas', 'seq'].includes(r.k) && rb[r.k] != null && r.val > rb[r.k] + 1e-9);
+  if (nr.length) setTimeout(() => showToast('Novo recorde! ' + nr.map((r) => `${r.t}: ${r.v}`).join(' · ')), 4200);
+  if (playerLvl().lvl > lv0) SFX.fanfare(); else if (nr.length) SFX.record(); else if (ch.length) SFX.jingle(); else if (report.cashflow.especial > 0) SFX.alarm(); else if (report.dre.lucroLiquido > 0) SFX.coin(); else SFX.sad();
   return all;
 }
 const CHAL = [
@@ -1895,6 +1906,69 @@ function pixWeather(g, W, H, t, kind) {
     for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + t * 0.3; g.fillStyle = '#fac775'; g.fillRect(Math.round(sx + Math.cos(a) * 10), Math.round(sy + Math.sin(a) * 10), 2, 2); } }
   else { for (let i = 0; i < 3; i++) { const cx = ((t * 5 + i * 130) % (W + 80)) - 40, cy = 12 + i * 11; g.fillStyle = 'rgba(241,239,232,0.75)'; g.fillRect(Math.round(cx), cy, 30, 5); g.fillRect(Math.round(cx) + 6, cy - 3, 16, 3); } }
 }
+// ------------------------------------------------ identidade da empresa, funcionários, sons 8 bits e recordes
+const LOOK_COL = [['Telha', '#d85a30'], ['Azul', '#378add'], ['Verde', '#639922'], ['Roxo', '#7f77dd'], ['Grafite', '#5f5e5a'], ['Rosa', '#d4537e'], ['Dourado', '#ef9f27'], ['Turquesa', '#1d9e75']];
+const LOGOS = [['Raio', '0011001100111100011001100'], ['Estrela', '0010001110111110111001010'], ['Círculo', '0111011111111111111101110'], ['Triângulo', '0010000100011100111011111'], ['Coração', '0101011111111110111000100'], ['Losango', '0010001110111110111000100'], ['Chip', '1010101110111110111010101'], ['Folha', '0001100111011100110010000']];
+function curLook() { const sv = typeof curSave === 'function' ? curSave() : null, l = (sv && sv.cfg && sv.cfg.look) || {}; return { color: l.color || '#d85a30', logo: l.logo != null ? l.logo : 0, sign: l.sign || ME(), custom: !!(sv && sv.cfg && sv.cfg.look) }; }
+const pxShade = (hex, k) => { const n = parseInt(hex.slice(1), 16), f = (v) => Math.max(0, Math.min(255, Math.round(v * k))); return '#' + [n >> 16 & 255, n >> 8 & 255, n & 255].map((v) => f(v).toString(16).padStart(2, '0')).join(''); };
+function logoURL(i, col, s) { const c = document.createElement('canvas'), z = s || 4; c.width = c.height = 7 * z; const g = c.getContext('2d'); g.fillStyle = '#2b2433'; g.fillRect(0, 0, 7 * z, 7 * z); g.fillStyle = col; const p = LOGOS[i % LOGOS.length][1]; for (let k = 0; k < 25; k++) if (p[k] === '1') g.fillRect((1 + k % 5) * z, (1 + Math.floor(k / 5)) * z, z, z); return c.toDataURL(); }
+function lookHTML() {
+  const sv = curSave(); if (!sv) return '';
+  const L = curLook();
+  return `<h3 style="margin:18px 0 4px">Identidade da empresa</h3><p class="note" style="margin-top:0">A cor vale para o telhado do galpão, a sua loja no mapa e a sua linha nos gráficos com bots. O logo vai na placa do galpão.</p>
+  <div class="look"><div><b>Cor</b><div class="lkrow">${LOOK_COL.map(([n, c]) => `<button class="lkc ${L.color === c ? 'on' : ''}" data-lkc="${c}" title="${n}" aria-label="Cor ${n}" style="background:${c}"></button>`).join('')}</div></div>
+  <div><b>Logo</b><div class="lkrow">${LOGOS.map(([n], i) => `<button class="lkl ${L.logo === i ? 'on' : ''}" data-lkl="${i}" title="${n}" aria-label="Logo ${n}"><img src="${logoURL(i, L.color, 3)}" alt=""></button>`).join('')}</div></div>
+  <div><b>Nome na placa</b><div class="lkrow"><input data-lks maxlength="18" value="${esc(L.sign)}" aria-label="Nome na placa" style="width:200px"></div></div></div>`;
+}
+function setLook(o) { const sv = curSave(); if (!sv) return; sv.cfg.look = Object.assign({ color: '#d85a30', logo: 0, sign: ME() }, sv.cfg.look || {}, o); persistNow(); SFX.blip(); render(); }
+// ---------- funcionários
+const NOMES = ['Ana', 'Bruno', 'Carla', 'Diego', 'Elisa', 'Fábio', 'Gabi', 'Heitor', 'Iara', 'João', 'Kelly', 'Lucas', 'Marta', 'Nilo', 'Olga', 'Paulo', 'Rita', 'Sérgio', 'Tati', 'Vitor', 'Wesley', 'Yara'];
+const workerName = (i) => NOMES[(i * 7 + 3) % NOMES.length];
+function moodOf(sat, strike) { if (strike) return { k: 'greve', t: 'em greve' }; return sat >= 0.9 ? { k: 'animado', t: 'animado' } : sat >= 0.75 ? { k: 'tranquilo', t: 'tranquilo' } : sat >= 0.6 ? { k: 'chateado', t: 'chateado' } : { k: 'emburrado', t: 'emburrado' }; }
+function drawMood(rect, px, x, y, k, t, i) {
+  if (((t * 0.5 + i * 0.37) % 3) > 1.2) return; const by = y - 13;
+  if (k === 'animado') { rect(x - 1, by, 2, 1, '#e24b4a'); rect(x + 2, by, 2, 1, '#e24b4a'); rect(x - 1, by + 1, 5, 1, '#e24b4a'); rect(x, by + 2, 3, 1, '#e24b4a'); px(x + 1, by + 3, '#e24b4a'); }
+  else if (k === 'tranquilo') { rect(x + 2, by - 1, 1, 4, '#f1efe8'); rect(x, by + 2, 2, 2, '#f1efe8'); rect(x + 3, by - 1, 1, 1, '#f1efe8'); }
+  else if (k === 'chateado') { px(x - 1, by + 2, '#d3d1c7'); px(x + 1, by + 2, '#d3d1c7'); px(x + 3, by + 2, '#d3d1c7'); }
+  else if (k === 'emburrado') { rect(x - 2, by, 7, 3, '#5f5e5a'); rect(x - 1, by - 1, 4, 1, '#5f5e5a'); px(x, by + 4, '#85b7eb'); px(x + 2, by + 5, '#85b7eb'); }
+}
+// ---------- sons em 8 bits (gerados na hora, sem arquivos)
+const SFX = (() => {
+  let ac = null; const on = () => { try { return localStorage.getItem('simSom') !== '0'; } catch (e) { return true; } };
+  const A = () => { try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); return ac; } catch (e) { return null; } };
+  const tone = (f, d, type, vol, when, slide) => { const a = A(); if (!a) return; const o = a.createOscillator(), g = a.createGain(), t0 = a.currentTime + (when || 0);
+    o.type = type || 'square'; o.frequency.setValueAtTime(f, t0); if (slide) o.frequency.linearRampToValueAtTime(Math.max(30, f + slide), t0 + d);
+    g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol || 0.05, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d); o.connect(g); g.connect(a.destination); o.start(t0); o.stop(t0 + d + 0.02); };
+  const play = (fn) => () => { if (on()) try { fn(); } catch (e) {} };
+  return { on, set: (v) => { try { localStorage.setItem('simSom', v ? '1' : '0'); } catch (e) {} },
+    blip: play(() => tone(660, 0.05, 'square', 0.025)),
+    coin: play(() => { tone(988, 0.08, 'square', 0.05); tone(1319, 0.3, 'square', 0.05, 0.08); }),
+    truck: play(() => { tone(90, 0.5, 'sawtooth', 0.035, 0, -30); tone(70, 0.4, 'square', 0.02, 0.1, 20); }),
+    alarm: play(() => { for (let k = 0; k < 3; k++) { tone(880, 0.14, 'square', 0.045, k * 0.3); tone(620, 0.14, 'square', 0.045, k * 0.3 + 0.15); } }),
+    fanfare: play(() => { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.14, 'square', 0.05, i * 0.11)); tone(1047, 0.5, 'triangle', 0.06, 0.48); tone(784, 0.5, 'triangle', 0.04, 0.48); }),
+    jingle: play(() => [784, 988, 1175, 1568].forEach((f, i) => tone(f, 0.1, 'triangle', 0.05, i * 0.07))),
+    record: play(() => { [659, 784, 988, 1319].forEach((f, i) => tone(f, 0.12, 'square', 0.045, i * 0.09)); tone(1319, 0.35, 'triangle', 0.05, 0.4); }),
+    sad: play(() => [392, 349, 311].forEach((f, i) => tone(f, 0.2, 'triangle', 0.05, i * 0.18))) };
+})();
+window.SFX = SFX;
+const somBtn = () => `<button class="sombtn" data-som="1" aria-pressed="${SFX.on()}">${SFX.on() ? '♪ Som ligado' : '♪ Som desligado'}</button>`;
+// ---------- mural de recordes
+function records() {
+  const per = xpLog().filter((x) => x.kind === 'period'), fin = (((store.players[cur.player] || {}).fin || {}).hist) || [], out = [];
+  const best = (arr, f) => arr.reduce((b, x) => (f(x) != null && isFinite(f(x)) && (b == null || f(x) > f(b))) ? x : b, null);
+  const r1 = best(per, (x) => x.raa); if (r1) out.push({ k: 'raa', t: 'Melhor RAA', v: f2(r1.raa * 100) + '%', d: r1.label, val: r1.raa, c: '#97c459' });
+  const r2 = best(per, (x) => x.margin); if (r2) out.push({ k: 'margem', t: 'Maior margem líquida', v: f2(r2.margin * 100) + '%', d: r2.label, val: r2.margin, c: '#85b7eb' });
+  const r3 = best(per, (x) => x.net); if (r3) out.push({ k: 'lucro', t: 'Maior lucro num período', v: '$ ' + f0(r3.net), d: r3.label, val: r3.net, c: '#fac775' });
+  const r4 = best(per, (x) => x.sold); if (r4) out.push({ k: 'vendas', t: 'Mais unidades vendidas', v: f0(r4.sold) + ' un', d: r4.label, val: r4.sold, c: '#f0997b' });
+  const bySave = {}; per.forEach((x) => { const m = /^sim:(.+):(\d+)$/.exec(x.id || ''); if (m) (bySave[m[1]] = bySave[m[1]] || []).push([+m[2], x]); });
+  let bs = 0, bl = ''; Object.values(bySave).forEach((a) => { a.sort((p, q) => p[0] - q[0]); let run = 0, prev = null; a.forEach(([p, x]) => { run = !(x.esp > 0) && (prev == null || p === prev + 1) ? run + 1 : !(x.esp > 0) ? 1 : 0; prev = p; if (run > bs) { bs = run; bl = x.label.split(' · ')[0]; } }); });
+  if (bs) out.push({ k: 'seq', t: 'Sequência sem empréstimo especial', v: `${bs} período${bs > 1 ? 's' : ''}`, d: bl, val: bs, c: '#afa9ec' });
+  const fast = fin.filter((x) => (x.score || 0) >= 60 && x.sec).sort((a, b) => a.sec - b.sec)[0]; if (fast) out.push({ k: 'rapido', t: 'Caso mais rápido (nota ≥ 60)', v: `${Math.floor(fast.sec / 60)}min ${String(fast.sec % 60).padStart(2, '0')}s`, d: `caso ${fast.seed}`, val: -fast.sec, c: '#5dcaa5' });
+  const top = best(fin, (x) => x.score); if (top) out.push({ k: 'nota', t: 'Maior nota num caso', v: `${f2(top.score)} / 75`, d: `caso ${top.seed}`, val: top.score, c: '#ed93b1' });
+  return out;
+}
+function muralHTML() { const R = records(); return `<h3 style="margin:18px 0 4px">Mural de recordes</h3><p class="note" style="margin-top:0">Somam todas as suas partidas e casos. Cada recorde é um quadro na parede do escritório; quando você bate um, aparece um aviso e toca um som de vitória.</p>
+  ${R.length ? `<div class="mural">${R.map((r) => `<div class="frame" style="--fc:${r.c}"><div class="fv">${esc(r.v)}</div><div class="ft">${esc(r.t)}</div><div class="fd">${esc(r.d || '')}</div></div>`).join('')}</div>` : '<p class="note">Feche períodos e resolva casos para encher o mural.</p>'}`; }
 // ------------------------------------------------ render
 const PAGES = { visao: pVisao, compras: pCompras, vendas: pVendas, despesas: pDespesas, recursos: pRecursos, estoques: pEstoques, custosGerais: pCustosGerais, custosProduto: pCustosProduto, caixa: pCaixa, contas: pContas,
   dre: pDRE, balanco: pBalanco, politicas: pPoliticas, analise: pAnalise, decisoes: pDecisoes, marketShare: pMarketShare, mod: pMOD, ranking: pRanking, balancos: (c) => pMercadoReal(c, 'balancos'), rentab: (c) => pMercadoReal(c, 'rentab'),
@@ -2043,7 +2117,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ================================================ JOGO: jogadores, saves, configurações, cronômetro, cenários
-const APPVER = '20/11 18:10';
+const APPVER = '20/11 19:30';
 const SKEY = 'simEnividia.store.v1';
 // N empresas no mercado: o tamanho do mercado acompanha o número de empresas (4 = jogo original)
 function setCompanies(p, n) { n = Math.max(2, Math.min(6, +n || 4)); p.nCompanies = n; delete p.marketScale; delete p.nRegions; return p; }
@@ -2130,7 +2204,7 @@ function showHome(step) {
   // lista de saves
   const sv = Object.values(store.players[cur.player].saves).sort((a, b) => (b.updated || 0) - (a.updated || 0));
   const fin = store.players[cur.player].fin || {}, fh = fin.hist || [], fo = fin.open, fclock = (x) => `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`;
-  { const nw = checkChallenges(); if (nw.length) { persistNow(); setTimeout(() => showToast(`+${f0(sum(nw.map((x) => x.xp)))} XP · ` + nw.map((x) => x.parts[0][0]).join(' · ')), 300); } }
+  { const nw = checkChallenges(); if (nw.length) { persistNow(); setTimeout(() => { showToast(`+${f0(sum(nw.map((x) => x.xp)))} XP · ` + nw.map((x) => x.parts[0][0]).join(' · ')); SFX.jingle(); }, 300); } }
   H.innerHTML = head(`Jogador: ${esc(cur.player)}`) + `${window.FinXP ? (() => { const X = window.FinXP(fh); return `<div style="display:flex;gap:14px;align-items:center;margin-top:6px"><img src="${pixAvatarURL(X.info.lvl, 4)}" alt="Seu personagem: ${esc(X.info.title)}" title="Seu personagem: ${esc(X.info.title)} (muda a cada nível)" style="width:45px;height:66px;image-rendering:pixelated;flex:none;background:#2b2433;border-radius:8px;padding:6px"><div style="flex:1">${X.html}<div style="font-size:12px;color:#666b70;margin:-4px 0 0">XP dos casos (${f0(sum(fh.map((x) => x.xp != null ? x.xp : Math.round(x.score || 0))))}) + partidas e desafios (${f0(window.XPExtra ? window.XPExtra() : 0)})</div></div></div>`; })() : ''}${chalHTML()}<div class="hsec"><h2>Simulação Empresarial</h2><button class="btn pri" id="bNewGame">Novo jogo</button></div>
     ${sv.length ? `<div class="slist">${sv.map((x) => { const end = x.startPeriod + x.cfg.periods - 1, done = (x.app && x.app.history ? x.app.history.length : 0);
       return `<div class="slot${x.ended ? ' ended' : ''}"><div><b>${esc(x.name)}</b>${x.ended ? '<span class="tag">encerrado</span>' : ''}<span class="tag">${x.cfg.scenario === 'random' ? 'aleatório' : 'roteiro real'}</span>${x.cfg.rules === 'manual' ? '<span class="tag">regras do manual</span>' : ''}<span class="tag">${x.cfg.companies || 4} empresas</span>${x.bots ? `<span class="tag">contra bots · ${window.SimBots.LEVELS[x.cfg.difficulty].label}</span>` : ''}
@@ -2614,9 +2688,13 @@ document.addEventListener('input', (e) => {
   let v; if (el.tagName === 'SELECT') v = el.dataset.t === 'number' ? +el.value : el.dataset.t === 'bool' ? el.value === 'true' : el.value; else { v = el.value === '' ? 0 : +el.value; if (!isFinite(v)) return; }
   setp(app.dec, k, v); rerender();
 });
+document.addEventListener('change', (e) => { const el = e.target; if (el && el.dataset && el.dataset.lks != null) setLook({ sign: el.value.trim().slice(0, 18) || ME() }); });
 document.addEventListener('click', (e) => {
   const t = e.target.closest('button,[data-go]') || e.target;
   if (t.dataset && t.dataset.mvp) { mvProd = t.dataset.mvp; render(); return; }
+  if (t.dataset && t.dataset.lkc) { setLook({ color: t.dataset.lkc }); return; }
+  if (t.dataset && t.dataset.lkl != null && t.dataset.lkl !== '') { setLook({ logo: +t.dataset.lkl }); return; }
+  if (t.dataset && t.dataset.som) { SFX.set(!SFX.on()); SFX.blip(); document.querySelectorAll('.sombtn').forEach((b) => { b.textContent = SFX.on() ? '♪ Som ligado' : '♪ Som desligado'; b.setAttribute('aria-pressed', SFX.on()); }); return; }
   if (t.dataset && t.dataset.mwr != null && t.dataset.mwr !== '') { mvReg = +t.dataset.mwr; page = 'mercadoVisao'; location.hash = page; render(); scrollTo(0, 0); return; }
   if (t.dataset && t.dataset.replay) { cityReplay = true; render(); return; }
   if (t.dataset && t.dataset.step) { const [pth, dl] = t.dataset.step.split('|'); const v = Math.max(0, (+get(app.dec, pth) || 0) + +dl); setp(app.dec, pth, v); if (app.dec.touched) app.dec.touched[pth] = true; render(); return; }
