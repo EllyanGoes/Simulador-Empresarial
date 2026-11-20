@@ -304,6 +304,8 @@
   <h3>Por que ele existe</h3>
   <p>Há um descompasso de tempo entre pagar e receber. A empresa paga o fornecedor, estoca, vende a prazo e só depois recebe. Esse intervalo precisa ser financiado por alguém. Quanto maior o intervalo, mais capital de giro a empresa precisa.</p>
   <div class="cgbox"><span class="fcfm"><i>Ciclo Financeiro</i> = PME + PMR − PMP</span> <span class="fcfm"><i>NCG</i> = Receita Líquida ÷ 360 × Ciclo Financeiro</span></div>
+  <h3>Veja o ciclo andando</h3><p>Mexa nos prazos e observe a barra vermelha: é o período em que a própria empresa financia a operação (exemplo com receita líquida de 140.500 por ano).</p>
+  <div data-pix="cycle" data-opts='{"pme":106.8,"pmr":60,"pmp":45,"rl":140500,"base":360}'></div>
   <h3 id="cgPrazos">Prazos médios: por que sobre a receita líquida</h3>
   <p>Nos casos, os prazos seguem a planilha da disciplina:</p>
   <div class="cgbox"><span class="fcfm"><i>PME</i> = Estoques ÷ Receita Líquida × 360</span> <span class="fcfm"><i>PMR</i> = (ACC − Estoques) ÷ Receita Líquida × 360</span> <span class="fcfm"><i>PMP</i> = PCC ÷ Receita Líquida × 360</span></div>
@@ -368,6 +370,8 @@
   const CONCEPT_EVA = `<h2>EVA e retorno · resumo</h2>
   <p class="cgl">O EVA responde: <b>a operação rendeu mais do que custa o dinheiro investido nela?</b> Para isso ele junta quatro peças: o capital empregado, o capital oneroso, o NOPAT e o WACC.</p>
   <div class="cgex"><b>Exemplo usado neste resumo (Cia Aurora, 2020):</b> EBITDA 25.400 · Depreciação 9.000 · EBIT 16.400 · Despesas financeiras 2.800 · IR/CS 4.624 · Lucro líquido 8.976 · Ativo total 154.800 · PCC 48.100 · Empréstimos 24.500 (curto) + 8.924 (longo) · PL 73.276.</div>
+  <h3>A balança do EVA</h3><p>O NOPAT vai num prato e o custo do capital (WACC × capital empregado) no outro. Começa com o NOPAT (10.824) e o capital empregado (106.700) da Cia Aurora e um WACC suposto de 10%; ajuste para ver quando a operação passa a destruir valor.</p>
+  <div data-pix="eva" data-opts='{"nopat":10824,"cap":106700,"wacc":10}'></div>
   <h3>Capital oneroso: o dinheiro que cobra juros</h3>
   <p>É todo recurso pelo qual a empresa paga um custo explícito (juros, encargos): empréstimos e financiamentos de curto e longo prazo, debêntures, leasing financeiro, antecipação de recebíveis com juros. No balanço, é o <b>PCE</b> mais a dívida do Passivo Não Circulante.</p>
   <div class="cgbox"><span class="fcfm"><i>Capital Oneroso</i> = Passivo Circulante + Passivo Não Circulante − PCC</span></div>
@@ -442,7 +446,7 @@
     o = document.createElement('div'); o.id = 'fcCg';
     const tab = sec === 'eva' ? 'eva' : 'cg';
     o.innerHTML = `<div class="cgp" role="dialog" aria-label="Resumos de conceitos"><button class="btn cgx" data-a="cgclose">Fechar</button><div class="cgtabs"><button class="${tab === 'cg' ? 'on' : ''}" data-a="concepts" data-sec="cg">Capital de giro</button><button class="${tab === 'eva' ? 'on' : ''}" data-a="concepts" data-sec="eva">EVA e retorno</button></div>${tab === 'eva' ? CONCEPT_EVA : CONCEPT_CG}<div style="text-align:right;margin-top:18px"><button class="btn pri" data-a="cgclose">Fechar</button></div></div>`;
-    root().appendChild(o); if (sec === 'prazos') { const h = o.querySelector('#cgPrazos'); if (h) o.scrollTop = h.offsetTop - 10; }
+    root().appendChild(o); if (window.PixFin) { try { window.PixFin.mount(o); } catch (e) { console.error(e); } } if (sec === 'prazos') { const h = o.querySelector('#cgPrazos'); if (h) o.scrollTop = h.offsetTop - 10; }
   }
   function viewHist(i) { const x = hist()[i]; if (!x || !x.snap) return; start(x.seed, x.snap.hints !== false, x.snap, x.kind, { at: x.at, score: x.score, xp: xpOf(x) }); }
   function start(seed, hints, sv, kind, rev) {
