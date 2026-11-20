@@ -145,8 +145,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKSc
                 s.nameFieldStringValue = name
                 let ext = (name as NSString).pathExtension
                 if !ext.isEmpty { s.allowedFileTypes = [ext] }
+                // pasta padrão: "Planilhas", ao lado do app
+                let pasta = Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent("Planilhas")
+                try? FileManager.default.createDirectory(at: pasta, withIntermediateDirectories: true)
+                s.directoryURL = pasta
                 if s.runModal() == .OK, let url = s.url, let data = Data(base64Encoded: b64) {
-                    try? data.write(to: url)
+                    if (try? data.write(to: url)) != nil { NSWorkspace.shared.activateFileViewerSelecting([url]) }
                 }
             }
         } else if msg.hasPrefix("export:") {

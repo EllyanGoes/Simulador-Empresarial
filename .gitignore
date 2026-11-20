@@ -2,3 +2,4 @@ node_modules/
 *.log
 Simulador Empresarial.app/Contents/MacOS/SimuladorNativo
 .DS_Store
+Planilhas/
