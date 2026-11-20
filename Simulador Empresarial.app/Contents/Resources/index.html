@@ -21,6 +21,7 @@ a{color:#1a4f9c}
 .brand small{display:block;font-weight:500;font-size:11px;opacity:.85;letter-spacing:0}
 .menu{position:relative}
 .navbtn{all:unset;cursor:pointer;color:#fff;font-size:17px;line-height:1.08;padding:8px 12px;border-radius:6px;display:flex;align-items:center;gap:9px}.navbtn:hover{background:var(--blue2)}
+.scenetabs{display:inline-flex;gap:0;border:2px solid #2b2433;border-radius:8px;overflow:hidden;margin:0 0 12px}.scenetabs button{all:unset;cursor:pointer;padding:7px 16px;font:600 14px system-ui,sans-serif;color:#2b2433;background:#f1efe8}.scenetabs button.on{background:#2b2433;color:#fac775}.scenetabs.sm{margin:0}.scenetabs.sm button{padding:5px 12px;font-size:13px}.mvbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 12px}.mvdot{display:inline-block;width:11px;height:11px;border:1px solid #2c2c2a;margin-right:6px;vertical-align:-1px}
 .cityw{max-width:1100px;margin:0 auto}.cityinfo{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:10px 0;padding:10px 14px;background:#2b2433;color:#f1efe8;border-radius:8px;font:13.5px ui-monospace,Menlo,monospace}.cityinfo .btn{white-space:nowrap}
 .menu>button{all:unset;cursor:pointer;color:#fff;font-size:17px;line-height:1.08;padding:8px 12px;border-radius:6px;display:flex;align-items:center;gap:9px}
 .menu>button:hover,.menu>button[aria-expanded=true]{background:var(--blue2)}
@@ -1471,7 +1472,7 @@ const title = (c, t) => `<div class="ttl"><h1>${t}</h1><span>(Período: #${c.per
 const SHEET = { visao: 'Visão Geral', compras: 'Compras', vendas: 'Vendas', despesas: 'Despesas e Receitas', recursos: 'Recursos da Produção', estoques: 'Estoque', custosGerais: 'Custos Gerais', custosProduto: 'Custo por Produto',
   portal: 'Portal de Notícias', politicas: 'Políticas e Metas', caixa: 'Caixa', contas: 'Contas a Receber e a Pagar', dre: 'Demonstração do Resultado', balanco: 'Balanço Patrimonial', decisoes: 'Decisões', analise: 'Análise Comparativa', marketShare: 'Market Share',
   balancos: 'Balanços Patrimoniais', mod: 'Mercado da Mão de Obra Direta', rentab: 'Rentabilidade', estrutura: 'Estrutura de Capital', liquidez: 'Liquidez', ranking: 'Ranking' };
-const TITLE = { cidade: 'Visão da Empresa', visao: 'Visão Geral', compras: 'Compras', vendas: 'Vendas', despesas: 'Despesas e Receitas', recursos: 'Recursos da Produção', estoques: 'Estoque', custosGerais: 'Custos Gerais', custosProduto: 'Custo por Produto',
+const TITLE = { cidade: 'Visão da Empresa', mercadoVisao: 'Visão do Mercado e das Regiões', visao: 'Visão Geral', compras: 'Compras', vendas: 'Vendas', despesas: 'Despesas e Receitas', recursos: 'Recursos da Produção', estoques: 'Estoque', custosGerais: 'Custos Gerais', custosProduto: 'Custo por Produto',
   caixa: 'Caixa', contas: 'Contas a Receber e a Pagar', dre: 'Demonstração do Resultado', balanco: 'Balanço Patrimonial', decisoes: 'Decisões Tomadas', politicas: 'Políticas e Metas', analise: 'Análise Comparativa', marketShare: 'Market Share',
   balancos: 'Balanços Patrimoniais das Empresas', mod: 'Mercado da Mão de Obra Direta', rentab: 'Rentabilidade', estrutura: 'Estrutura de Capital', liquidez: 'Liquidez', ranking: 'Ranking', parametros: 'Parâmetros do Modelo', portal: 'Portal de Notícias' };
 function rawSheet(name) {
@@ -2371,11 +2372,11 @@ function cityData(c) {
     buys: (r.purchases || []).length, reg };
 }
 function pCidade(c) {
-  if (c.mode === 'real') return `<div class="ttl"><h1>Visão da Empresa</h1><span>(Período: #${c.period} ${stLabel(c)})</span></div><div class="al">A cena é montada a partir do cálculo do simulador. Escolha o período em edição ou um período simulado no seletor <b>Períodos</b>.</div>`;
+  if (c.mode === 'real') return `<div class="ttl"><h1>Visão da Empresa</h1><span>(Período: #${c.period} ${stLabel(c)})</span></div>${sceneTabs('cidade')}<div class="al">A cena é montada a partir do cálculo do simulador. Escolha o período em edição ou um período simulado no seletor <b>Períodos</b>.</div>`;
   const D = cityData(c);
   const pill = (t, col) => `<span style="background:#2b2433e6;color:${col};border:2px solid ${col};padding:2px 8px;font:12px ui-monospace,Menlo,monospace">${t}</span>`;
   const sold = sum(D.reg.map((x) => x.sold));
-  return title(c, 'Visão da Empresa')
+  return title(c, 'Visão da Empresa') + sceneTabs('cidade')
     + `<div class="cityw"><div style="position:relative;border-radius:10px;overflow:hidden;background:#72a933;border:1px solid #4b6d24">
 <canvas id="cityCv" width="300" height="186" style="display:block;width:100%;image-rendering:pixelated;image-rendering:crisp-edges"></canvas>
 <div style="position:absolute;left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap">${pill(`P${D.period} ${esc(D.company.toUpperCase())}`, '#fac775')}${pill(`RAA ${f2(D.raa)}%`, '#97c459')}${D.pos ? pill(`RANK ${D.pos}º`, '#85b7eb') : ''}${pill(`CAIXA $ ${f0(D.cash)}`, '#f1efe8')}${D.esp > 0 ? pill('EMPRÉSTIMO ESPECIAL', '#f09595') : ''}${D.strike ? pill('GREVE', '#f09595') : ''}</div></div>
@@ -2500,10 +2501,132 @@ function startCity(D) {
   const t0 = performance.now();
   (function loop(n) { if (!cv.isConnected) return; draw((n - t0) / 1000); requestAnimationFrame(loop); })(t0);
 }
+// ------------------------------------------------ Visão do Mercado e das Regiões (pixel art isométrico)
+let mvProd = 'P', mvReg = null;
+const MV_FC = ['#e24b4a', '#378add', '#d4537e', '#ef9f27', '#1d9e75'];
+const MV_GREY = ['#b4b2a9', '#888780', '#d3d1c7', '#5f5e5a', '#a99f8a'];
+const sceneTabs = (on) => `<div class="scenetabs"><button data-go="cidade" class="${on === 'cidade' ? 'on' : ''}">Empresa</button><button data-go="mercadoVisao" class="${on === 'mercadoVisao' ? 'on' : ''}">Mercado e regiões</button></div>`;
+function mktData(c) {
+  const N = app.params.nCompanies || 4, prods = mvProd === 'A' ? PR : [mvProd], nR = REG.length;
+  const F = firmsHist(), rows = F.map((f) => ({ f, y: f.hist.find((h) => h.period === c.period) }));
+  const full = c.mode !== 'cur' && rows.length > 1 && rows.every((x) => x.y && x.y.demR);
+  let firms;
+  if (full) {
+    firms = rows.map(({ f, y }, k) => ({ name: f.name, me: !!f.me, color: f.me ? '#fac775' : MV_FC[(k - 1) % MV_FC.length],
+      sold: Array.from({ length: nR }, (_, i) => sum(prods.map((j) => y.salR[j][i] || 0))), dem: Array.from({ length: nR }, (_, i) => sum(prods.map((j) => y.demR[j][i] || 0))),
+      price: Array.from({ length: nR }, (_, i) => prods.map((j) => y.price[j][i])) }));
+  } else {
+    const r = c.r, mk = (i) => sum(prods.map((j) => r.sales[j].regions[i].market || 0));
+    const me = { name: ME(), me: true, color: '#fac775', sold: Array.from({ length: nR }, (_, i) => sum(prods.map((j) => r.sales[j].regions[i].sold || 0))),
+      dem: Array.from({ length: nR }, (_, i) => sum(prods.map((j) => r.sales[j].regions[i].demand || 0))), price: Array.from({ length: nR }, (_, i) => prods.map((j) => c.d.price[j][i])) };
+    const myShr = (i) => { const m = mk(i); return m ? sum(prods.map((j) => (r.sales[j].regions[i].share || 0) * (r.sales[j].regions[i].market || 0))) / m : 0; };
+    const last = rows.filter((x) => !x.f.me).map((x) => ({ f: x.f, h: x.f.hist[x.f.hist.length - 1] }));
+    const comp = last.length && last.every((x) => x.h && x.h.salR) ? last.map((x, k) => ({ name: x.f.name, color: MV_FC[k % MV_FC.length], w: (i) => sum(prods.map((j) => x.h.salR[j][i] || 0)) + 1e-9, p: (i) => prods.map((j) => x.h.price[j][i]) }))
+      : Array.from({ length: N - 1 }, (_, k) => ({ name: last[k] ? last[k].f.name : `Concorrente ${k + 1}`, color: last[k] ? MV_FC[k % MV_FC.length] : MV_GREY[k % MV_GREY.length], w: () => 1, p: (i) => prods.map((j) => c.d.scenario[j].price[i]) }));
+    firms = [me].concat(comp.map((x) => ({ name: x.name, me: false, color: x.color, sold: [], dem: [], price: Array.from({ length: nR }, (_, i) => x.p(i)) })));
+    for (let i = 0; i < nR; i++) { const m = mk(i), rest = Math.max(0, 1 - myShr(i)), W = sum(comp.map((x) => x.w(i))) || 1;
+      comp.forEach((x, k) => { const q = m * rest * x.w(i) / W; firms[k + 1].sold[i] = q; firms[k + 1].dem[i] = q; }); }
+    firms._mk = Array.from({ length: nR }, (_, i) => mk(i));
+  }
+  firms.sort((a, b) => (b.me ? 1 : 0) - (a.me ? 1 : 0));
+  const regions = REG.map((nm, i) => { const sold = sum(firms.map((f) => f.sold[i] || 0)), market = firms._mk ? firms._mk[i] : sum(firms.map((f) => f.dem[i] || 0));
+    const base = firms._mk ? Math.max(market, 1e-9) : Math.max(sold, 1e-9);
+    return { nm, i, market, sold, firms: firms.map((f) => ({ name: f.name, me: f.me, color: f.color, sold: f.sold[i] || 0, dem: f.dem[i] || 0, price: f.price[i], share: (f.me && firms._mk ? (f.dem[i] || 0) : (f.sold[i] || 0)) / base })) }; });
+  return { src: full ? 'real' : 'proj', period: c.period, prods, regions, maxMk: Math.max(1, ...regions.map((x) => x.market)) };
+}
+const mvPrice = (p, prods) => prods.length > 1 ? prods.map((j, n) => `${j === 'P' ? 'smartphone' : 'smartwatch'} $ ${f2(p[n] || 0)}`).join(' · ') : `$ ${f2(p[0] || 0)}`;
+function pMercadoVisao(c) {
+  const head = title(c, 'Visão do Mercado e das Regiões') + sceneTabs('mercadoVisao');
+  if (c.mode === 'real') return head + `<div class="al">A cena é montada a partir do cálculo do simulador. Escolha o período em edição ou um período simulado no seletor <b>Períodos</b>.</div>`;
+  const M = mktData(c), R2 = mvReg != null ? M.regions[mvReg] : null;
+  const pb = (k, l) => `<button class="${mvProd === k ? 'on' : ''}" data-mvp="${k}">${l}</button>`;
+  const ctr = `<div class="mvbar"><div class="scenetabs sm">${pb('P', 'Smartphone')}${pb('W', 'Smartwatch')}${pb('A', 'Os dois')}</div>${R2 ? `<button class="btn" data-mvr="-1">← Mapa das regiões</button>` : `<span class="note" style="margin:0">Clique numa região para ver as lojas de perto.</span>`}</div>`;
+  const legend = R2 ? `<div class="scroll"><table><thead><tr><th>Loja</th><th>Empresa</th><th>Market share</th><th>Preço</th><th>Vendas (un)</th>${M.src === 'real' ? '<th>Demanda (un)</th>' : ''}</tr></thead><tbody>${R2.firms.map((f, n) => `<tr class="${f.me ? 'b' : ''}"><td><span class="mvdot" style="background:${f.color}"></span>${n + 1}</td><td>${esc(f.name)}${f.me ? ' (você)' : ''}</td><td>${f2(f.share * 100)}%</td><td>${mvPrice(f.price, M.prods)}</td><td>${f0(f.sold)}</td>${M.src === 'real' ? `<td>${f0(f.dem)}</td>` : ''}</tr>`).join('')}</tbody></table></div>` : '';
+  return head + ctr + `<div class="cityw"${R2 ? ' style="max-width:860px"' : ''}><div style="position:relative;border-radius:10px;overflow:hidden;background:#72a933;border:1px solid #4b6d24">
+<canvas id="mktCv" width="${R2 ? 170 : 320}" height="${R2 ? 124 : 196}" style="display:block;width:100%;image-rendering:pixelated;image-rendering:crisp-edges"></canvas></div>
+<div class="cityinfo"><span id="mktTxt">${R2 ? `${R2.nm}: cada loja é uma empresa. A altura do prédio é o market share, as pessoas entrando são os clientes e uma fila cinza com placa vermelha é demanda que a sua empresa não atendeu.` : 'Cada bairro é uma região. A altura das lojas é o market share de cada empresa e a quantidade de pessoas na rua acompanha a demanda total da região.'}</span><button class="btn" id="mktGo" hidden></button></div>
+${legend}<p class="note">${M.src === 'real' ? `Período #${M.period} simulado: dados de todas as empresas.` : `Projeção do período #${M.period}: a sua loja usa as decisões em edição; os concorrentes repartem o restante do mercado ${(botRows() || []).length ? 'na proporção das vendas deles no último período, com os preços praticados nele (antes do primeiro fechamento, em partes iguais)' : 'igualmente, com os preços das premissas'}.`} Loja dourada com bandeira = ${esc(ME())}.</p></div>`;
+}
+function startMarket(M) {
+  const cv = document.getElementById('mktCv'); if (!cv) return;
+  const zoom = mvReg != null, W = cv.width, H = cv.height, OX = zoom ? 85 : 132, OY = zoom ? 70 : 44, main = cv.getContext('2d'); let g = main;
+  const txt = document.getElementById('mktTxt'), goB = document.getElementById('mktGo');
+  const P = (x, y, z) => [OX + (x - y) * 8, OY + (x + y) * 4 - z];
+  const px = (x, y, c) => { g.fillStyle = c; g.fillRect(x | 0, y | 0, 1, 1); };
+  const rect = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), w, h); };
+  function poly(pts, c) { let y0 = Infinity, y1 = -Infinity; pts.forEach((p) => { y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }); g.fillStyle = c;
+    for (let y = Math.ceil(y0); y <= Math.floor(y1); y++) { let a = Infinity, b = -Infinity; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; if ((p[1] <= y && q[1] >= y) || (q[1] <= y && p[1] >= y)) { if (p[1] === q[1]) { a = Math.min(a, p[0], q[0]); b = Math.max(b, p[0], q[0]); } else { const x = p[0] + (y - p[1]) * (q[0] - p[0]) / (q[1] - p[1]); a = Math.min(a, x); b = Math.max(b, x); } } }
+      if (a <= b) g.fillRect(Math.round(a), y, Math.round(b) - Math.round(a) + 1, 1); } }
+  function line(p, q, c) { let x0 = Math.round(p[0]), y0 = Math.round(p[1]); const x1 = Math.round(q[0]), y1 = Math.round(q[1]), dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1; let e = dx + dy; g.fillStyle = c;
+    for (let n = 0; n < 500; n++) { g.fillRect(x0, y0, 1, 1); if (x0 === x1 && y0 === y1) break; const e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx; } if (e2 <= dx) { e += dx; y0 += sy; } } }
+  function box(x, y, z, w, d, h, c) { const t = [P(x, y, z + h), P(x + w, y, z + h), P(x + w, y + d, z + h), P(x, y + d, z + h)], s = [P(x, y + d, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x, y + d, z + h)], e = [P(x + w, y, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x + w, y, z + h)];
+    poly(s, c[1]); poly(e, c[2]); poly(t, c[0]); if (c[3]) [[t[0], t[1]], [t[1], t[2]], [t[2], t[3]], [t[3], t[0]], [s[0], s[1]], [s[0], s[3]], [e[0], e[1]], [e[0], e[3]], [s[1], s[2]]].forEach(([a, b]) => line(a, b, c[3])); }
+  function tree(x, y, s) { const b = P(x, y, 0), cx = b[0], cy = b[1]; rect(cx - 1, cy - 6 * s, 2, 6 * s, '#6b3f1d');
+    const blob = (ox, oy, r, c) => { for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (i * i + j * j <= r * r + 1) px(cx + ox + i, cy + oy + j, c); };
+    blob(0, -9 * s, 5 * s, '#27500a'); blob(-1, -10 * s, 4 * s, '#3b6d11'); blob(-2, -12 * s, 2 * s, '#639922'); }
+  const DG = { 0: '111101101101111', 1: '010110010010111', 2: '111001111100111', 3: '111001111001111', 4: '101101111001001', 5: '111100111001111', 6: '111100111101111', 7: '111001001001001', 8: '111101111101111', 9: '111101111001111' };
+  const digit = (d, x, y, c) => { const b = DG[d] || DG[0]; for (let k = 0; k < 15; k++) if (b[k] === '1') px(x + k % 3, y + Math.floor(k / 3), c); };
+  const shade = (hex, k) => { const n = parseInt(hex.slice(1), 16), f = (v) => Math.max(0, Math.min(255, Math.round(v * k))); return '#' + [n >> 16 & 255, n >> 8 & 255, n & 255].map((v) => f(v).toString(16).padStart(2, '0')).join(''); };
+  const zones = [], zone = (pts, t, act) => { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; pts.forEach((p) => { x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]); x1 = Math.max(x1, p[0]); y1 = Math.max(y1, p[1]); }); zones.push([x0, y0, x1, y1, t, act]); };
+  // posição dos bairros (origem de cada região, 6x6 ladrilhos)
+  const ORG = zoom ? { [mvReg]: [0, 0] } : { 0: [0, 0], 1: [8, 0], 2: [0, 8], 3: [8, 8], 4: [16, 4] };
+  const inDist = (x, y) => Object.values(ORG).some(([a, b]) => x >= a && x < a + 6 && y >= b && y < b + 6);
+  const ROAD = zoom ? (x, y) => y === 6 || x === 6 || y === -1 || x === -1 : (x, y) => y === 7 || x === 7 || (x === 15 && y >= -2 && y < 16) || y === -1 || x === -1;
+  const SEA = (x, y) => !zoom && x >= 24 && ORG[4];
+  const bg = document.createElement('canvas'); bg.width = W; bg.height = H; g = bg.getContext('2d'); g.fillStyle = '#72a933'; g.fillRect(0, 0, W, H);
+  for (let y = -30; y < 40; y++) for (let x = -30; x < 44; x++) {
+    const c = P(x + 0.5, y + 0.5, 0); if (c[0] < -12 || c[0] > W + 12 || c[1] < -8 || c[1] > H + 8) continue;
+    const t = [P(x, y, 0), P(x + 1, y, 0), P(x + 1, y + 1, 0), P(x, y + 1, 0)], rd = ROAD(x, y), sea = SEA(x, y), dist = inDist(x, y);
+    poly(t, sea ? ((x + y) % 2 ? '#378add' : '#3f86d1') : rd ? '#5f5e5a' : dist ? ((x + y) % 2 ? '#d3d1c7' : '#c8c5ba') : ((x + y) % 2 ? '#72a933' : '#6a9e2f'));
+    if (sea && (x * 3 + y * 5) % 7 === 0) rect(c[0] - 1, c[1], 3, 1, '#85b7eb');
+    if (!rd && !sea && !dist && (x * 7 + y * 3) % 5 === 0) { px(c[0], c[1], '#a6d65a'); px(c[0] + 3, c[1] + 1, '#5a8d24'); }
+    if (rd && (x + y) % 2 === 0) px(c[0], c[1], '#fac775');
+  }
+  if (!zoom && ORG[4]) { for (let y = -30; y < 40; y++) { const a = P(24, y, 0), b = P(24, y + 1, 0); line(a, b, '#e8e3d6'); } }
+  g = main;
+  const SLOT = [[0.5, 0.5], [2.35, 0.5], [4.2, 0.5], [0.5, 3.1], [2.35, 3.1], [4.2, 3.1]];
+  const TREES = zoom ? [[-2.5, 1, 1], [-2, 4.5, 1.1], [8, 1.5, 1], [8.5, 4.5, 1], [2, 8, 1], [5, 8.3, 1.1], [-3, 8, 1], [9, 8, 1]]
+    : [[-3, 2, 1], [-3, 10, 1.1], [3, -3, 1], [11, -3, 1], [19, -2, 1.1], [6.5, 15, 1], [14, 15.5, 1], [-1, 16, 1], [21, 12, 1], [20, 1.5, 1], [14.5, 2, 0.9], [14.5, 11, 0.9], [22.6, 7, 1]];
+  const tot = (R2) => `${R2.nm} · demanda total ${f0(R2.market)} un · vendas ${f0(R2.sold)} un · ${R2.firms.length} empresas · líder: ${esc((R2.firms.slice().sort((a, b) => b.share - a.share)[0] || {}).name || '–')}`;
+  const storeTxt = (R2, f) => `${esc(f.name)}${f.me ? ' (você)' : ''} em ${R2.nm} · market share ${f2(f.share * 100)}% · preço ${mvPrice(f.price, M.prods)} · vendas ${f0(f.sold)} un${f.me && f.dem > f.sold + 0.5 ? ` · faltou produto para ${f0(f.dem - f.sold)} un` : ''}`;
+  function draw(t) {
+    g.drawImage(bg, 0, 0); zones.length = 0; const L = [], add = (k, f) => L.push([k, f]);
+    Object.entries(ORG).forEach(([ri, [ox, oy]]) => { const R2 = M.regions[+ri]; if (!R2) return; const col = CITY_RC[+ri % CITY_RC.length];
+      // placa da região
+      add(ox + oy + 5.6, () => { const p = P(ox + 5.7, oy + 5.7, 0); rect(p[0], p[1] - 14, 1, 14, '#5f5e5a'); rect(p[0] - 5, p[1] - 20, 11, 7, col[2]); rect(p[0] - 4, p[1] - 19, 9, 5, col[0]); digit(+ri + 1, p[0] - 1, p[1] - 19, '#2c2c2a');
+        if (!zoom && +ri === 4) { const sp = (t * 0.6) % 9; box(25, 3 + sp, 0, 1.2, 2.6, 4, ['#f1efe8', '#d3d1c7', '#b4b2a9', '#2c2c2a']); box(25.3, 3.6 + sp, 4, 0.6, 0.8, 4, ['#d85a30', '#993c1d', '#712b13', '#2c2c2a']); } });
+      if (!zoom) { const dm = [P(ox, oy, 0), P(ox + 6, oy, 0), P(ox + 6, oy + 6, 0), P(ox, oy + 6, 0)]; zones.push([-1e9, -1e9, 1e9, 1e9, tot(R2), { reg: +ri }, dm]); }
+      R2.firms.slice(0, SLOT.length).forEach((f, n) => { const [sx0, sy0] = SLOT[n], sx = ox + sx0, sy = oy + sy0, h = Math.max(5, Math.min(64, Math.round(5 + f.share * 90))), fc = f.color;
+        add(sx + sy + 1.3, () => { box(sx, sy, 0, 1.3, 1.3, h, ['#e8e3d6', '#d3cbb8', '#a99f8a', '#4a3f35']);
+          box(sx - 0.05, sy - 0.05, h, 1.4, 1.4, 2, [fc, shade(fc, 0.75), shade(fc, 0.55), '#2c2c2a']);
+          for (let v = 8; v < h - 2; v += 6) { const a = P(sx + 0.35, sy + 1.3, v), b = P(sx + 1.3, sy + 0.4, v); rect(a[0], a[1] - 3, 2, 3, '#85b7eb'); rect(b[0], b[1] - 3, 2, 3, '#5c8fc4'); }
+          const aw = [P(sx, sy + 1.3, 6), P(sx + 1.3, sy + 1.3, 6), P(sx + 1.3, sy + 1.6, 4), P(sx, sy + 1.6, 4)]; poly(aw, fc); for (let k = 0; k < 4; k += 2) { const a = P(sx + k * 0.33, sy + 1.3, 6), b = P(sx + k * 0.33, sy + 1.6, 4); line(a, b, '#f1efe8'); }
+          const dr = P(sx + 0.65, sy + 1.3, 0); rect(dr[0] - 1, dr[1] - 4, 3, 4, '#412402');
+          if (f.me) { const fl = P(sx + 0.65, sy + 0.65, h + 2); line(fl, [fl[0], fl[1] - 9], '#2c2c2a'); rect(fl[0] + 1, fl[1] - 9, 5, 3, '#e24b4a'); }
+          if (zoom) { const lb = P(sx + 0.65, sy + 0.65, h + 2); rect(lb[0] - 3, lb[1] - (f.me ? 18 : 9), 7, 7, '#2b2433'); digit(n + 1, lb[0] - 1, lb[1] - (f.me ? 17 : 8), '#f1efe8'); }
+          zone([P(sx, sy, h + 4), P(sx + 1.3, sy + 1.3, 0), P(sx, sy + 1.3, 0), P(sx + 1.3, sy, 0)], storeTxt(R2, f), zoom ? { go: 'marketShare' } : { reg: +ri });
+          if (f.me && f.dem > f.sold + 0.5) { for (let q = 0; q < 3; q++) { const qp = P(sx + 0.5 - q * 0.35, sy + 2.0 + q * 0.15, 0); rect(qp[0], qp[1] - 4, 2, 3, '#888780'); rect(qp[0], qp[1] - 6, 2, 2, '#f0c79a'); }
+            const sg = P(sx - 0.4, sy + 2.2, 0); rect(sg[0], sg[1] - 11, 1, 11, '#5f5e5a'); rect(sg[0] - 3, sg[1] - 14, 7, 4, '#e24b4a'); } }); });
+      // clientes indo às lojas
+      const nC = R2.market > 0 ? Math.round(2 + 10 * R2.market / M.maxMk) * (zoom ? 2 : 1) : 0, cum = []; let acc = 0; R2.firms.slice(0, SLOT.length).forEach((f) => { acc += f.share; cum.push(acc); });
+      for (let i = 0; i < nC; i++) { const u = ((i * 0.6180339) % 1) * (acc || 1), fi = Math.max(0, cum.findIndex((v) => u <= v)), [sx0, sy0] = SLOT[fi] || SLOT[0];
+        const k = (t * 0.22 + i * 0.37) % 1; if (k > 0.92) continue; const st = [ox + 0.5 + ((i * 0.37) % 1) * 5, oy + 5.9], en = [ox + sx0 + 0.65, oy + sy0 + 1.5], x = st[0] + (en[0] - st[0]) * k, y = st[1] + (en[1] - st[1]) * k;
+        add(x + y + 0.3, () => { const p = P(x, y, 0), sh = ['#534ab7', '#0f6e56', '#d85a30', '#185fa5', '#993556'][i % 5]; rect(p[0], p[1] - 4, 2, 3, sh); rect(p[0], p[1] - 6, 2, 2, '#f0c79a'); px(p[0] + (Math.floor(t * 6 + i) % 2), p[1] - 1, '#2c2c2a'); }); } });
+    TREES.forEach(([x, y, s]) => add(x + y + 0.2, () => tree(x, y, s)));
+    L.sort((a, b) => a[0] - b[0]).forEach(([, f]) => f());
+  }
+  const hit = (e) => { const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H; const inP = (pts) => { let o = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const a = pts[i], b = pts[j]; if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) o = !o; } return o; }; const zs = zones.filter((z) => z[6] ? inP(z[6]) : x >= z[0] && x <= z[2] && y >= z[1] && y <= z[3]); return zs.length ? zs[zs.length - 1] : null; };
+  cv.addEventListener('mousemove', (e) => { cv.style.cursor = hit(e) ? 'pointer' : 'default'; });
+  cv.addEventListener('click', (e) => { const z = hit(e); if (!z) return; txt.textContent = z[4]; goB.hidden = false;
+    if (z[5].reg != null) { goB.removeAttribute('data-go'); goB.dataset.mvr = z[5].reg; goB.textContent = `Ver ${M.regions[z[5].reg].nm} de perto →`; }
+    else { goB.removeAttribute('data-mvr'); goB.dataset.go = z[5].go; goB.textContent = 'Abrir Market Share →'; } });
+  const t0 = performance.now();
+  (function loop(n) { if (!cv.isConnected) return; draw((n - t0) / 1000); requestAnimationFrame(loop); })(t0);
+}
 // ------------------------------------------------ render
 const PAGES = { visao: pVisao, compras: pCompras, vendas: pVendas, despesas: pDespesas, recursos: pRecursos, estoques: pEstoques, custosGerais: pCustosGerais, custosProduto: pCustosProduto, caixa: pCaixa, contas: pContas,
   dre: pDRE, balanco: pBalanco, politicas: pPoliticas, analise: pAnalise, decisoes: pDecisoes, marketShare: pMarketShare, mod: pMOD, ranking: pRanking, balancos: (c) => pMercadoReal(c, 'balancos'), rentab: (c) => pMercadoReal(c, 'rentab'),
-  estrutura: (c) => pMercadoReal(c, 'estrutura'), liquidez: (c) => pMercadoReal(c, 'liquidez'), parametros: pParametros, portal: pPortal, cidade: pCidade };
+  estrutura: (c) => pMercadoReal(c, 'estrutura'), liquidez: (c) => pMercadoReal(c, 'liquidez'), parametros: pParametros, portal: pPortal, cidade: pCidade, mercadoVisao: pMercadoVisao };
 function gameLocked() { const sv = typeof curSave === 'function' ? curSave() : null; return !!(sv && !sv.ended); }
 // disposição de cada relatório como no original: gráficos à direita da tabela, abaixo dela, ou tabela estreita
 const LAYOUT = { caixa: 's50', recursos: 's50', despesas: 's50', mod: 's50', custosGerais: 's65', dre: 'below', balanco: 'narrow', politicas: 'narrow' };
@@ -2531,11 +2654,13 @@ function render() {
   if (page === 'parametros') body = `<div class="ttl"><h1>${TITLE[page]}</h1></div>` + pParametros();
   else if (page === 'portal') body = `<div class="ttl"><h1>Portal de Notícias</h1><span>Notícias e informações do jogo, por período</span></div>` + pPortal();
   else if (page === 'cidade') body = pCidade(c);
+  else if (page === 'mercadoVisao') body = pMercadoVisao(c);
   else if (c.mode === 'real' && page === 'visao') body = pVisao(c);
   else if (c.mode === 'real') body = title(c, TITLE[page]) + layoutPage(page, chartsFor(page, c), rawSheet(SHEET[page] || 'Visão Geral'));
   else body = (page === 'visao' ? '' : title(c, TITLE[page])) + (page === 'visao' ? chartsFor(page, c) + PAGES[page](c) : layoutPage(page, chartsFor(page, c), PAGES[page](c))).replace('<!--ANCHART-->', page === 'analise' ? `<div class="charts">${anChart(c)}</div>` : '');
   $('view').innerHTML = body; applyFmt(); applyTips(); fitLegends();
   if (page === 'cidade' && c.mode !== 'real') { try { startCity(cityData(c)); } catch (e) { console.error(e); } }
+  if (page === 'mercadoVisao' && c.mode !== 'real') { try { startMarket(mktData(c)); } catch (e) { console.error(e); } }
   $('sideNote').innerHTML = `Ponto de partida: fim do período #${app.base.period} real.<br>Modelo calibrado com os períodos #1–#5.<br><span style="font-size:11px">Versão ${typeof APPVER !== 'undefined' ? APPVER : ''}${NATIVE ? ' · janela nativa' : ''}</span>`;
   { const sv = typeof curSave === 'function' ? curSave() : null; $('bConfirm').textContent = sv && sv.ended ? 'Partida encerrada' : `Fechar período #${app.state.period} e avançar`; $('bConfirm').disabled = !!(sv && sv.ended); $('bConfirm').style.display = viewKey === 'cur' ? '' : 'none'; }
   save();
@@ -2642,7 +2767,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ================================================ JOGO: jogadores, saves, configurações, cronômetro, cenários
-const APPVER = '20/11 14:10';
+const APPVER = '20/11 14:45';
 const SKEY = 'simEnividia.store.v1';
 // N empresas no mercado: o tamanho do mercado acompanha o número de empresas (4 = jogo original)
 function setCompanies(p, n) { n = Math.max(2, Math.min(6, +n || 4)); p.nCompanies = n; delete p.marketScale; delete p.nRegions; return p; }
@@ -3214,6 +3339,8 @@ document.addEventListener('input', (e) => {
 });
 document.addEventListener('click', (e) => {
   const t = e.target.closest('button,[data-go]') || e.target;
+  if (t.dataset && t.dataset.mvp) { mvProd = t.dataset.mvp; render(); return; }
+  if (t.dataset && t.dataset.mvr != null && t.dataset.mvr !== '') { mvReg = +t.dataset.mvr < 0 ? null : +t.dataset.mvr; render(); scrollTo(0, 0); return; }
   if (t.dataset && t.dataset.go) { page = t.dataset.go; if (page !== 'parametros' && page !== 'decisoes' && false) viewKey = 'cur'; location.hash = page; closeMenus(); render(); scrollTo(0, 0); return; }
   if (t.id === 'bAddP') { app.dec.purchases.push({ item: 'kitP', supplier: 'Fasterix', qty: 1000, pay: 'AV' }); render(); return; }
   if (t.dataset && t.dataset.del != null) { app.dec.purchases.splice(+t.dataset.del, 1); render(); return; }
