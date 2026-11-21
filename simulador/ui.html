@@ -1692,11 +1692,11 @@ function cityAch() {
 // ---------- ciclo financeiro e EVA (2D, usados no simulador e nos resumos dos casos)
 const PixFin = (() => {
   const fmt = (v) => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }).format(v), fmt1 = (v) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(v);
-  const slider = (id, lbl, v, mx, st) => `<label class="pxs"><span>${lbl}</span><input type="range" min="0" max="${mx}" step="${st || 1}" value="${v}" data-px="${id}"><b data-pxv="${id}"></b></label>`;
+  const slider = (id, lbl, v, mx, st, ro) => ro ? `<div class="pxs"><span>${lbl}</span><input type="hidden" data-px="${id}" value="${v}"><span></span><b data-pxv="${id}"></b></div>` : `<label class="pxs"><span>${lbl}</span><input type="range" min="0" max="${mx}" step="${st || 1}" value="${v}" data-px="${id}"><b data-pxv="${id}"></b></label>`;
   function cycle(el, o) {
     const base = o.base || 360, s = { pme: o.pme, pmr: o.pmr, pmp: o.pmp }, rl = o.rl || 0;
     el.innerHTML = `<div class="pxw"><canvas width="240" height="92" style="width:100%;image-rendering:pixelated;display:block;border-radius:8px"></canvas>
-      <div class="pxctl">${slider('pme', 'PME (dias)', Math.round(s.pme), Math.max(180, Math.ceil(s.pme / 30) * 30))}${slider('pmr', 'PMR (dias)', Math.round(s.pmr), Math.max(180, Math.ceil(s.pmr / 30) * 30))}${slider('pmp', 'PMP (dias)', Math.round(s.pmp), Math.max(180, Math.ceil(s.pmp / 30) * 30))}</div>
+      <div class="pxctl">${slider('pme', 'PME (dias)', Math.round(s.pme), Math.max(180, Math.ceil(s.pme / 30) * 30), 1, o.ro)}${slider('pmr', 'PMR (dias)', Math.round(s.pmr), Math.max(180, Math.ceil(s.pmr / 30) * 30), 1, o.ro)}${slider('pmp', 'PMP (dias)', Math.round(s.pmp), Math.max(180, Math.ceil(s.pmp / 30) * 30), 1, o.ro)}</div>
       <div class="pxout" data-pxo></div>${o.note ? `<p class="pxnote">${o.note}</p>` : ''}</div>`;
     const cv = el.querySelector('canvas'), g = cv.getContext('2d'), out = el.querySelector('[data-pxo]');
     const upd = () => { el.querySelectorAll('[data-px]').forEach((i) => { s[i.dataset.px] = +i.value; el.querySelector(`[data-pxv="${i.dataset.px}"]`).textContent = fmt(+i.value) + ' d'; });
@@ -1736,7 +1736,7 @@ const PixFin = (() => {
     const s = { nopat: o.nopat, cap: o.cap, wacc: o.wacc };
     const mN = Math.max(1000, Math.ceil(Math.abs(o.nopat) * 2.5 / 1000) * 1000), mC = Math.max(1000, Math.ceil(o.cap * 2 / 1000) * 1000), st = (m) => Math.max(1, Math.round(m / 200));
     el.innerHTML = `<div class="pxw"><canvas width="220" height="100" style="width:100%;image-rendering:pixelated;display:block;border-radius:8px"></canvas>
-      <div class="pxctl">${slider('nopat', 'NOPAT ($)', Math.round(s.nopat), mN, st(mN))}${slider('cap', 'Capital empregado ($)', Math.round(s.cap), mC, st(mC))}${slider('wacc', `WACC (% ${o.per || 'ao ano'})`, +s.wacc.toFixed(1), Math.max(30, Math.ceil(s.wacc * 2)), 0.1)}</div><div class="pxout" data-pxo></div>${o.note ? `<p class="pxnote">${o.note}</p>` : ''}</div>`;
+      <div class="pxctl">${slider('nopat', 'NOPAT ($)', Math.round(s.nopat), mN, st(mN), o.ro)}${slider('cap', 'Capital empregado ($)', Math.round(s.cap), mC, st(mC), o.ro)}${slider('wacc', `WACC (% ${o.per || 'ao ano'})`, +s.wacc.toFixed(1), Math.max(30, Math.ceil(s.wacc * 2)), 0.1, o.ro)}</div><div class="pxout" data-pxo></div>${o.note ? `<p class="pxnote">${o.note}</p>` : ''}</div>`;
     const cv = el.querySelector('canvas'), g = cv.getContext('2d'), out = el.querySelector('[data-pxo]'); let ang = 0;
     const upd = () => { el.querySelectorAll('[data-px]').forEach((i) => { s[i.dataset.px] = +i.value; el.querySelector(`[data-pxv="${i.dataset.px}"]`).textContent = i.dataset.px === 'wacc' ? fmt1(+i.value) + '%' : '$ ' + fmt(+i.value); });
       const cost = s.cap * s.wacc / 100, ev = s.nopat - cost;
@@ -1775,9 +1775,9 @@ function pFinVisao(c) {
   if (c.mode === 'real') return head + `<div class="al">Escolha o período em edição ou um período simulado no seletor <b>Períodos</b>.</div>`;
   const F = finData(c), q = (o) => esc(JSON.stringify(o));
   return head + `<div class="pxgrid"><div class="mcard pxcard"><h4>Ciclo financeiro do período #${c.period}</h4>
-    <div data-pix="cycle" data-opts="${q({ pme: F.pme, pmr: F.pmr, pmp: F.pmp, rl: F.rl, base: 90, note: `Valores de partida do período (90 dias), na lógica da disciplina, sobre a receita líquida de $ ${f0(F.rl)}: PME = estoques ${f0(F.est)} ÷ RL × 90 · PMR = clientes ${f0(F.cli)} ÷ RL × 90 · PMP = fornecedores ${f0(F.forn)} ÷ RL × 90. Mexa nos controles para simular.` })}"></div></div>
+    <div data-pix="cycle" data-opts="${q({ pme: F.pme, pmr: F.pmr, pmp: F.pmp, rl: F.rl, base: 90, ro: true, note: `Valores de partida do período (90 dias), na lógica da disciplina, sobre a receita líquida de $ ${f0(F.rl)}: PME = estoques ${f0(F.est)} ÷ RL × 90 · PMR = clientes ${f0(F.cli)} ÷ RL × 90 · PMP = fornecedores ${f0(F.forn)} ÷ RL × 90.` })}"></div></div>
     <div class="mcard pxcard"><h4>Balança do EVA do período #${c.period}</h4>
-    <div data-pix="eva" data-opts="${q({ nopat: F.nopat, cap: F.cap, wacc: F.wacc, per: 'ao período', note: `NOPAT = EBIT × (1 − ${f2(F.tax * 100)}%) · capital empregado = empréstimos ${f0(F.debt)} + PL ${f0(F.pl)}. WACC de partida: custo da dívida depois do IR ${f2(F.kd)}% ao período (despesas financeiras ÷ empréstimos) e custo do capital próprio suposto em ${f2(F.ke)}% ao período (cerca de 17% ao ano). Ajuste o WACC para testar.` })}"></div></div></div>`;
+    <div data-pix="eva" data-opts="${q({ nopat: F.nopat, cap: F.cap, wacc: F.wacc, per: 'ao período', ro: true, note: `NOPAT = EBIT × (1 − ${f2(F.tax * 100)}%) · capital empregado = empréstimos ${f0(F.debt)} + PL ${f0(F.pl)}. WACC de partida: custo da dívida depois do IR ${f2(F.kd)}% ao período (despesas financeiras ÷ empréstimos) e custo do capital próprio suposto em ${f2(F.ke)}% ao período (cerca de 17% ao ano).` })}"></div></div></div>`;
 }
 // ---------- mapa-múndi
 const WORLD = [[[-168, 66], [-140, 70], [-95, 72], [-75, 62], [-55, 52], [-66, 44], [-80, 25], [-97, 22], [-90, 15], [-83, 9], [-79, 8], [-105, 20], [-117, 32], [-125, 48], [-150, 60]],
@@ -2431,7 +2431,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ================================================ JOGO: jogadores, saves, configurações, cronômetro, cenários
-const APPVER = '20/11 23:40';
+const APPVER = '21/11 00:05';
 const SKEY = 'simEnividia.store.v1';
 // N empresas no mercado: o tamanho do mercado acompanha o número de empresas (4 = jogo original)
 function setCompanies(p, n) { n = Math.max(2, Math.min(6, +n || 4)); p.nCompanies = n; delete p.marketScale; delete p.nRegions; return p; }
