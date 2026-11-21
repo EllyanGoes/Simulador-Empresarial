@@ -2424,32 +2424,26 @@ function mesaHTML(c) {
 let cityReplay = false;
 function startCity(D) {
   const cv = document.getElementById('cityCv'); if (!cv) return;
-  const main = cv.getContext('2d'), W = cv.width, H = cv.height, BIG = W > 300, OX = BIG ? 136 : 120, OY = BIG ? 68 : 50; let g = main;
+  const HD = hdCanvas(cv), main = HD.g, W = HD.W, H = HD.H, BIG = W > 300, OX = BIG ? 136 : 120, OY = BIG ? 68 : 50; let g = main;
   const txt = document.getElementById('cityTxt'), goB = document.getElementById('cityGo'), capEl = document.getElementById('cityCap'), RP = cityReplay; cityReplay = false; let capLast = ''; const LK = curLook(), RECS = records(), MD = moodOf(D.sat, D.strike);
   const P = (x, y, z) => [OX + (x - y) * 8, OY + (x + y) * 4 - z];
   const px = (x, y, c) => { g.fillStyle = c; g.fillRect(x | 0, y | 0, 1, 1); };
   const rect = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), w, h); };
-  function poly(pts, c) { let y0 = Infinity, y1 = -Infinity; pts.forEach((p) => { y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }); g.fillStyle = c;
-    for (let y = Math.ceil(y0); y <= Math.floor(y1); y++) { let a = Infinity, b = -Infinity; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; if ((p[1] <= y && q[1] >= y) || (q[1] <= y && p[1] >= y)) { if (p[1] === q[1]) { a = Math.min(a, p[0], q[0]); b = Math.max(b, p[0], q[0]); } else { const x = p[0] + (y - p[1]) * (q[0] - p[0]) / (q[1] - p[1]); a = Math.min(a, x); b = Math.max(b, x); } } }
-      if (a <= b) g.fillRect(Math.round(a), y, Math.round(b) - Math.round(a) + 1, 1); } }
-  function line(p, q, c) { let x0 = Math.round(p[0]), y0 = Math.round(p[1]); const x1 = Math.round(q[0]), y1 = Math.round(q[1]), dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1; let e = dx + dy; g.fillStyle = c;
-    for (let n = 0; n < 500; n++) { g.fillRect(x0, y0, 1, 1); if (x0 === x1 && y0 === y1) break; const e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx; } if (e2 <= dx) { e += dx; y0 += sy; } } }
-  function box(x, y, z, w, d, h, c) { const t = [P(x, y, z + h), P(x + w, y, z + h), P(x + w, y + d, z + h), P(x, y + d, z + h)], s = [P(x, y + d, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x, y + d, z + h)], e = [P(x + w, y, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x + w, y, z + h)];
-    poly(s, c[1]); poly(e, c[2]); poly(t, c[0]); if (c[3]) [[t[0], t[1]], [t[1], t[2]], [t[2], t[3]], [t[3], t[0]], [s[0], s[1]], [s[0], s[3]], [e[0], e[1]], [e[0], e[3]], [s[1], s[2]]].forEach(([a, b]) => line(a, b, c[3])); }
+  function poly(pts, c) { pkPoly(g, pts, c); }
+  function line(p, q, c) { pkLine(g, p, q, c); }
+  function box(x, y, z, w, d, h, c, tex) { pkBox(g, P, x, y, z, w, d, h, c, tex); }
   function gable(x0, x1, y, d, z, r, c) { const xm = (x0 + x1) / 2; poly([P(x0, y, z), P(xm, y, z + r), P(xm, y + d, z + r), P(x0, y + d, z)], c[0]); poly([P(xm, y, z + r), P(x1, y, z), P(x1, y + d, z), P(xm, y + d, z + r)], c[1]); poly([P(x0, y + d, z), P(xm, y + d, z + r), P(x1, y + d, z)], c[2]);
     for (let k = 1; k < 4; k++) { const yy = y + d * k / 4; line(P(x0, yy, z), P(xm, yy, z + r), c[3]); } line(P(xm, y, z + r), P(xm, y + d, z + r), c[3]); line(P(x0, y + d, z), P(xm, y + d, z + r), c[3]); line(P(xm, y + d, z + r), P(x1, y + d, z), c[3]); }
   const sWin = (x, y, d, z, u, v, c) => { const p = P(x + u, y + d, z + v); rect(p[0], p[1] - 3, 2, 3, c); };
   const eWin = (x, y, w, z, u, v, c) => { const p = P(x + w, y + u, z + v); rect(p[0], p[1] - 3, 2, 3, c); };
-  function tree(x, y, s) { const b = P(x, y, 0), cx = b[0], cy = b[1]; rect(cx - 1, cy - 6 * s, 2, 6 * s, '#6b3f1d');
-    const blob = (ox, oy, r, c) => { for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (i * i + j * j <= r * r + 1) px(cx + ox + i, cy + oy + j, c); };
-    blob(0, -9 * s, 5 * s, '#27500a'); blob(-1, -10 * s, 4 * s, '#3b6d11'); blob(-2, -12 * s, 2 * s, '#639922'); px(cx - 3, cy - 13 * s, '#97c459'); }
-  const crate = (x, y, z, c) => { box(x, y, z, 0.8, 0.8, 6, c); const p = P(x + 0.4, y + 0.8, z + 3); px(p[0], p[1], '#412402'); };
+  function tree(x, y, s) { const b = P(x, y, 0); pkTree(g, b[0], b[1], s); }
+  const crate = (x, y, z, c) => { box(x, y, z, 0.8, 0.8, 6, c, 'wood'); const p = P(x + 0.4, y + 0.8, z + 3); px(p[0], p[1], '#412402'); };
   const zones = [];
   const zone = (pts, t, go, lbl) => { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; pts.forEach((p) => { x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]); x1 = Math.max(x1, p[0]); y1 = Math.max(y1, p[1]); }); zones.push([x0, y0, x1, y1, t, go, lbl]); };
   const pct = (v) => f2(v * 100) + '%';
   // ---------- chão (desenhado uma vez)
   const LOT = (x, y) => x >= 0 && x < 20 && y >= 0 && y < 10, ROAD = (x, y) => y === 11 || (x === 13 && y < 11), YARD = (x, y) => x >= 1 && x < 9 && y >= 5 && y < 10;
-  const bg = document.createElement('canvas'); bg.width = W; bg.height = H; g = bg.getContext('2d'); g.fillStyle = '#72a933'; g.fillRect(0, 0, W, H);
+  const BGH = hdBg(W, H), bg = BGH.c; g = BGH.g; g.fillStyle = '#72a933'; g.fillRect(0, 0, W, H);
   for (let y = -26; y < 36; y++) for (let x = -26; x < 40; x++) {
     const c = P(x + 0.5, y + 0.5, 0); if (c[0] < -12 || c[0] > W + 12 || c[1] < -8 || c[1] > H + 8) continue;
     const rd = ROAD(x, y), lot = LOT(x, y) && !rd, yd = YARD(x, y), ea = D.exp.areas.find((a) => x >= Math.floor(a[0]) && x < Math.ceil(a[2]) && y >= Math.floor(a[1]) && y < Math.ceil(a[3])), t = [P(x, y, 0), P(x + 1, y, 0), P(x + 1, y + 1, 0), P(x, y + 1, 0)];
@@ -2481,7 +2475,7 @@ function startCity(D) {
     [22, 3, 1.1], [23, 7, 1], [21.5, -1.5, 1], [-2.5, 1, 1], [-3, 8, 1.1], [-2, 5, 0.9], [4, -2.5, 1.1], [9, -3, 1], [17, -2.4, 1], [-1.5, 13, 1], [25, 10, 1], [-4, 3.5, 1]];
   const regCols = (i) => CITY_RC[i % CITY_RC.length];
   function draw(t) {
-    g.drawImage(bg, 0, 0); zones.length = 0;
+    g.drawImage(bg, 0, 0, W, H); zones.length = 0;
     const rp = RP ? (t < 4 ? 0 : t < 9 ? 1 : t < 15 ? 2 : t < 21 ? 3 : 4) : -1;
     if (RP && capEl) { const soldT = sum(D.reg.map((x) => x.sold)), k1 = Math.min(1, Math.max(0, (t - 4) / 4)), k2 = Math.min(1, Math.max(0, (t - 9) / 5));
       const cp = rp === 0 ? (D.buys ? `1/4 · Fornecedor entregando insumos (${f0(D.buysQ)} un compradas)` : '1/4 · Sem compras de insumos neste período') : rp === 1 ? `2/4 · Produção: ${f0(D.prod.P * k1)} smartphones · ${f0(D.prod.W * k1)} smartwatches` : rp === 2 ? `3/4 · Vendas saindo para as regiões: ${f0(soldT * k2)} un` : rp === 3 ? `4/4 · Resultado: lucro $ ${f0(D.res)} · RAA ${f2(D.raa)}% · caixa $ ${f0(D.cash)}` : 'Fim do período. Clique em Assistir para ver de novo.';
@@ -2491,23 +2485,22 @@ function startCity(D) {
     for (let x = 0; x <= 20; x++) if (x !== 13 && x !== 14) add(x - 0.2, () => { post(x, -0.1); if (x < 20 && x !== 12) line(P(x, -0.1, 3), P(x + 1, -0.1, 3), '#ba7517'); });
     for (let y = 0; y < 10; y++) { add(y - 0.2, () => { post(-0.1, y); line(P(-0.1, y, 3), P(-0.1, y + 1, 3), '#ba7517'); }); add(20.1 + y, () => { post(20.1, y); line(P(20.1, y, 3), P(20.1, y + 1, 3), '#ba7517'); }); }
     // chaminé + galpão
-    add(2, () => { box(1.6, 1.4, 22, 0.7, 0.7, 26, ['#b4b2a9', '#888780', '#5f5e5a', '#2c2c2a']); const q = P(1.95, 1.75, 48); rect(q[0] - 1, q[1], 4, 2, '#d85a30'); });
-    add(6, () => { const x = 1, y = 1, w = 6, d = 3.6, h = 22; box(x, y, 0, w, d, h, ['#e8e3d6', '#d3cbb8', '#a99f8a', '#4a3f35']);
+    add(2, () => { box(1.6, 1.4, 22, 0.7, 0.7, 26, ['#c97a4a', '#b5653a', '#8f4a28', '#3a2418'], 'brick'); const q = P(1.95, 1.75, 48); rect(q[0] - 1, q[1], 4, 2, '#d85a30'); });
+    add(6, () => { const x = 1, y = 1, w = 6, d = 3.6, h = 22; box(x, y, 0, w, d, h, ['#c97a4a', '#b5653a', '#8f4a28', '#3a2418'], 'brick');
       for (let u = 0.6; u < w; u += 1.2) sWin(x, y, d, 0, u, 15, D.opOcc > 0.05 ? '#fac775' : '#85b7eb'); for (let u = 0.5; u < d; u += 1) eWin(x, y, w, 0, u, 15, '#5c8fc4');
       const dp = P(x + 2.4, y + d, 0); rect(dp[0], dp[1] - 10, 10, 10, '#5f5e5a'); for (let k = 1; k < 10; k += 2) rect(dp[0], dp[1] - 10 + k, 10, 1, '#888780');
       for (let i = 0; i < 3; i++) gable(x + i * 2, x + i * 2 + 2, y, d, h, 7, [LK.color, pxShade(LK.color, 0.7), pxShade(LK.color, 0.85), pxShade(LK.color, 0.5)]);
-      const sg = P(x + 4.6, y + d, 0); rect(sg[0] - 1, sg[1] - 21, 15, 7, '#2b2433'); { const lp = LOGOS[LK.logo % LOGOS.length][1]; for (let k = 0; k < 25; k++) if (lp[k] === '1') px(sg[0] + k % 5, sg[1] - 20 + Math.floor(k / 5), LK.color); } rect(sg[0] + 6, sg[1] - 19, 6, 1, '#f1efe8'); rect(sg[0] + 6, sg[1] - 17, 4, 1, '#f1efe8');
+      pkSign(g, P, x, y, 0, w, d, 0.4, 5.6, 16.6, 20.4, '#2b2433', LK.color, LK.sign, '#f1efe8', { p: LOGOS[LK.logo % LOGOS.length][1], c: LK.color });
       zone([P(1, 1, 40), P(7, 1, 22), P(7, 4.6, 0), P(1, 4.6, 0)], `Galpão · ${f0(D.workers)} operadores · ocupação da mão de obra ${pct(D.opOcc)} · ${f0(D.opIdle)} h ociosas · satisfação ${n3(D.sat)}${D.strike ? ' · houve greve/paralisação' : ''}`, 'recursos', 'Recursos da Produção'); });
     // máquinas no pátio
     mList.forEach((ty, i) => { const col = i % 7, row = Math.floor(i / 7), mx = 1.3 + col * 1.05, my = 5.9 + row * 1.0; const isP = ty === 'P', idx = isP ? i : i - shownP, on = idx < (isP ? onP : onW);
-      add(mx + my + 0.8, () => { box(mx, my, 0, 0.8, 0.7, 6, isP ? ['#85b7eb', '#378add', '#185fa5', '#042c53'] : ['#9fe1cb', '#1d9e75', '#0f6e56', '#04342c']);
+      add(mx + my + 0.8, () => { box(mx, my, 0, 0.8, 0.7, 6, isP ? ['#85b7eb', '#378add', '#185fa5', '#042c53'] : ['#9fe1cb', '#1d9e75', '#0f6e56', '#04342c'], 'metal');
         box(mx + 0.2, my + 0.15, 6, 0.4, 0.4, 2, ['#d3d1c7', '#b4b2a9', '#888780', '#444441']); const gp = P(mx + 0.8, my + 0.35, 3);
         rect(gp[0], gp[1] - 1, 2, 2, on && (rp < 0 || rp === 1) ? (Math.floor(t * 5 + i) % 2 ? '#fac775' : '#ef9f27') : '#444441');
         zone([P(mx, my, 9), P(mx + 0.8, my + 0.7, 0), P(mx, my + 0.7, 0), P(mx + 0.8, my, 0)], mTxt(ty), 'recursos', 'Recursos da Produção'); }); });
     // operadores
     for (let i = 0; i < nWk; i++) { const wx = D.strike ? 2.2 + i * 0.4 : 1.3 + ((t * 0.35 + i * 0.83) % 7.4), wy = D.strike ? 5.15 : 5.2 + (i % 2) * 0.25;
-      add(wx + wy + 0.5, () => { const p = P(wx, wy, 0), s = Math.floor(t * 6 + i) % 2; rect(p[0], p[1] - 4, 2, 3, i % 2 ? '#0f6e56' : '#534ab7'); rect(p[0], p[1] - 6, 2, 2, '#f0c79a'); rect(p[0] - 1, p[1] - 7, 4, 1, '#fac775');
-        if (D.strike) { rect(p[0], p[1] - 12, 1, 5, '#854f0b'); rect(p[0] - 2, p[1] - 15, 5, 3, '#e24b4a'); } else { px(p[0] + (s ? 0 : 1), p[1] - 1, '#2c2c2a'); drawMood(rect, px, p[0], p[1], MD.k, t, i); }
+      add(wx + wy + 0.5, () => { const p = P(wx, wy, 0); pkPerson(g, p[0], p[1], i % 2 ? '#0f6e56' : '#534ab7', '#412402', t, i, { helmet: '#fac775', sign: D.strike }); if (!D.strike) drawMood(rect, px, p[0], p[1] - 3, MD.k, t, i);
         zone([[p[0] - 3, p[1] - 15], [p[0] + 4, p[1] + 1]], `${workerName(i)}, operador(a) · humor: ${MD.t} (satisfação da equipe ${n3(D.sat)})`, 'mod', 'Mercado MOD'); }); }
     add(7.3 + 4.95 + 0.5, () => { const p = P(7.3, 4.95, 0); rect(p[0], p[1] - 4, 2, 3, '#444441'); rect(p[0], p[1] - 4, 1, 2, '#e24b4a'); rect(p[0], p[1] - 6, 2, 2, '#f0c79a'); rect(p[0] - 1, p[1] - 7, 4, 1, '#412402'); rect(p[0] + 2, p[1] - 4, 2, 3, '#f1efe8'); rect(p[0], p[1] - 1, 2, 1, '#2c2c2a'); drawMood(rect, px, p[0], p[1], MD.k, t, 99);
       zone([[p[0] - 3, p[1] - 15], [p[0] + 5, p[1] + 1]], `Gerente de produção Ruth · cuida de ${f0(D.workers)} operadores · ocupação da equipe ${pct(D.opOcc)} · ${f0(D.opIdle)} h ociosas · humor da equipe: ${MD.t}`, 'recursos', 'Recursos da Produção'); });
@@ -2517,7 +2510,7 @@ function startCity(D) {
       zone([P(10.4, 4.1, 12), P(11.5, 5.1, 0), P(10.4, 5.1, 0), P(11.5, 4.1, 0)], `Máquinas compradas chegando no próximo período · P ${f0(D.pend.P)} · W ${f0(D.pend.W)}`, 'compras', 'Compras'); });
     add(15.4, () => zone([P(8.9, 1.1, 42), P(11.4, 1.1, 0), P(11.4, 5.1, 0), P(8.9, 5.1, 0)], stkTxt, 'estoques', 'Estoque'));
     // escritório
-    add(17, () => { const x = 14.6, y = 1, w = 3, d = 2.6, h = 34; box(x, y, 0, w, d, h, ['#d3d1c7', '#b4b2a9', '#888780', '#2c2c2a']);
+    add(17, () => { const x = 14.6, y = 1, w = 3, d = 2.6, h = 34; box(x, y, 0, w, d, h, ['#d3d1c7', '#c8c3b5', '#a8a49a', '#2c2c2a'], 'stone');
       for (let v = 6; v < h - 4; v += 7) { for (let u = 0.4; u < w; u += 0.8) sWin(x, y, d, 0, u, v, (u * v | 0) % 3 ? '#85b7eb' : '#fac775'); for (let u = 0.4; u < d; u += 0.8) eWin(x, y, w, 0, u, v, '#5c8fc4'); }
       box(x - 0.1, y - 0.1, h, w + 0.2, d + 0.2, 2, ['#5f5e5a', '#444441', '#2c2c2a', '#2c2c2a']); const fl = P(x + 1.5, y + 1.3, h + 2); line(fl, [fl[0], fl[1] - 9], '#2c2c2a'); rect(fl[0] + 1, fl[1] - 9, 6, 4, D.res >= 0 ? '#639922' : '#e24b4a');
       if (D.esp > 0) { const b2 = P(x + 3, y, h + 8); rect(b2[0], b2[1] - 9, 9, 9, '#f1efe8'); rect(b2[0] + 4, b2[1] - 7, 1, 4, '#e24b4a'); rect(b2[0] + 4, b2[1] - 2, 1, 1, '#e24b4a'); }
@@ -2532,7 +2525,7 @@ function startCity(D) {
         zone([P(x, y, h + 10), P(x + 1.2, y + 1.2, 0), P(x, y + 1.2, 0), P(x + 1.2, y, 0)], regTxt(R2, i), 'marketShare', 'Market Share'); }); });
     // banco: caixa, aplicações e empréstimos
     add(9.7 + 6.1 + 2.2, () => { const x = 9.7, y = 6.1, w = 2.6, d = 2.0, h = 13; box(x, y, 0, w, d, 2, ['#d3d1c7', '#b4b2a9', '#888780', '#5f5e5a']);
-      box(x + 0.1, y + 0.1, 2, w - 0.2, d - 0.2, h, ['#f1efe8', '#e8e3d6', '#c8c3b5', '#5f5e5a']);
+      box(x + 0.1, y + 0.1, 2, w - 0.2, d - 0.2, h, ['#f1efe8', '#e8e3d6', '#c8c3b5', '#5f5e5a'], 'stone');
       for (let u = 0.3; u < w - 0.2; u += 0.5) line(P(x + 0.1 + u, y + d - 0.1, 2), P(x + 0.1 + u, y + d - 0.1, 2 + h), '#b4b2a9');
       gable(x, x + w, y, d, 2 + h, 6, ['#d3d1c7', '#b4b2a9', '#e8e3d6', '#888780']);
       const s1 = P(x + w / 2, y + d, 2 + h + 2); rect(s1[0] - 2, s1[1] - 3, 5, 5, '#fac775'); rect(s1[0], s1[1] - 2, 1, 3, '#854f0b');
@@ -2560,7 +2553,7 @@ function startCity(D) {
     if (EV.propag) add(5 + 12.4, () => { const a = P(5, 12.4, 0), b2 = P(6.2, 12.4, 0); rect(a[0], a[1] - 12, 1, 12, '#5f5e5a'); rect(b2[0], b2[1] - 12, 1, 12, '#5f5e5a'); const p = P(5.6, 12.4, 12); rect(p[0] - 9, p[1] - 9, 19, 10, '#2c2c2a'); rect(p[0] - 8, p[1] - 8, 17, 8, Math.floor(t * 2) % 2 ? '#d4537e' : '#7f77dd'); rect(p[0] - 6, p[1] - 6, 5, 4, '#fac775'); rect(p[0], p[1] - 6, 7, 1, '#f1efe8'); rect(p[0], p[1] - 4, 5, 1, '#f1efe8'); evZ([[p[0] - 10, p[1] - 10], [p[0] + 10, a[1]]], EV.propag); });
     if (EV.juros) add(11 + 6.1 + 2.3, () => { const p = P(11, 6.6, 27); const on = Math.floor(t * 2) % 2; rect(p[0] - 4, p[1] - 6, 9, 7, '#2c2c2a'); rect(p[0] - 3, p[1] - 5, 2, 2, on ? '#e24b4a' : '#a32d2d'); rect(p[0] + 2, p[1] - 2, 2, 2, on ? '#e24b4a' : '#a32d2d'); for (let k = 0; k < 5; k++) rect(p[0] + 2 - k, p[1] - 5 + k, 1, 1, on ? '#e24b4a' : '#a32d2d'); evZ([[p[0] - 5, p[1] - 7], [p[0] + 5, p[1] + 1]], EV.juros); });
     if (EV.fornec) add(12.2 + 10.2 + 1.4, () => { box(12.1, 10.1, 1, 0.7, 1.4, 6, ['#fac775', '#ef9f27', '#ba7517', '#2c2c2a']); const p = P(12.45, 10.6, 14); rect(p[0] - 3, p[1] - 8, 7, 8, '#f1efe8'); rect(p[0], p[1] - 7, 1, 4, '#e24b4a'); rect(p[0], p[1] - 2, 1, 1, '#e24b4a'); evZ([[p[0] - 6, p[1] - 9], [p[0] + 8, p[1] + 14]], EV.fornec); });
-    if (EV.salario) add(7.5, () => { const a = P(1.6, 4.65, 17), b2 = P(4.2, 4.65, 17); line(a, b2, '#5f5e5a'); const m2 = P(2.9, 4.65, 17); rect(m2[0] - 9, m2[1] - 3, 19, 6, '#e24b4a'); rect(m2[0] - 7, m2[1] - 1, 15, 1, '#f1efe8'); evZ([[m2[0] - 10, m2[1] - 4], [m2[0] + 10, m2[1] + 4]], EV.salario); });
+    if (EV.salario) add(7.5, () => { const a = P(4.6, 4.65, 11), b2 = P(6.6, 4.65, 11); line(a, b2, '#5f5e5a'); const m2 = P(5.6, 4.65, 11); rect(m2[0] - 9, m2[1] - 3, 19, 6, '#e24b4a'); rect(m2[0] - 7, m2[1] - 1, 15, 1, '#f1efe8'); evZ([[m2[0] - 10, m2[1] - 4], [m2[0] + 10, m2[1] + 4]], EV.salario); });
     if (EV.imposto) add(13.6 + 4.3, () => { const p = P(13.6, 4.3, 0); rect(p[0], p[1] - 9, 1, 9, '#5f5e5a'); rect(p[0] - 4, p[1] - 14, 9, 6, '#f1efe8'); rect(p[0] - 3, p[1] - 13, 7, 1, '#185fa5'); rect(p[0] - 3, p[1] - 11, 5, 1, '#185fa5'); evZ([[p[0] - 5, p[1] - 15], [p[0] + 5, p[1]]], EV.imposto); });
     // postes de luz
     [1.5, 5.5, 9.5, 15.5, 19.5].forEach((lx) => add(lx + 10.6, () => { const p = P(lx, 10.6, 0); rect(p[0], p[1] - 12, 1, 12, '#444441'); rect(p[0] - 1, p[1] - 13, 3, 1, '#2c2c2a'); rect(p[0], p[1] - 12, 1, 1, '#fac775'); }));
@@ -2571,7 +2564,7 @@ function startCity(D) {
     TREES.filter(([x, y]) => !D.exp.areas.some((a) => x >= a[0] - 0.8 && x < a[2] + 0.8 && y >= a[1] - 0.8 && y < a[3] + 0.8)).forEach(([x, y, s]) => add(x + y + 0.2, () => tree(x, y, s)));
     // caminhões de entrega (um por região com vendas)
     trucks.forEach((ri, n) => { const tx = rp < 0 ? ((t * 1.3 + n * (34 / Math.max(1, trucks.length))) % 34) - 10 : rp >= 2 ? 1 + (t - 9 - n * 0.9) * 3 : -99; if (rp >= 0 && (tx < -10 || tx > 26)) return; const ty = 11.15, c = regCols(ri), R2 = D.reg[ri];
-      add(tx + ty + 1.4, () => { box(tx, ty, 1, 1.6, 0.7, 7, [c[0], c[1], c[2], '#2c2c2a']); box(tx + 1.6, ty, 1, 0.7, 0.7, 5, ['#f1efe8', '#d3d1c7', '#b4b2a9', '#2c2c2a']);
+      add(tx + ty + 1.4, () => { box(tx, ty, 1, 1.6, 0.7, 7, [c[0], c[1], c[2], '#2c2c2a'], 'metal'); box(tx + 1.6, ty, 1, 0.7, 0.7, 5, ['#f1efe8', '#d3d1c7', '#b4b2a9', '#2c2c2a']);
         const w1 = P(tx + 0.3, ty + 0.7, 0), w2 = P(tx + 1.9, ty + 0.7, 0); rect(w1[0], w1[1] - 2, 3, 3, '#2c2c2a'); rect(w2[0], w2[1] - 2, 3, 3, '#2c2c2a');
         zone([P(tx, ty, 8), P(tx + 2.3, ty + 0.7, 0), P(tx, ty + 0.7, 0)], `Caminhão para ${R2.nm} · ${f0(R2.sold)} un vendidas (${R2.byP})`, 'vendas', 'Vendas'); }); });
     // caminhão de fornecedor (compras de insumos)
@@ -2641,21 +2634,15 @@ ${legend}<p class="note">${M.src === 'real' ? `Período #${M.period} simulado: d
 }
 function startMarket(M, cc) {
   const cv = document.getElementById('mktCv'); if (!cv) return;
-  const zoom = mvReg != null, W = cv.width, H = cv.height, OX = zoom ? 85 : 132, OY = zoom ? 70 : 44, main = cv.getContext('2d'); let g = main;
+  const zoom = mvReg != null, HD = hdCanvas(cv), W = HD.W, H = HD.H, OX = zoom ? 85 : 132, OY = zoom ? 70 : 44, main = HD.g; let g = main;
   const txt = document.getElementById('mktTxt'), goB = document.getElementById('mktGo');
   const P = (x, y, z) => [OX + (x - y) * 8, OY + (x + y) * 4 - z];
   const px = (x, y, c) => { g.fillStyle = c; g.fillRect(x | 0, y | 0, 1, 1); };
   const rect = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), w, h); };
-  function poly(pts, c) { let y0 = Infinity, y1 = -Infinity; pts.forEach((p) => { y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }); g.fillStyle = c;
-    for (let y = Math.ceil(y0); y <= Math.floor(y1); y++) { let a = Infinity, b = -Infinity; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; if ((p[1] <= y && q[1] >= y) || (q[1] <= y && p[1] >= y)) { if (p[1] === q[1]) { a = Math.min(a, p[0], q[0]); b = Math.max(b, p[0], q[0]); } else { const x = p[0] + (y - p[1]) * (q[0] - p[0]) / (q[1] - p[1]); a = Math.min(a, x); b = Math.max(b, x); } } }
-      if (a <= b) g.fillRect(Math.round(a), y, Math.round(b) - Math.round(a) + 1, 1); } }
-  function line(p, q, c) { let x0 = Math.round(p[0]), y0 = Math.round(p[1]); const x1 = Math.round(q[0]), y1 = Math.round(q[1]), dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1; let e = dx + dy; g.fillStyle = c;
-    for (let n = 0; n < 500; n++) { g.fillRect(x0, y0, 1, 1); if (x0 === x1 && y0 === y1) break; const e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx; } if (e2 <= dx) { e += dx; y0 += sy; } } }
-  function box(x, y, z, w, d, h, c) { const t = [P(x, y, z + h), P(x + w, y, z + h), P(x + w, y + d, z + h), P(x, y + d, z + h)], s = [P(x, y + d, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x, y + d, z + h)], e = [P(x + w, y, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x + w, y, z + h)];
-    poly(s, c[1]); poly(e, c[2]); poly(t, c[0]); if (c[3]) [[t[0], t[1]], [t[1], t[2]], [t[2], t[3]], [t[3], t[0]], [s[0], s[1]], [s[0], s[3]], [e[0], e[1]], [e[0], e[3]], [s[1], s[2]]].forEach(([a, b]) => line(a, b, c[3])); }
-  function tree(x, y, s) { const b = P(x, y, 0), cx = b[0], cy = b[1]; rect(cx - 1, cy - 6 * s, 2, 6 * s, '#6b3f1d');
-    const blob = (ox, oy, r, c) => { for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (i * i + j * j <= r * r + 1) px(cx + ox + i, cy + oy + j, c); };
-    blob(0, -9 * s, 5 * s, '#27500a'); blob(-1, -10 * s, 4 * s, '#3b6d11'); blob(-2, -12 * s, 2 * s, '#639922'); }
+  function poly(pts, c) { pkPoly(g, pts, c); }
+  function line(p, q, c) { pkLine(g, p, q, c); }
+  function box(x, y, z, w, d, h, c, tex) { pkBox(g, P, x, y, z, w, d, h, c, tex); }
+  function tree(x, y, s) { const b = P(x, y, 0); pkTree(g, b[0], b[1], s); }
   const DG = { 0: '111101101101111', 1: '010110010010111', 2: '111001111100111', 3: '111001111001111', 4: '101101111001001', 5: '111100111001111', 6: '111100111101111', 7: '111001001001001', 8: '111101111101111', 9: '111101111001111' };
   const digit = (d, x, y, c) => { const b = DG[d] || DG[0]; for (let k = 0; k < 15; k++) if (b[k] === '1') px(x + k % 3, y + Math.floor(k / 3), c); };
   const shade = (hex, k) => { const n = parseInt(hex.slice(1), 16), f = (v) => Math.max(0, Math.min(255, Math.round(v * k))); return '#' + [n >> 16 & 255, n >> 8 & 255, n & 255].map((v) => f(v).toString(16).padStart(2, '0')).join(''); };
@@ -2665,7 +2652,7 @@ function startMarket(M, cc) {
   const inDist = (x, y) => Object.values(ORG).some(([a, b]) => x >= a && x < a + 6 && y >= b && y < b + 6);
   const ROAD = zoom ? (x, y) => y === 6 || x === 6 || y === -1 || x === -1 : (x, y) => y === 7 || x === 7 || (x === 15 && y >= -2 && y < 16) || y === -1 || x === -1;
   const SEA = (x, y) => !zoom && x >= 24 && ORG[4];
-  const bg = document.createElement('canvas'); bg.width = W; bg.height = H; g = bg.getContext('2d'); g.fillStyle = '#72a933'; g.fillRect(0, 0, W, H);
+  const BGH = hdBg(W, H), bg = BGH.c; g = BGH.g; g.fillStyle = '#72a933'; g.fillRect(0, 0, W, H);
   for (let y = -30; y < 40; y++) for (let x = -30; x < 44; x++) {
     const c = P(x + 0.5, y + 0.5, 0); if (c[0] < -12 || c[0] > W + 12 || c[1] < -8 || c[1] > H + 8) continue;
     const t = [P(x, y, 0), P(x + 1, y, 0), P(x + 1, y + 1, 0), P(x, y + 1, 0)], rd = ROAD(x, y), sea = SEA(x, y), dist = inDist(x, y);
@@ -2686,14 +2673,14 @@ function startMarket(M, cc) {
     const fm = R2.firms[n]; return Object.assign(m, { x: o[0] + SLOT[n][0] - 0.25, y: o[1] + SLOT[n][1] + 1.75, col: fm.color }); }).filter(Boolean); } catch (e) { TALK = []; }
   { const bb = document.getElementById('mktBub'); if (bb) { const cnt = {}; bb.innerHTML = TALK.map((m) => { const p = P(m.x, m.y, 16), n = cnt[m.reg] = (cnt[m.reg] || 0) + 1; return `<div style="left:${(p[0] / W * 100).toFixed(2)}%;top:${(p[1] / H * 100).toFixed(2)}%;transform:translate(-50%, calc(-100% - ${(n - 1) * 26}px))">${esc(m.msg)}</div>`; }).join(''); } }
   function draw(t) {
-    g.drawImage(bg, 0, 0); zones.length = 0; const L = [], add = (k, f) => L.push([k, f]);
+    g.drawImage(bg, 0, 0, W, H); zones.length = 0; const L = [], add = (k, f) => L.push([k, f]);
     Object.entries(ORG).forEach(([ri, [ox, oy]]) => { const R2 = M.regions[+ri]; if (!R2) return; const col = CITY_RC[+ri % CITY_RC.length];
       // placa da região
       add(ox + oy + 5.6, () => { const p = P(ox + 5.7, oy + 5.7, 0); rect(p[0], p[1] - 14, 1, 14, '#5f5e5a'); rect(p[0] - 5, p[1] - 20, 11, 7, col[2]); rect(p[0] - 4, p[1] - 19, 9, 5, col[0]); digit(+ri + 1, p[0] - 1, p[1] - 19, '#2c2c2a');
         if (!zoom && +ri === 4) { const sp = (t * 0.6) % 9; box(25, 3 + sp, 0, 1.2, 2.6, 4, ['#f1efe8', '#d3d1c7', '#b4b2a9', '#2c2c2a']); box(25.3, 3.6 + sp, 4, 0.6, 0.8, 4, ['#d85a30', '#993c1d', '#712b13', '#2c2c2a']); } });
       if (!zoom) { const dm = [P(ox, oy, 0), P(ox + 6, oy, 0), P(ox + 6, oy + 6, 0), P(ox, oy + 6, 0)]; zones.push([-1e9, -1e9, 1e9, 1e9, tot(R2), { reg: +ri }, dm]); }
       R2.firms.slice(0, SLOT.length).forEach((f, n) => { const [sx0, sy0] = SLOT[n], sx = ox + sx0, sy = oy + sy0, h = Math.max(5, Math.min(64, Math.round(5 + f.share * 90))), fc = f.color;
-        add(sx + sy + 1.3, () => { box(sx, sy, 0, 1.3, 1.3, h, ['#e8e3d6', '#d3cbb8', '#a99f8a', '#4a3f35']);
+        add(sx + sy + 1.3, () => { box(sx, sy, 0, 1.3, 1.3, h, ['#e0b27a', '#d4a06a', '#b07c48', '#3a2418'], 'brick');
           box(sx - 0.05, sy - 0.05, h, 1.4, 1.4, 2, [fc, shade(fc, 0.75), shade(fc, 0.55), '#2c2c2a']);
           for (let v = 8; v < h - 2; v += 6) { const a = P(sx + 0.35, sy + 1.3, v), b = P(sx + 1.3, sy + 0.4, v); rect(a[0], a[1] - 3, 2, 3, '#85b7eb'); rect(b[0], b[1] - 3, 2, 3, '#5c8fc4'); }
           const aw = [P(sx, sy + 1.3, 6), P(sx + 1.3, sy + 1.3, 6), P(sx + 1.3, sy + 1.6, 4), P(sx, sy + 1.6, 4)]; poly(aw, fc); for (let k = 0; k < 4; k += 2) { const a = P(sx + k * 0.33, sy + 1.3, 6), b = P(sx + k * 0.33, sy + 1.6, 4); line(a, b, '#f1efe8'); }
@@ -2707,7 +2694,7 @@ function startMarket(M, cc) {
       const nC = R2.market > 0 ? Math.round(2 + 10 * R2.market / M.maxMk) * (zoom ? 2 : 1) : 0, cum = []; let acc = 0; R2.firms.slice(0, SLOT.length).forEach((f) => { acc += f.share; cum.push(acc); });
       for (let i = 0; i < nC; i++) { const u = ((i * 0.6180339) % 1) * (acc || 1), fi = Math.max(0, cum.findIndex((v) => u <= v)), [sx0, sy0] = SLOT[fi] || SLOT[0];
         const k = (t * 0.22 + i * 0.37) % 1; if (k > 0.92) continue; const st = [ox + 0.5 + ((i * 0.37) % 1) * 5, oy + 5.9], en = [ox + sx0 + 0.65, oy + sy0 + 1.5], x = st[0] + (en[0] - st[0]) * k, y = st[1] + (en[1] - st[1]) * k;
-        add(x + y + 0.3, () => { const p = P(x, y, 0), sh = ['#534ab7', '#0f6e56', '#d85a30', '#185fa5', '#993556'][i % 5]; rect(p[0], p[1] - 4, 2, 3, sh); rect(p[0], p[1] - 6, 2, 2, '#f0c79a'); px(p[0] + (Math.floor(t * 6 + i) % 2), p[1] - 1, '#2c2c2a'); }); } });
+        add(x + y + 0.3, () => { const p = P(x, y, 0), sh = ['#534ab7', '#0f6e56', '#d85a30', '#185fa5', '#993556'][i % 5]; pkPerson(g, p[0], p[1], sh, ['#412402', '#2c2c2a', '#854f0b'][i % 3], t, i); }); } });
     TALK.forEach((m) => add(m.x + m.y + 0.5, () => { const p = P(m.x, m.y, 0); drawMascot(g, p[0], p[1], m.k, m.col, t); zones.push([p[0] - 4, p[1] - 14, p[0] + 4, p[1], `${esc(m.name)}: “${m.msg}”`, zoom ? { go: 'marketShare' } : { reg: m.reg }]); }));
     TREES.forEach(([x, y, s]) => add(x + y + 0.2, () => tree(x, y, s)));
     L.sort((a, b) => a[0] - b[0]).forEach(([, f]) => f());
@@ -3084,12 +3071,12 @@ function drawExpansions(K, D, t, add, zone) {
     [[2.6, -4.6], [4.2, -4.6], [5.8, -4.6]].forEach(([x, y], i) => add(x + y + 2, () => { const c = CITY_RC[(i + 1) % CITY_RC.length]; box(x, y, 1, 0.7, 1.6, 7, [c[0], c[1], c[2], '#2c2c2a']); box(x, y + 1.6, 1, 0.7, 0.6, 5, ['#f1efe8', '#d3d1c7', '#b4b2a9', '#2c2c2a']); }));
     add(-1.5, () => { zone([P(2, -5, 14), P(7, -5, 0), P(7, -1, 0), P(2, -1, 0)], 'Expansão: estacionamento de caminhões (liberado com $ 1 mi de lucro acumulado)', null, ''); });
   }
-  if (on.has('galp2')) add(8 + -4.8 + 5, () => { const x = 8.3, y = -4.8, w = 4, d = 3.4, h = 18; box(x, y, 0, w, d, h, ['#e8e3d6', '#d3cbb8', '#a99f8a', '#4a3f35']);
+  if (on.has('galp2')) add(8 + -4.8 + 5, () => { const x = 8.3, y = -4.8, w = 4, d = 3.4, h = 18; box(x, y, 0, w, d, h, ['#c97a4a', '#b5653a', '#8f4a28', '#3a2418'], 'brick');
     for (let u = 0.6; u < w; u += 1.1) sWin(x, y, d, 0, u, 12, '#85b7eb'); for (let u = 0.5; u < d; u += 1) eWin(x, y, w, 0, u, 12, '#5c8fc4');
     for (let i = 0; i < 2; i++) gable(x + i * 2, x + i * 2 + 2, y, d, h, 6, [LK.color, pxShade(LK.color, 0.7), pxShade(LK.color, 0.85), pxShade(LK.color, 0.5)]);
     const dp = P(x + 1.4, y + d, 0); rect(dp[0], dp[1] - 8, 8, 8, '#5f5e5a'); for (let k = 1; k < 8; k += 2) rect(dp[0], dp[1] - 8 + k, 8, 1, '#888780');
     zone([P(x, y, h + 10), P(x + w, y, h), P(x + w, y + d, 0), P(x, y + d, 0)], 'Expansão: segundo galpão (liberado com $ 2,5 mi de lucro acumulado)', null, ''); });
-  if (on.has('cd')) add(14 + -4.4 + 5, () => { const x = 14.2, y = -4.4, w = 4.6, d = 3, h = 14; box(x, y, 0, w, d, h, ['#d3d1c7', '#b4b2a9', '#888780', '#2c2c2a']);
+  if (on.has('cd')) add(14 + -4.4 + 5, () => { const x = 14.2, y = -4.4, w = 4.6, d = 3, h = 14; box(x, y, 0, w, d, h, ['#d3d1c7', '#b4b2a9', '#888780', '#2c2c2a'], 'metal');
     box(x - 0.05, y - 0.05, h, w + 0.1, d + 0.1, 1, ['#5f5e5a', '#444441', '#2c2c2a', '#2c2c2a']);
     for (let k = 0; k < 3; k++) { const a = P(x + 0.5 + k * 1.35, y + d, 0); rect(a[0], a[1] - 7, 7, 7, '#2c2c2a'); rect(a[0], a[1] - 7, 7, 1, '#fac775'); }
     const sg = P(x + 2.7, y + d, h - 2); rect(sg[0] - 6, sg[1] - 4, 12, 4, '#185fa5'); rect(sg[0] - 5, sg[1] - 3, 10, 1, '#f1efe8');
@@ -3098,7 +3085,7 @@ function drawExpansions(K, D, t, add, zone) {
   if (on.has('solar')) for (let r = 0; r < 3; r++) for (let q = 0; q < 3; q++) { const x = -5.6 + q * 1.5, y = -4.6 + r * 1.2; add(x + y + 1, () => { const a = P(x, y, 3), b = P(x + 1.2, y, 3), c2 = P(x + 1.2, y + 0.7, 1), d2 = P(x, y + 0.7, 1); poly([a, b, c2, d2], '#185fa5'); line(a, b, '#85b7eb'); line(P(x + 0.6, y, 3), P(x + 0.6, y + 0.7, 1), '#0c447c'); const lg = P(x + 0.6, y + 0.7, 0); rect(lg[0], lg[1] - 2, 1, 2, '#5f5e5a');
     if (Math.floor(t * 2 + q + r) % 5 === 0) px(a[0] + 4, a[1] + 1, '#fff');
     if (r === 2 && q === 2) zone([P(-6, -5, 6), P(-1, -1, 0), P(-6, -1, 0), P(-1, -5, 0)], 'Expansão: usina solar (liberada com $ 6 mi de lucro acumulado)', null, ''); }); }
-  if (on.has('lab')) add(-7.6 + 4 + 3, () => { const x = -7.6, y = 4, w = 2.8, d = 3, h = 24; box(x, y, 0, w, d, h, ['#9fe1cb', '#5dcaa5', '#1d9e75', '#04342c']);
+  if (on.has('lab')) add(-7.6 + 4 + 3, () => { const x = -7.6, y = 4, w = 2.8, d = 3, h = 24; box(x, y, 0, w, d, h, ['#9fe1cb', '#5dcaa5', '#1d9e75', '#04342c'], 'glass');
     for (let v = 4; v < h; v += 4) { line(P(x, y + d, v), P(x + w, y + d, v), '#e1f5ee'); line(P(x + w, y, v), P(x + w, y + d, v), '#9fe1cb'); }
     const an = P(x + 1.4, y + 1.5, h); line(an, [an[0], an[1] - 9], '#5f5e5a'); px(an[0], an[1] - 10, Math.floor(t * 3) % 2 ? '#e24b4a' : '#fac775');
     zone([P(x, y, h + 12), P(x + w, y, h), P(x + w, y + d, 0), P(x, y + d, 0)], 'Expansão: laboratório de P&D (liberado com $ 8,5 mi de lucro acumulado)', null, ''); });
@@ -3207,20 +3194,19 @@ function d3Size() {}
 let ISO = null;
 function d3Scene(D) {
   const cv = document.getElementById('d3cv'); if (!cv) return; ISO = ISO || {}; ISO.D = D;
-  const W = cv.width, H = cv.height, OX = 126, OY = 48, g = cv.getContext('2d');
+  const HD = hdCanvas(cv), W = HD.W, H = HD.H, OX = 126, OY = 48, g = HD.g;
   const P = (x, y, z) => [OX + (x - y) * 8, OY + (x + y) * 4 - z];
   const px = (x, y, c) => { g.fillStyle = c; g.fillRect(x | 0, y | 0, 1, 1); }, rect = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h))); };
-  function poly(pts, c) { let y0 = Infinity, y1 = -Infinity; pts.forEach((p) => { y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }); g.fillStyle = c; for (let y = Math.ceil(y0); y <= Math.floor(y1); y++) { let a = Infinity, b = -Infinity; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; if ((p[1] <= y && q[1] >= y) || (q[1] <= y && p[1] >= y)) { if (p[1] === q[1]) { a = Math.min(a, p[0], q[0]); b = Math.max(b, p[0], q[0]); } else { const x = p[0] + (y - p[1]) * (q[0] - p[0]) / (q[1] - p[1]); a = Math.min(a, x); b = Math.max(b, x); } } } if (a <= b) g.fillRect(Math.round(a), y, Math.round(b) - Math.round(a) + 1, 1); } }
-  function line(p, q, c) { let x0 = Math.round(p[0]), y0 = Math.round(p[1]); const x1 = Math.round(q[0]), y1 = Math.round(q[1]), dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1; let e = dx + dy; g.fillStyle = c; for (let n = 0; n < 600; n++) { g.fillRect(x0, y0, 1, 1); if (x0 === x1 && y0 === y1) break; const e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx; } if (e2 <= dx) { e += dx; y0 += sy; } } }
-  function box(x, y, z, w, d, h, c) { const t = [P(x, y, z + h), P(x + w, y, z + h), P(x + w, y + d, z + h), P(x, y + d, z + h)], s = [P(x, y + d, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x, y + d, z + h)], e = [P(x + w, y, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x + w, y, z + h)];
-    poly(s, c[1]); poly(e, c[2]); poly(t, c[0]); if (c[3]) [[t[0], t[1]], [t[1], t[2]], [t[2], t[3]], [t[3], t[0]], [s[0], s[1]], [s[0], s[3]], [e[0], e[1]], [e[0], e[3]], [s[1], s[2]]].forEach(([a, b]) => line(a, b, c[3])); }
-  const crate = (x, y, z, w, d, h, c) => { box(x, y, z, w, d, h, c); const p = P(x + w / 2, y + d, z + h / 2); px(p[0], p[1], c[3] || '#412402'); };
-  const person = (x, y, c, t, i, sign, dz) => { const p = P(x, y, dz || 0), s = Math.floor(t * 6 + i) % 2; rect(p[0], p[1] - 4, 2, 3, c); rect(p[0], p[1] - 6, 2, 2, '#f0c79a'); rect(p[0] - 1, p[1] - 7, 4, 1, '#412402'); px(p[0] + (s ? 0 : 1), p[1] - 1, '#2c2c2a'); if (sign) { rect(p[0], p[1] - 12, 1, 5, '#854f0b'); rect(p[0] - 2, p[1] - 15, 5, 3, '#e24b4a'); } };
+  function poly(pts, c) { pkPoly(g, pts, c); }
+  function line(p, q, c) { pkLine(g, p, q, c); }
+  function box(x, y, z, w, d, h, c, tex) { pkBox(g, P, x, y, z, w, d, h, c, tex); }
+  const crate = (x, y, z, w, d, h, c) => { box(x, y, z, w, d, h, c, 'wood'); const p = P(x + w / 2, y + d, z + h / 2); px(p[0], p[1], c[3] || '#412402'); };
+  const person = (x, y, c, t, i, sign, dz) => { const p = P(x, y, dz || 0); pkPerson(g, p[0], p[1], c, ['#412402', '#2c2c2a', '#854f0b'][i % 3], t, i, { sign }); };
   const RW = 18, RD = 12, WH = 34;
   function roomFloor(f1, f2) { for (let y = 0; y < RD; y++) for (let x = 0; x < RW; x++) poly([P(x, y, 0), P(x + 1, y, 0), P(x + 1, y + 1, 0), P(x, y + 1, 0)], (x + y) % 2 ? f1 : f2); }
   function walls(w1, w2, win) { box(-0.4, -0.4, 0, RW + 0.4, 0.4, WH, [w1, w1, w2]); box(-0.4, 0, 0, 0.4, RD, WH, [w1, w2, w2]);
-    for (let z = 4; z < WH; z += 4) { line(P(0, 0, z), P(RW, 0, z), w2); line(P(0, 0, z), P(0, RD, z), w1); }
-    for (let x = 0; x < RW; x += 1) for (let z = 0; z < WH; z += 4) if ((x + z / 4) % 2) { const a = P(x, 0, z), b = P(x, 0, z + 4); line(a, b, w2); }
+    for (let z = 2; z < WH; z += 2) { line(P(0, 0, z), P(RW, 0, z), w2); line(P(0, 0, z), P(0, RD, z), pkDark(w1, 0.85)); }
+    for (let z = 0; z < WH; z += 2) { const off = ((z / 2) % 2) * 0.25; for (let x = off; x < RW; x += 0.5) line(P(x, 0, z), P(x, 0, z + 2), w2); for (let y = off; y < RD; y += 0.5) line(P(0, y, z), P(0, y, z + 2), pkDark(w1, 0.85)); }
     if (win) [3, 8, 13].forEach((wx) => { poly([P(wx, 0, 26), P(wx + 2.4, 0, 26), P(wx + 2.4, 0, 16), P(wx, 0, 16)], '#85b7eb'); line(P(wx + 1.2, 0, 26), P(wx + 1.2, 0, 16), '#5c8fc4'); });
     box(-0.5, -0.5, WH, RW + 0.5, 0.6, 2, ['#444441', '#2c2c2a', '#2c2c2a']); box(-0.5, -0.5, WH, 0.6, RD + 0.5, 2, ['#444441', '#2c2c2a', '#2c2c2a']); }
   const tags = [], tag = (x, y, z, t, c) => tags.push([P(x, y, z), t, c || '']);
@@ -3237,7 +3223,7 @@ function d3Scene(D) {
       const lP = R.machP.cap ? R.machP.use / R.machP.cap : 0, lW = R.machW.cap ? R.machW.use / R.machW.cap : 0, nP = Math.min(24, R.machP.qty || 0), nW = Math.min(12, R.machW.qty || 0);
       for (let i = 0; i < nP + nW; i++) { const isP = i < nP, j = isP ? i : i - nP, per = 6, mx = 1 + (j % per) * 1.75 + (isP ? 0 : 0), my = isP ? 1 + Math.floor(j / per) * 1.6 : 1 + Math.ceil(nP / per) * 1.6 + Math.floor(j / per) * 1.6, ld = isP ? lP : lW, over = isP ? bad.has('machP') : bad.has('machW'), on = (j / Math.max(1, isP ? nP : nW)) < Math.min(1, ld);
         add(mx + my + 1, () => { if (over) poly([P(mx - 0.15, my - 0.15, 0), P(mx + 1.35, my - 0.15, 0), P(mx + 1.35, my + 1.25, 0), P(mx - 0.15, my + 1.25, 0)], '#e24b4a');
-          box(mx, my, 0, 1.2, 1.1, 8, isP ? ['#85b7eb', '#378add', '#185fa5', '#042c53'] : ['#9fe1cb', '#1d9e75', '#0f6e56', '#04342c']); box(mx + 0.3, my + 0.25, 8, 0.6, 0.5, 2, ['#d3d1c7', '#b4b2a9', '#888780', '#444441']);
+          box(mx, my, 0, 1.2, 1.1, 8, isP ? ['#85b7eb', '#378add', '#185fa5', '#042c53'] : ['#9fe1cb', '#1d9e75', '#0f6e56', '#04342c'], 'metal'); box(mx + 0.3, my + 0.25, 8, 0.6, 0.5, 2, ['#d3d1c7', '#b4b2a9', '#888780', '#444441']);
           const lp = P(mx + 1.2, my + 0.5, 4); rect(lp[0], lp[1] - 1, 2, 2, on ? (Math.floor(t * 5 + i) % 2 ? '#fac775' : '#ef9f27') : '#444441'); }); }
       tag(4.5, 1, 18, `${f0(R.machP.qty)} máquinas P · ${pc(lP)}`, lP > 1.0001 ? 'bad' : ''); if (nW) tag(3, 1 + Math.ceil(nP / 6) * 1.6 + 0.5, 14, `${f0(R.machW.qty)} máquinas W · ${pc(lW)}`, lW > 1.0001 ? 'bad' : '');
       add(10 + 9.6, () => { box(0.5, 9.6, 0, 16, 1, 3, ['#888780', '#5f5e5a', '#444441', '#2c2c2a']); for (let x = 0.5; x < 16.5; x += 1) { const a = P(x + ((t * 2) % 1), 9.6, 3), b = P(x + ((t * 2) % 1), 10.6, 3); line(a, b, '#5f5e5a'); } });
@@ -3271,7 +3257,7 @@ function d3Scene(D) {
       for (let s = 0; s < 10; s++) { const x = 2 + (s % 5) * 1.2, y = 2.4 + Math.floor(s / 5) * 1.3, nn = Math.max(1, n - ((s * 3) % 4)); add(x + y + 0.5, () => { for (let c2 = 0; c2 < nn; c2++) box(x, y, c2 * 1.5, 0.8, 0.8, 1.5, gold ? (c2 % 2 ? ['#fac775', '#ef9f27', '#ba7517'] : ['#fff3c4', '#fac775', '#ef9f27']) : ['#f09595', '#e24b4a', '#a32d2d']); }); }
       tag(4.5, 3, n * 1.5 + 10, `caixa final $ ${f0(D.cash)}`, gold ? 'ok' : 'bad'); if (D.esp > 0) { const s2 = P(9, 0, 30); rect(s2[0] - 3, s2[1] - 3, 7, 4, Math.floor(t * 4) % 2 ? '#e24b4a' : '#791f1f'); tag(9, 0, 34, `empréstimo especial $ ${f0(D.esp)}`, 'bad'); }
       [['giro', ['#85b7eb', '#378add', '#185fa5'], 'Giro'], ['financing', ['#fac775', '#ef9f27', '#ba7517'], 'Financiamento'], ['anticipation', ['#afa9ec', '#7f77dd', '#534ab7'], 'Antecipação'], ['application', ['#9fe1cb', '#1d9e75', '#0f6e56'], 'Aplicação']].forEach(([k, c3, nm], i) => { const x = 1 + i * 4.2, y = 8.5, v = +get(app.dec, k) || 0;
-        add(x + y + 2, () => { box(x, y, 0, 3, 1, 6, ['#f1efe8', '#d3d1c7', '#b4b2a9', '#5f5e5a']); box(x, y, 6, 3, 1, 1, [c3[0], c3[1], c3[2], '#2c2c2a']); person(x + 1.5, y + 0.3, c3[1], t, i + 30, false, 7); poly([P(x + 0.2, y + 0.1, 7), P(x + 2.8, y + 0.1, 7), P(x + 2.8, y + 0.1, 14), P(x + 0.2, y + 0.1, 14)], 'rgba(181,212,244,0.5)');
+        add(x + y + 2, () => { box(x, y, 0, 3, 1, 6, ['#f1efe8', '#d3d1c7', '#b4b2a9', '#5f5e5a'], 'stone'); box(x, y, 6, 3, 1, 1, [c3[0], c3[1], c3[2], '#2c2c2a']); person(x + 1.5, y + 0.3, c3[1], t, i + 30, false, 7); poly([P(x + 0.2, y + 0.1, 7), P(x + 2.8, y + 0.1, 7), P(x + 2.8, y + 0.1, 14), P(x + 0.2, y + 0.1, 14)], 'rgba(181,212,244,0.5)');
           if (v > 0) for (let j = 0; j < Math.min(4, Math.ceil(v / 300000)); j++) { const k2 = (t * 0.5 + j * 0.25) % 1, f = k === 'application' ? 1 - k2 : k2, cx = x + 1.5 + (3.5 - x - 1.5) * f, cy = y + (3 - y) * f, p = P(cx, cy, 8 + Math.sin(f * Math.PI) * 26); rect(p[0] - 1, p[1] - 1, 3, 2, '#fac775'); } });
         tag(x + 1.5, y + 0.5, i % 2 ? 22 : 30, `${nm} $ ${f0(v)}`, ''); });
       for (let i = 0; i < 3; i++) { const wx = 2 + ((t * 0.25 + i * 0.33) % 1) * 13, wy = 11; add(wx + wy, () => person(wx, wy, '#5f5e5a', t, i + 40)); }
@@ -3280,7 +3266,7 @@ function d3Scene(D) {
     if (d3Tab === 'mk' && X) {
       for (let y = -1; y < 13; y++) for (let x = -2; x < 20; x++) { const road = y >= 8 && y < 10, walk = y >= 6 && y < 8; poly([P(x, y, 0), P(x + 1, y, 0), P(x + 1, y + 1, 0), P(x, y + 1, 0)], road ? '#5f5e5a' : walk ? ((x + y) % 2 ? '#d3d1c7' : '#c8c5ba') : ((x + y) % 2 ? '#72a933' : '#6a9e2f')); if (road && y === 8 && x % 2 === 0) { const a = P(x + 0.5, 9, 0); rect(a[0] - 1, a[1], 3, 1, '#fac775'); } }
       X.regs.forEach((x, i) => { const sx = -1 + i * 3.8, sy = 2, c = CITY_RC[i % CITY_RC.length], out = x.dem > x.sold + 0.5;
-        add(sx + sy + 3, () => { box(sx, sy, 0, 3.2, 3, 14, ['#f1efe8', '#e8e3d6', '#c8c3b5', '#5f5e5a']); box(sx - 0.1, sy - 0.1, 14, 3.4, 3.2, 2, [c[1], c[2], c[2], '#2c2c2a']);
+        add(sx + sy + 3, () => { box(sx, sy, 0, 3.2, 3, 14, ['#e0b27a', '#d4a06a', '#b07c48', '#3a2418'], 'brick'); pkSign(g, P, sx, sy, 0, 3.2, 3, 0.3, 2.9, 10.5, 13.4, c[1], c[2], 'LOJA ' + (i + 1), '#f1efe8'); box(sx - 0.1, sy - 0.1, 14, 3.4, 3.2, 2, [c[1], c[2], c[2], '#2c2c2a']);
           poly([P(sx, sy + 3, 9), P(sx + 3.2, sy + 3, 9), P(sx + 3.2, sy + 3.6, 7), P(sx, sy + 3.6, 7)], c[0]); for (let k = 0; k < 4; k++) line(P(sx + k * 0.8, sy + 3, 9), P(sx + k * 0.8, sy + 3.6, 7), '#f1efe8');
           poly([P(sx + 0.3, sy + 3, 6), P(sx + 2.2, sy + 3, 6), P(sx + 2.2, sy + 3, 2), P(sx + 0.3, sy + 3, 2)], '#85b7eb'); const dr = P(sx + 2.7, sy + 3, 0); rect(dr[0] - 1, dr[1] - 5, 3, 5, '#412402');
           const na = Math.min(20, Math.round(x.ads)); for (let k = 0; k < na; k++) { const b = P(sx + 0.3 + (k % 10) * 0.28, sy + 1.4, 16 + Math.floor(k / 10) * 3); rect(b[0], b[1] - 2, 2, 2, k % 2 ? '#d4537e' : '#fac775'); }
@@ -3337,6 +3323,51 @@ function d3Mount(c) {
 document.addEventListener('input', (e) => { const el = e.target; if (!el.dataset || el.dataset.d3k == null || !el.closest('#d3ui')) return; e.stopImmediatePropagation(); const p = el.dataset.d3k;
   const v = el.tagName === 'SELECT' ? (el.dataset.t === 'number' ? +el.value : el.dataset.t === 'bool' ? el.value === 'true' : el.value) : Math.max(0, +el.value || 0); d3Set(p, v); el.closest('#d3ui').querySelectorAll(`[data-d3k="${p}"]`).forEach((o) => { if (o !== el) o.value = v; }); d3Later(); }, true);
 document.addEventListener('change', (e) => { const el = e.target; if (!el.dataset || !el.closest || !el.closest('#d3ui')) return; if (el.dataset.d3pay) { app.dec.purchases.filter((x) => x.supplier === el.dataset.d3pay).forEach((x) => { x.pay = el.value; }); d3Later(); } else if (el.dataset.d3k && el.tagName === 'SELECT') { d3Set(el.dataset.d3k, el.dataset.t === 'number' ? +el.value : el.dataset.t === 'bool' ? el.value === 'true' : el.value); d3Later(); } }, true);
+// ------------------------------------------------ kit de pixel art detalhado (resolução dobrada, meio pixel)
+function hdCanvas(cv) { if (!cv.dataset.w) { cv.dataset.w = cv.width; cv.dataset.h = cv.height; cv.width = cv.width * 2; cv.height = cv.height * 2; } const g = cv.getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0); g.imageSmoothingEnabled = false; return { W: +cv.dataset.w, H: +cv.dataset.h, g }; }
+function hdBg(W, H) { const c = document.createElement('canvas'); c.width = W * 2; c.height = H * 2; const g = c.getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0); g.imageSmoothingEnabled = false; return { c, g }; }
+function pkLine(g, p, q, c) { let x0 = Math.round(p[0] * 2), y0 = Math.round(p[1] * 2); const x1 = Math.round(q[0] * 2), y1 = Math.round(q[1] * 2), dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1; let e = dx + dy; g.fillStyle = c;
+  for (let n = 0; n < 4000; n++) { g.fillRect(x0 / 2, y0 / 2, 0.5, 0.5); if (x0 === x1 && y0 === y1) break; const e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx; } if (e2 <= dx) { e += dx; y0 += sy; } } }
+function pkPoly(g, pts, c) { let y0 = Infinity, y1 = -Infinity; pts.forEach((p) => { y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }); g.fillStyle = c;
+  for (let yy = Math.ceil(y0 * 2); yy <= Math.floor(y1 * 2); yy++) { const y = yy / 2 + 0.25; let a = Infinity, b = -Infinity; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; if ((p[1] <= y && q[1] >= y) || (q[1] <= y && p[1] >= y)) { if (p[1] === q[1]) { a = Math.min(a, p[0], q[0]); b = Math.max(b, p[0], q[0]); } else { const x = p[0] + (y - p[1]) * (q[0] - p[0]) / (q[1] - p[1]); a = Math.min(a, x); b = Math.max(b, x); } } }
+    if (a <= b) { const A = Math.round(a * 2), B = Math.round(b * 2); g.fillRect(A / 2, yy / 2, (B - A + 1) / 2, 0.5); } } }
+function pkDark(c, k) { try { return pxShade(c.length === 4 ? '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3] : c.slice(0, 7), k); } catch (e) { return '#2e1d14'; } }
+function pkTex(g, P, x, y, z, w, d, h, tex, c) {
+  const S = (u, v) => P(x + u, y + d, z + v), E = (u, v) => P(x + w, y + u, z + v), L = (a, b, cl) => pkLine(g, a, b, cl), m1 = pkDark(c[1], 0.8), m2 = pkDark(c[2], 0.8);
+  if (tex === 'brick') { for (let v = 2; v < h - 0.5; v += 2) { L(S(0, v), S(w, v), m1); L(E(0, v), E(d, v), m2); } for (let v = 0; v < h - 0.5; v += 2) { const off = ((v / 2) % 2) * 0.25; for (let u = off; u < w; u += 0.5) L(S(u, v), S(u, Math.min(h, v + 2)), m1); for (let u = off; u < d; u += 0.5) L(E(u, v), E(u, Math.min(h, v + 2)), m2); } }
+  if (tex === 'stone') { for (let v = 3; v < h - 0.5; v += 3) { L(S(0, v), S(w, v), m1); L(E(0, v), E(d, v), m2); } for (let v = 0; v < h - 0.5; v += 3) { const off = ((v / 3) % 2) * 0.4; for (let u = off; u < w; u += 0.8) L(S(u, v), S(u, Math.min(h, v + 3)), m1); for (let u = off; u < d; u += 0.8) L(E(u, v), E(u, Math.min(h, v + 3)), m2); } }
+  if (tex === 'metal') { for (let u = 0.12; u < w; u += 0.18) L(S(u, 0.5), S(u, h - 0.5), pkDark(c[1], 0.88)); for (let u = 0.12; u < d; u += 0.18) L(E(u, 0.5), E(u, h - 0.5), pkDark(c[2], 0.88)); L(S(0, h - 1), S(w, h - 1), pkDark(c[0], 1.1)); }
+  if (tex === 'wood') { for (let v = 1.5; v < h; v += 1.5) { L(S(0, v), S(w, v), m1); L(E(0, v), E(d, v), m2); } L(S(0, 0), S(w, h), m1); L(E(0, 0), E(d, h), m2); }
+  if (tex === 'glass') { for (let u = 0.5; u < w; u += 0.5) L(S(u, 0), S(u, h), pkDark(c[1], 0.7)); for (let u = 0.5; u < d; u += 0.5) L(E(u, 0), E(u, h), pkDark(c[2], 0.7)); for (let v = 4; v < h; v += 4) { L(S(0, v), S(w, v), pkDark(c[1], 0.7)); L(E(0, v), E(d, v), pkDark(c[2], 0.7)); } L(S(0.1, h * 0.2), S(Math.min(w, 0.6), h * 0.8), '#ffffff55'); }
+}
+function pkBox(g, P, x, y, z, w, d, h, c, tex) { const t = [P(x, y, z + h), P(x + w, y, z + h), P(x + w, y + d, z + h), P(x, y + d, z + h)], s = [P(x, y + d, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x, y + d, z + h)], e = [P(x + w, y, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x + w, y, z + h)];
+  pkPoly(g, s, c[1]); pkPoly(g, e, c[2]); pkPoly(g, t, c[0]); if (tex && h >= 1.5) pkTex(g, P, x, y, z, w, d, h, tex, c);
+  const o = c[3] || pkDark(c[2], 0.5); [[t[0], t[1]], [t[1], t[2]], [t[2], t[3]], [t[3], t[0]], [s[0], s[1]], [s[0], s[3]], [e[0], e[1]], [e[0], e[3]], [s[1], s[2]]].forEach(([a, b]) => pkLine(g, a, b, o));
+  if (h >= 2) { pkLine(g, [t[3][0] + 0.5, t[3][1] + 0.5], [t[2][0], t[2][1] + 0.5], pkDark(c[0], 1.12)); } }
+const PKFONT = { A: '010101111101101', B: '110101110101110', C: '011100100100011', D: '110101101101110', E: '111100110100111', F: '111100110100100', G: '011100101101011', H: '101101111101101', I: '111010010010111', J: '001001001101010', K: '101101110101101', L: '100100100100111', M: '101111111101101', N: '110101101101101', O: '010101101101010', P: '110101110100100', Q: '010101101110011', R: '110101110101101', S: '011100010001110', T: '111010010010010', U: '101101101101111', V: '101101101101010', W: '101101111111101', X: '101101010101101', Y: '101101010010010', Z: '111001010100111', 0: '111101101101111', 1: '010110010010111', 2: '110001010100111', 3: '110001010001110', 4: '101101111001001', 5: '111100110001110', 6: '011100111101111', 7: '111001010010010', 8: '111101111101111', 9: '111101111001110', '#': '101111101111101', '$': '011110010011110', '.': '000000000000010', ' ': '000000000000000', '&': '010101010101011', '-': '000000111000000' };
+function pkText(g, X, Y, str, c, slope, sc) { sc = sc || 0.5; const s = String(str).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); let k = 0; g.fillStyle = c;
+  for (const ch of s) { const gl = PKFONT[ch] || PKFONT[' ']; for (let cc = 0; cc < 3; cc++) for (let r = 0; r < 5; r++) if (gl[r * 3 + cc] === '1') { const kx = (k + cc) * sc; g.fillRect(Math.round((X + kx) * 2) / 2, Math.round((Y + kx * (slope || 0) + r * sc) * 2) / 2, sc, sc); } k += 4; } return k * sc; }
+function pkTextW(str, sc) { return String(str).length * 4 * (sc || 0.5); }
+function pkTree(g, cx, cy, s) { const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x * 2) / 2, Math.round(y * 2) / 2, w, h); };
+  g.fillStyle = 'rgba(0,0,0,0.18)'; for (let i = -4 * s; i <= 4 * s; i += 0.5) g.fillRect(cx + i, cy - 0.5 + Math.abs(i) / (8 * s), 0.5, 0.5);
+  R(cx - 1, cy - 6 * s, 2, 6 * s, '#6b3f1d'); R(cx + 0.5, cy - 6 * s, 0.5, 6 * s, '#4a2c12'); R(cx - 1, cy - 6 * s, 0.5, 6 * s, '#8a5a2b');
+  const blob = (ox, oy, r, c) => { g.fillStyle = c; for (let j = -r; j <= r; j += 0.5) for (let i = -r; i <= r; i += 0.5) if (i * i + j * j <= r * r) g.fillRect(Math.round((cx + ox + i) * 2) / 2, Math.round((cy + oy + j) * 2) / 2, 0.5, 0.5); };
+  blob(0, -9 * s, 5.6 * s, '#173404'); blob(0, -9 * s, 5 * s, '#27500a'); blob(-0.8, -9.8 * s, 4 * s, '#3b6d11'); blob(-1.6, -11 * s, 2.6 * s, '#639922'); blob(-2.4, -12 * s, 1.2 * s, '#97c459');
+  g.fillStyle = '#c0dd97'; g.fillRect(cx - 3, cy - 13 * s, 0.5, 0.5); g.fillRect(cx + 1.5, cy - 8 * s, 0.5, 0.5); g.fillStyle = '#173404'; g.fillRect(cx + 2, cy - 6.5 * s, 0.5, 0.5); }
+function pkPerson(g, X, Y, shirt, hair, t, i, o) { o = o || {}; const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round((X + x) * 2) / 2, Math.round((Y + y) * 2) / 2, w, h); }, st = Math.floor(t * 6 + i) % 2, pants = o.pants || '#26215c', dk = pkDark(shirt, 0.72), sk = o.skin || ['#f0c79a', '#d9a06b', '#a8743a', '#f5d6b8'][i % 4];
+  g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(X - 1.5, Y - 0.25, 4, 0.75);
+  R(-0.5 + (st ? 0.5 : 0), -1, 1, 0.5, '#2c2c2a'); R(1.5 - (st ? 0.5 : 0), -1, 1, 0.5, '#2c2c2a');
+  R(-0.5, -3.5, 1, 2.5, pants); R(1.5, -3.5, 1, 2.5, pkDark(pants, 0.75)); R(-0.5, -4, 3, 0.5, '#2c2c2a');
+  R(-1, -7, 4, 3, shirt); R(1.5, -7, 1.5, 3, dk); R(-1.5, -6.5, 0.5, 2.5, dk); R(3, -6.5, 0.5, 2.5, dk); R(-1.5, -4, 0.5, 0.5, sk); R(3, -4, 0.5, 0.5, sk);
+  if (o.tie) R(0.75, -7, 0.5, 2, o.tie); if (o.vest) { R(-1, -7, 0.5, 3, o.vest); R(2.5, -7, 0.5, 3, o.vest); }
+  R(-0.5, -9.5, 3, 2.5, sk); R(1.5, -9.5, 1, 2.5, pkDark(sk, 0.88)); R(0, -8.5, 0.5, 0.5, '#2c2c2a'); R(1.5, -8.5, 0.5, 0.5, '#2c2c2a');
+  if (o.helmet) { R(-1, -10.5, 4, 1.5, o.helmet); R(-1.5, -9.5, 5, 0.5, pkDark(o.helmet, 0.8)); } else { R(-0.5, -10.5, 3, 1.2, hair || '#412402'); R(-1, -10, 0.5, 1.5, hair || '#412402'); }
+  if (o.sign) { R(1, -15, 0.5, 6, '#854f0b'); R(-1, -17.5, 4.5, 3, '#e24b4a'); R(-0.5, -16.5, 3.5, 0.5, '#f1efe8'); }
+  if (o.clip) { R(3.5, -6.5, 1.5, 2, '#854f0b'); R(3.75, -6.25, 1, 1.2, '#f1efe8'); } }
+function pkSign(g, P, x, y, z, w, d, u0, u1, v0, v1, bg, bd, str, tc, logo) { const S = (u, v) => P(x + u, y + d, z + v); pkPoly(g, [S(u0 - 0.08, v0 - 0.6), S(u1 + 0.08, v0 - 0.6), S(u1 + 0.08, v1 + 0.6), S(u0 - 0.08, v1 + 0.6)], bd); pkPoly(g, [S(u0, v0), S(u1, v0), S(u1, v1), S(u0, v1)], bg);
+  let tx = 0; if (logo) tx = 3.5; const wpx = pkTextW(str) + tx, uc = (u0 + u1) / 2, a = S(uc, v1 - 0.6); const X = a[0] - wpx / 2, Y = a[1] - wpx / 4;
+  if (logo) { g.fillStyle = logo.c; for (let k = 0; k < 25; k++) if (logo.p[k] === '1') g.fillRect(Math.round((X + (k % 5) * 0.5) * 2) / 2, Math.round((Y + (k % 5) * 0.25 + Math.floor(k / 5) * 0.5) * 2) / 2, 0.5, 0.5); }
+  pkText(g, X + tx, Y + tx / 2, str, tc, 0.5); }
 // ------------------------------------------------ render
 const PAGES = { visao: pVisao, compras: pCompras, vendas: pVendas, despesas: pDespesas, recursos: pRecursos, estoques: pEstoques, custosGerais: pCustosGerais, custosProduto: pCustosProduto, caixa: pCaixa, contas: pContas,
   dre: pDRE, balanco: pBalanco, politicas: pPoliticas, analise: pAnalise, decisoes: pDecisoes, marketShare: pMarketShare, mod: pMOD, ranking: pRanking, balancos: (c) => pMercadoReal(c, 'balancos'), rentab: (c) => pMercadoReal(c, 'rentab'),
@@ -3501,7 +3532,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // ================================================ JOGO: jogadores, saves, configurações, cronômetro, cenários
-const APPVER = '21/11 00:05';
+const APPVER = '21/11 01:30';
 const SKEY = 'simEnividia.store.v1';
 // N empresas no mercado: o tamanho do mercado acompanha o número de empresas (4 = jogo original)
 function setCompanies(p, n) { n = Math.max(2, Math.min(6, +n || 4)); p.nCompanies = n; delete p.marketScale; delete p.nRegions; return p; }
